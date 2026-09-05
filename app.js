@@ -404,8 +404,16 @@ function findSignalHead(root) {
   let hit = null;
   root.traverse((o) => {
     if (hit) return;
-    if (/Traffic Light|HeroSignal/i.test(o.name || "")) hit = o;
+    if (/Traffic[_\s-]*Light|HeroSignal|信号灯/i.test(o.name || "")) hit = o;
   });
+  if (!hit) return null;
+  while (
+    hit.parent
+    && hit.parent !== root
+    && /Traffic[_\s-]*Light|HeroSignal|信号/i.test(hit.parent.name || "")
+  ) {
+    hit = hit.parent;
+  }
   return hit;
 }
 
@@ -603,10 +611,24 @@ function addLogoDecal(root) {
   loader.load(src, (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
     tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
-    const skip = /PED_|TL2_|Traffic Light|HeroSignal|主杆|105|灯条|拉环|环6|FENGKONG|PRT|^006$|太阳能|固定板|管套|柱子|螺柱|调节/;
-    const yBand = -0.3;
+    const skip = /PED_|TL2_|Traffic[_\s-]*Light|HeroSignal|主杆|105|灯条|拉环|环6|FENGKONG|PRT|^006$|太阳能|固定板|管套|柱子|螺柱|调节/;
     root.updateMatrixWorld(true);
     const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    let door = null;
+    root.traverse((o) => {
+      if (/^115-DOOR$/.test(o.name || "")) door = o;
+      if (!door && /AK-XLH-D115C-01-02-1|HeroCabinet/.test(o.name || "")) door = o;
+    });
+    let yBand = -0.3;
+    let logoW = 0.26;
+    if (door) {
+      const dc = worldBox(door).getCenter(new THREE.Vector3());
+      const ds = worldBox(door).getSize(new THREE.Vector3());
+      root.worldToLocal(dc);
+      yBand = dc.y;
+      const scale = Math.abs(root.scale?.x || 1) || 1;
+      logoW = Math.max(0.26, Math.min(ds.x, ds.z) / scale * 0.82);
+    }
     let zMin = Infinity;
     let zMax = -Infinity;
     const v = new THREE.Vector3();
@@ -616,16 +638,23 @@ function addLogoDecal(root) {
       const step = Math.max(1, pos.count >> 7);
       for (let i = 0; i < pos.count; i += step) {
         v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
-        if (Math.abs(v.x) > 0.22 || Math.abs(v.y - yBand) > 0.13) continue;
+        if (Math.abs(v.x) > 0.22 || Math.abs(v.y - yBand) > 0.18) continue;
         if (v.z < zMin) zMin = v.z;
         if (v.z > zMax) zMax = v.z;
       }
     });
+    if (door && (!Number.isFinite(zMin) || !Number.isFinite(zMax))) {
+      const db = worldBox(door);
+      const a = db.min.clone().applyMatrix4(inv);
+      const b = db.max.clone().applyMatrix4(inv);
+      zMin = Math.min(a.z, b.z);
+      zMax = Math.max(a.z, b.z);
+    }
     const backZ = Number.isFinite(zMax) ? zMax : 0.2525;
     const frontZ = Number.isFinite(zMin) ? zMin : -0.2525;
     const place = (name, x, y, z, yaw) => {
       const plate = new THREE.Mesh(
-        new THREE.PlaneGeometry(0.26, 0.26 * 0.698),
+        new THREE.PlaneGeometry(logoW, logoW * 0.698),
         new THREE.MeshBasicMaterial({
           map: tex,
           transparent: true,
@@ -643,7 +672,7 @@ function addLogoDecal(root) {
     place("PortaboomLogoFace", 0, yBand, frontZ - 0.002, Math.PI);
     // Opposite face — the only other PORTABOOM mark (livery.ts)
     place("PortaboomLogoOpposite", 0, yBand, backZ + 0.002, 0);
-    root.userData.logoWorldW = 0.26 * (root.scale?.x || 1);
+    root.userData.logoWorldW = logoW * (root.scale?.x || 1);
   }, undefined, () => {
     loader.load("./portaboom_logo.png", (tex) => {
       tex.colorSpace = THREE.SRGBColorSpace;
@@ -1062,6 +1091,7 @@ function mountCad(gltf, label) {
     baseScale = s || 1;
     boom.userData.restY = boom.position.y;
     scene.add(boom);
+    faceSignalHead(boom);
     usingGlb = true;
     boomRig = rigBoomMaster(boom);
     if (boomRig) boomRig.speed = 38;
@@ -1223,6 +1253,7 @@ window.__iqr = {
       signalAspect,
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
+      signalName: findSignalHead(boom)?.name ?? null,
       signalYaw: pivot?.rotation?.y ?? null,
       signalFaced: !!findSignalHead(boom)?.userData?.signalFaced,
       boomPct: boomRig?.shownPct ?? null,
