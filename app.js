@@ -332,12 +332,10 @@ function worldScaleAbs(o) {
  */
 function measureSignWorldDiameter() {
   const face = signGroup?.getObjectByName("PortaboomStopFace");
-  if (!face?.geometry) return plantedProof?.signDiameterWorld ?? null;
-  face.updateWorldMatrix(true, false);
-  if (!face.geometry.boundingBox) face.geometry.computeBoundingBox();
-  const sz = face.geometry.boundingBox.getSize(new THREE.Vector3());
-  const localD = Math.max(sz.x, sz.y);
-  return +(localD * worldScaleAbs(face)).toFixed(4);
+  if (!face) return plantedProof?.signDiameterWorld ?? null;
+  // Vertex/circle diameter: 2 × localR × face world scale (not AABB —
+  // an octagon AABB is flat-to-flat, ~8% short of Ø400 mm).
+  return +(2 * signRadiusLocal * worldScaleAbs(face)).toFixed(4);
 }
 
 /**
