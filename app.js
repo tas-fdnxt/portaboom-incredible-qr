@@ -393,7 +393,7 @@ function stripeMaterial(geometry) {
     envMapIntensity: 1.4,
     emissive: new THREE.Color(0x000000),
     emissiveIntensity: 0,
-    toneMapped: true,
+    toneMapped: false,
   });
   mat.userData.stripe = true;
   mat.userData.stripePeriod = period;
