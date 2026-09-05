@@ -34,7 +34,7 @@ Proof lives on `__iqr.snap` (`signDiameterM`, `signDiameterWorld`, `signWorldDia
 ## STOP legend 180°
 
 Texture: `translate(cx,cy); rotate(π); fillText("STOP")` — Fabian “wording to 180°”.
-`tickSignUpright` holds the boom-up pose (`inner.z = −(pivot.z − rest)`). `rest ≈ π`, so legend world rotation is `rest + π ≈ 0` (upright in the default boom-up view) and stays that way as the arm drops.
+`tickSignUpright` sets `inner.z = −pivot.z` (full cancel). Holding only the drop-delta left the face at `rest ≈ π`, which + canvas `flipY` kept the legend inverted in the default boom-up view. Full cancel + 180° draw reads upright and stays readable as the arm drops.
 
 ## Stripe pass 2 (pixel-sampled)
 

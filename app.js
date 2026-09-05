@@ -293,15 +293,16 @@ function nudgeSign(dir) {
 }
 
 /**
- * Keep the 180°-drawn legend readable: hold the boom-up pose, then
- * only counter-rotate the delta as the arm drops (no extra −rest flip).
+ * 180° canvas legend + full pivot cancel. Boom-up rest is ≈π; holding
+ * that rest (only cancelling the drop delta) left STOP inverted against
+ * CanvasTexture flipY. Counter the whole pivot.z so wording stays
+ * world-upright in the default boom-up view and as the arm lowers.
  */
 function tickSignUpright() {
   if (!signGroup || !boomRig?.pivot) return;
   const inner = signGroup.getObjectByName("PortaboomStopInner") || signGroup.children[0];
   if (!inner) return;
-  const rest = boomRig.rest || 0;
-  inner.rotation.z = -(boomRig.pivot.rotation.z - rest);
+  inner.rotation.z = -boomRig.pivot.rotation.z;
 }
 
 function setSignType(type) {
