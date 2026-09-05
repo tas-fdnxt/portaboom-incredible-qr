@@ -1,5 +1,6 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -273,40 +274,57 @@ function removeHero() {
 
 setStatus("Preview only. Loading PB4000 twin.");
 
-new GLTFLoader().load(
-  new URL("./pb4000_named.glb", import.meta.url).href,
-  (gltf) => {
-    try {
-      const cad = gltf.scene;
-      cad.name = "Pb4000Named";
-      const probe = new THREE.Box3().setFromObject(cad);
-      const probeSize = probe.getSize(new THREE.Vector3());
-      if (Math.max(probeSize.x, probeSize.y, probeSize.z) < 0.05) {
-        setStatus("Placeholder GLB. Hero stand-in stays until Master Builder pushes M6.");
-        return;
-      }
-      paintGlb(cad);
-      const s = fitObject(cad, 2.25);
-      removeHero();
-      boom = cad;
-      baseScale = s;
-      boom.userData.restY = boom.position.y;
-      scene.add(boom);
-      usingGlb = true;
-      setStatus("Idle. PB4000 twin on QR grid. Tap to flatten.");
-    } catch (err) {
-      console.error(err);
-      setStatus("CAD parse error. Hero stand-in still live.");
+const loader = new GLTFLoader();
+loader.setMeshoptDecoder(MeshoptDecoder);
+
+function mountCad(gltf, label) {
+  try {
+    const cad = gltf.scene;
+    cad.name = "Pb4000Twin";
+    const probe = new THREE.Box3().setFromObject(cad);
+    const probeSize = probe.getSize(new THREE.Vector3());
+    if (Math.max(probeSize.x, probeSize.y, probeSize.z) < 0.05) {
+      setStatus("Placeholder GLB. Hero stand-in stays.");
+      return;
     }
-  },
+    paintGlb(cad);
+    const s = fitObject(cad, 2.25);
+    removeHero();
+    boom = cad;
+    baseScale = s;
+    boom.userData.restY = boom.position.y;
+    scene.add(boom);
+    usingGlb = true;
+    setStatus(label);
+  } catch (err) {
+    console.error(err);
+    setStatus("CAD parse error. Hero stand-in still live.");
+  }
+}
+
+const GOLDEN = new URL("./pb4000_master.compressed.glb", import.meta.url).href;
+const NAMED = new URL("./pb4000_named.glb", import.meta.url).href;
+
+loader.load(
+  GOLDEN,
+  (gltf) => mountCad(gltf, "Idle. Golden PB4000 twin on QR grid. Tap to flatten."),
   (e) => {
     if (e.total && !usingGlb) {
-      setStatus(`Loading PB4000 twin ${Math.round((100 * e.loaded) / e.total)}%.`);
+      setStatus(`Loading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
     }
   },
   (err) => {
-    console.error(err);
-    setStatus("CAD blocked. Hero stand-in still live. Tap to flatten.");
+    console.warn("golden failed, trying named", err);
+    setStatus("Golden blocked. Loading named twin…");
+    loader.load(
+      NAMED,
+      (gltf) => mountCad(gltf, "Idle. PB4000 twin on QR grid. Tap to flatten."),
+      undefined,
+      (err2) => {
+        console.error(err2);
+        setStatus("CAD blocked. Hero stand-in still live. Tap to flatten.");
+      }
+    );
   }
 );
 
