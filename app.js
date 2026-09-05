@@ -1090,6 +1090,7 @@ function mountCad(gltf, label) {
 
 const NAMED = new URL("./pb4000_named.glb", import.meta.url).href;
 const GOLDEN = new URL("./pb4000_master.compressed.glb", import.meta.url).href;
+const GOLDEN_FULL = new URL("./pb4000_master_NAMED-51parts_GOLDEN.glb", import.meta.url).href;
 
 function loadNamed(reason) {
   console.warn(reason);
@@ -1143,9 +1144,21 @@ async function bootTwin() {
         }
       },
       (err) => {
-        console.warn("golden failed", err);
-        clearTimeout(watchdog);
-        fallbackNamed("golden-error");
+        console.warn("meshopt golden failed; trying full 19MB golden", err);
+        loader.load(
+          GOLDEN_FULL,
+          (gltf) => {
+            clearTimeout(watchdog);
+            if (flat) return;
+            mountCad(gltf, "Idle. Full GOLDEN PB4000 twin. Tap to flatten.");
+          },
+          undefined,
+          (err2) => {
+            console.warn("full golden failed", err2);
+            clearTimeout(watchdog);
+            fallbackNamed("golden-error");
+          }
+        );
       }
     );
   } catch (e) {
