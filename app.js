@@ -446,7 +446,6 @@ function removeHero() {
 setStatus("Preview only. Loading PB4000 twin.");
 
 const loader = new GLTFLoader();
-loader.setMeshoptDecoder(MeshoptDecoder);
 
 function mountCad(gltf, label) {
   try {
@@ -479,28 +478,63 @@ function mountCad(gltf, label) {
 const GOLDEN = new URL("./pb4000_master.compressed.glb", import.meta.url).href;
 const NAMED = new URL("./pb4000_named.glb", import.meta.url).href;
 
-loader.load(
-  GOLDEN,
-  (gltf) => mountCad(gltf, "Idle. Golden PB4000 twin on QR grid. Tap to flatten."),
-  (e) => {
-    if (e.total && !usingGlb) {
-      setStatus(`Loading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
-    }
-  },
-  (err) => {
-    console.warn("golden failed, trying named", err);
-    setStatus("Golden blocked. Loading named twin…");
-    loader.load(
-      NAMED,
-      (gltf) => mountCad(gltf, "Idle. PB4000 twin on QR grid. Tap to flatten."),
-      undefined,
-      (err2) => {
-        console.error(err2);
-        setStatus("CAD blocked. Hero stand-in still live. Tap to flatten.");
+function loadNamed(reason) {
+  console.warn(reason);
+  setStatus("Loading named twin…");
+  loader.load(
+    NAMED,
+    (gltf) => mountCad(gltf, "Idle. PB4000 twin on QR grid. Tap to flatten."),
+    (e) => {
+      if (e.total && !usingGlb) {
+        setStatus(`Loading named twin ${Math.round((100 * e.loaded) / e.total)}%.`);
       }
-    );
+    },
+    (err2) => {
+      console.error(err2);
+      setStatus("CAD blocked. Hero stand-in still live. Tap to flatten.");
+    }
+  );
+}
+
+async function bootTwin() {
+  try {
+    // Meshopt WASM must be ready or compressed golden hangs forever on "Loading…"
+    if (MeshoptDecoder.ready) await MeshoptDecoder.ready;
+    loader.setMeshoptDecoder(MeshoptDecoder);
+  } catch (e) {
+    console.warn("Meshopt ready failed", e);
+    loadNamed("meshopt-ready-failed");
+    return;
   }
-);
+  let settled = false;
+  const watchdog = setTimeout(() => {
+    if (settled || usingGlb) return;
+    settled = true;
+    setStatus("Golden slow. Switching to named twin…");
+    loadNamed("golden-watchdog-12s");
+  }, 12000);
+  loader.load(
+    GOLDEN,
+    (gltf) => {
+      if (settled && usingGlb) return;
+      settled = true;
+      clearTimeout(watchdog);
+      mountCad(gltf, "Idle. Golden PB4000 twin on QR grid. Tap to flatten.");
+    },
+    (e) => {
+      if (e.total && !usingGlb) {
+        setStatus(`Loading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
+      }
+    },
+    (err) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(watchdog);
+      loadNamed(err);
+    }
+  );
+}
+bootTwin();
 
 function setFlat(next) {
   flat = next;
