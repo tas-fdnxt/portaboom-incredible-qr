@@ -419,14 +419,37 @@ function findSignalHead(root) {
 
 /**
  * twin-core instance.ts: head.group.rotation.y = yaw.
- * Door is local −Z; lantern openings are local +Z — opposite after the
- * Math.PI plant. Yaw the imported Traffic Light node in place (do not
- * orbit a bbox pivot — that swings the head off the mast).
+ * After model.rotation.y = Math.PI the named GLB lanterns already face
+ * the door / viewer. Only add π if a lens normal points away from camera
+ * (do not orbit a bbox pivot — that swings the head off the mast).
  */
 function faceSignalHead(root) {
   const signal = findSignalHead(root);
   if (!signal || signal.userData.signalFaced) return signal;
-  signal.rotation.y += Math.PI;
+  root.updateMatrixWorld(true);
+  let lens = null;
+  signal.traverse((o) => {
+    if (lens || !o.isMesh || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    const sz = o.geometry.boundingBox.getSize(new THREE.Vector3());
+    const sorted = [sz.x, sz.y, sz.z].sort((a, b) => a - b);
+    if (sorted[0] < 0.045 && Math.abs(sorted[1] - sorted[2]) < 0.1 && sorted[1] > 0.07) lens = o;
+  });
+  if (lens) {
+    const axis = (() => {
+      const sz = lens.geometry.boundingBox.getSize(new THREE.Vector3());
+      const a = sz.x <= sz.y && sz.x <= sz.z
+        ? new THREE.Vector3(1, 0, 0)
+        : sz.y <= sz.z
+          ? new THREE.Vector3(0, 1, 0)
+          : new THREE.Vector3(0, 0, 1);
+      a.transformDirection(lens.matrixWorld);
+      return a;
+    })();
+    const toCam = new THREE.Vector3(camera.position.x, 0, camera.position.z).normalize();
+    if (axis.dot(toCam) < 0) axis.negate();
+    if (axis.dot(toCam) < 0.2) signal.rotation.y += Math.PI;
+  }
   signal.userData.signalFaced = true;
   root.userData.signalPivot = signal;
   root.updateMatrixWorld(true);
