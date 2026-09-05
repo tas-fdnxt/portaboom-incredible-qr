@@ -246,6 +246,7 @@ function plantTwin(obj, targetLen = 2.55) {
   size = box.getSize(new THREE.Vector3());
   camera.position.set(2.8, Math.max(1.45, size.y * 0.75), 3.4);
   camera.lookAt(0, size.y * 0.38, 0);
+  return targetLen / longest;
 }
 
 let boomRig = null; // { pivot, rest, drop, shownPct, targetPct }
@@ -458,15 +459,17 @@ function mountCad(gltf, label) {
       return;
     }
     paintGlb(cad);
-    const s = plantTwin(cad, 2.25);
+    const s = plantTwin(cad, 2.55);
     removeHero();
     boom = cad;
-    baseScale = s;
+    baseScale = s || 1;
     boom.userData.restY = boom.position.y;
     scene.add(boom);
     usingGlb = true;
+    boomRig = rigBoomMaster(boom);
     addLogoDecal(boom);
-    setStatus(label);
+    if (boomRig) setStatus(label + " · boom live");
+    else setStatus(label);
   } catch (err) {
     console.error(err);
     setStatus("CAD parse error. Hero stand-in still live.");
