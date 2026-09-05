@@ -7,15 +7,16 @@ Phone door for PORTABOOM PB4000 Incredible QR (Output C / golden).
 - `qr.png` — QR art
 - Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
-## Meshes rigged (this cut)
+## HARD LOCK (clean core bake)
 
-- **Boom / orange:** `主杆`, `105-5`, `105_1`, `105-0`, `灯条`, `胶条` / `FENGKONGGAI*`, `PRT00033`, `PRT0001`, `006` — TAS `#EE7202`.
-- **Cabinet / cream:** `AK-XLH-D115C-01-01*` (body, doors), `01-02`, `01-03`, `01-04`, `小门`, `115-DOOR`.
-- **Navy accents:** `太阳能板`, `01-01-4`, `01-01-5`, `01-01-8`.
-- **Signal head:** `Traffic Light 20260330(1).STEP` — housing forced black; three thin discs stacked by world Y = red / amber / green, emissive + halo + point light.
-- **Twin round LEDs:** product meshes were not two clear beacons (XT parts are 6×15 mm fasteners). **Invented** `ProductLed_A` / `ProductLed_B` — 100 mm amber/orange emissive discs + dome + halo, parented to the signal head flanks so they stay in the hero frame and pulse with boom motion.
-- **Logos:** `PortaboomLogoFace` (`portaboom_logo_reversed.png`) on the camera-facing cabinet; `PortaboomLogoSide` (`portaboom_logo.png`) on the three-quarter side; `PortaboomLogoHero` (`portaboom-pb4000-master.png`) product plate. Large, readable.
-- **Camera:** locked three-quarter hero. No continuous model spin.
+1. Front of unit. No OrbitControls. No auto-rotate.
+2. Twin-core face LEDs + boom strip: green raised-at-rest / red flash moving-or-down. **No** invented amber `ProductLed` flanks.
+3. Traffic 3-aspect red / amber / green on the one head.
+4. Twin-core yaw from merged PR #7: `model.rotation.y = Math.PI`; Traffic Light yaws in place so lenses face the cabinet front.
+5. Twin livery: `door_decal.png` PORTABOOM on front + opposite face (`115-DOOR`).
+6. SHOW CONFIG = clean core: cabinet + boom + **one** traffic head. Hide `太阳能板` and any 2nd head / pedestrian (`PED_` / `TL2_`).
+7. Phone-safe named GLB (no Meshopt). Showtime-lock camera.
+8. Cache-bust: `app.js?v=core1`.
 
 DEST stays https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
 

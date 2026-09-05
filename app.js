@@ -9,6 +9,18 @@ const STEEL = 0xc5cad3;
 const INK = 0x202020;
 const DEST = "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/";
 
+/**
+ * Fabian HARD LOCK — Incredible QR twin SHOW CONFIG = clean core only.
+ * KEEP: cabinet + boom arm + ONE traffic head.
+ * HIDE: solar + 2nd traffic head OR pedestrian light.
+ * Do not invent amber ProductLed flank discs.
+ */
+const SHOW_CONFIG = Object.freeze({
+  solar: false,
+  secondHead: false,
+  productLedFlanks: false,
+});
+
 /** Twin-core lights.ts updateLeds SoT. Face rounds + boom strip. Red+green only. */
 const FACE_GREEN = 0x3fe868;
 const FACE_GREEN_BASE = 0x062c10;
@@ -250,10 +262,7 @@ function makeHeroBoom() {
   tip.position.set(armLen - 0.02, 0, 0);
   arm.add(tip);
   g.add(arm);
-  const solar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.02, 0.28), matNavy);
-  solar.position.set(-0.85, 0.58, 0);
-  solar.rotation.x = -0.25;
-  g.add(solar);
+  // SHOW CONFIG core: no solar on the hero stand-in.
   const head = new THREE.Group();
   head.name = "HeroSignalHead";
   head.position.set(-0.22, 1.22, 0.02);
@@ -292,6 +301,7 @@ function makeHeroBoom() {
 }
 
 let boom = makeHeroBoom();
+applyCoreShowConfig(boom);
 boom.userData.plantedYaw = yawFaceCamera(false);
 boom.rotation.y = boom.userData.plantedYaw;
 scene.add(boom);
@@ -308,9 +318,26 @@ function setStatus(text) {
 }
 
 
+function isVisibleInTree(o) {
+  let p = o;
+  while (p) {
+    if (p.visible === false) return false;
+    p = p.parent;
+  }
+  return true;
+}
+
 function worldBox(obj) {
   obj.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(obj);
+  const box = new THREE.Box3();
+  let any = false;
+  obj.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!isVisibleInTree(o)) return;
+    box.expandByObject(o);
+    any = true;
+  });
+  return any ? box : new THREE.Box3().setFromObject(obj);
 }
 
 function ancestorBlob(o) {
@@ -340,8 +367,9 @@ function gatherHeroBox(root) {
   root.traverse((o) => {
     if (!o.isMesh) return;
     const n = ancestorBlob(o);
+    if (!isVisibleInTree(o)) return;
     if (!/115-DOOR|AK-XLH-D115C-01-01|Traffic[_\s-]*Light|HeroCabinet|PortaboomChromePlate|PortaboomFaceLed/i.test(n)) return;
-    if (/PART_|GB_T|螺钉|垫|自攻/.test(n)) return;
+    if (/PART_|GB_T|螺钉|垫|自攻|太阳能|solar|PED_|TL2_/i.test(n)) return;
     box.union(new THREE.Box3().setFromObject(o));
     any = true;
   });
@@ -440,6 +468,57 @@ function isDescendantOf(o, ancestor) {
     p = p.parent;
   }
   return false;
+}
+
+/**
+ * SHOW CONFIG = clean core. Hide solar + extra signal (2nd traffic head
+ * or pedestrian lantern). Keep cabinet, boom, and the first traffic head.
+ * Never spawn ProductLed flank discs.
+ */
+function applyCoreShowConfig(root) {
+  if (!root) return;
+  const solarHits = [];
+  root.traverse((o) => {
+    if (/太阳能|solar/i.test(o.name || "")) solarHits.push(o);
+  });
+  const solarHidden = [];
+  solarHits.forEach((o) => {
+    if (solarHits.some((p) => p !== o && isDescendantOf(o, p))) return;
+    o.visible = false;
+    solarHidden.push(o.name || "solar");
+  });
+
+  const lightHits = [];
+  root.traverse((o) => {
+    const n = o.name || "";
+    if (/灯条/.test(n)) return;
+    if (/PED_|TL2_|行人|人行|pedestrian|walk[_\s-]*light|walk[_\s-]*signal/i.test(n)) {
+      lightHits.push(o);
+      return;
+    }
+    if (/Traffic[_\s.-]*Light|HeroSignal|信号灯/i.test(n)) lightHits.push(o);
+  });
+  const tops = lightHits.filter((o) => !lightHits.some((p) => p !== o && isDescendantOf(o, p)));
+  const keep = tops.find((o) => /Traffic[_\s.-]*Light|HeroSignal/i.test(o.name || "") && !/PED_|TL2_/i.test(o.name || ""))
+    || tops[0]
+    || null;
+  const extraHidden = [];
+  tops.forEach((o) => {
+    if (o === keep) return;
+    o.visible = false;
+    extraHidden.push(o.name || "extra-head");
+  });
+
+  root.traverse((o) => {
+    if (/ProductLed/i.test(o.name || "")) o.visible = false;
+  });
+
+  root.userData.coreShow = {
+    solarHidden,
+    extraHidden,
+    keepName: keep?.name || null,
+    headsKept: keep ? 1 : 0,
+  };
 }
 
 /** Port of twin-core rigBoomMaster — rotates 主杆 up/down about shaft hinge. */
@@ -678,6 +757,7 @@ function addLogoDecal(root) {
 }
 
 function paintGlb(root) {
+  applyCoreShowConfig(root);
   const matOrange = new THREE.MeshStandardMaterial({
     color: ORANGE, roughness: 0.38, metalness: 0.1, emissive: ORANGE, emissiveIntensity: 0.04,
   });
@@ -687,8 +767,13 @@ function paintGlb(root) {
   const skip = /垫|螺钉|螺柱|开口销|PART_244|PART_609|PART_602|GB_T|自攻|十字槽|环芯/i;
   root.traverse((o) => {
     if (!o.isMesh) return;
+    if (!isVisibleInTree(o)) return;
     const name = `${o.name || ""}|${o.parent?.name || ""}`;
     const traffic = isTrafficNode(o);
+    if (/太阳能|solar|PED_|TL2_|行人|人行|pedestrian/i.test(name) && !/Traffic[_\s.-]*Light|HeroSignal/i.test(name)) {
+      o.visible = false;
+      return;
+    }
     if (skip.test(name) && !traffic) {
       o.visible = false;
       return;
@@ -787,7 +872,7 @@ function rigTrafficLamps(root) {
   const signalMeshes = [];
   root.traverse((o) => {
     if (!o.isMesh) return;
-    if (/Traffic Light|HeroLens|HeroSignal/i.test(ancestorBlob(o))) signalMeshes.push(o);
+    if (/Traffic[_\s.-]*Light|HeroLens|HeroSignal|信号灯/i.test(ancestorBlob(o))) signalMeshes.push(o);
   });
 
   const byColor = { red: [], amber: [], green: [], housing: [] };
@@ -1184,7 +1269,8 @@ resize();
 const clock = new THREE.Clock();
 function tick() {
   requestAnimationFrame(tick);
-  const t = clock.getElapsedTime();
+  const dt = Math.min(0.05, clock.getDelta());
+  const t = clock.elapsedTime;
   flatT = Math.min(1, flatT + 0.045);
   const k = flat ? flatT : 1 - flatT;
   for (const m of mods) {
@@ -1206,7 +1292,6 @@ function tick() {
     const sc = usingGlb ? baseScale : 1;
     boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
   }
-  const dt = Math.min(0.05, clock.getDelta());
   tickBoom(dt);
   tickShow(dt);
   updateLeds();
@@ -1237,10 +1322,30 @@ window.__iqr = {
     const faces = [];
     boom?.traverse?.((o) => { if (o.name === "PortaboomFaceLed") faces.push(o.name); });
     const pivot = boom?.userData?.signalPivot;
+    let solarVisible = 0;
+    let extraHeads = 0;
+    let productLeds = 0;
+    let trafficHeads = 0;
+    boom?.traverse?.((o) => {
+      const n = o.name || "";
+      if (/太阳能|solar/i.test(n) && isVisibleInTree(o)) solarVisible += 1;
+      if (/ProductLed/i.test(n) && o.visible) productLeds += 1;
+      if (/灯条/.test(n)) return;
+      if (/Traffic[_\s.-]*Light|HeroSignal/i.test(n) && isVisibleInTree(o) && !/Traffic[_\s.-]*Light|HeroSignal/i.test(o.parent?.name || "")) {
+        trafficHeads += 1;
+      }
+      if (/PED_|TL2_|行人|人行|pedestrian/i.test(n) && isVisibleInTree(o)) extraHeads += 1;
+    });
     return {
       usingGlb,
       showMode,
       signalAspect,
+      showConfig: SHOW_CONFIG,
+      coreShow: boom?.userData?.coreShow || null,
+      solarVisible,
+      trafficHeads,
+      extraHeads,
+      productLeds,
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
       signalName: findSignalHead(boom)?.name ?? null,
