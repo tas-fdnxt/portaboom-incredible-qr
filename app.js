@@ -166,7 +166,7 @@ function polishTwin(root) {
   });
 }
 
-const MODEL = "./pb4000_master.compressed.glb";
+const MODEL = "https://raw.githubusercontent.com/tas-fdnxt/portaboom-incredible-qr/main/pb4000_master.compressed.glb";
 statusEl.textContent = "Fetching golden PB4000 twin…";
 new GLTFLoader().load(
   MODEL,
