@@ -255,6 +255,7 @@ function hash(i, j) {
 
 const grid = new THREE.Group();
 grid.name = "QrModuleGrid";
+grid.visible = false;
 scene.add(grid);
 
 const moduleMat = new THREE.MeshStandardMaterial({
@@ -498,12 +499,12 @@ function lockHeroCamera(root) {
   camera.updateProjectionMatrix();
   const fov = THREE.MathUtils.degToRad(camera.fov);
   const aspect = Math.max(0.55, camera.aspect || 1);
-  const distH = (size.y * 1.22) / (2 * Math.tan(fov / 2));
-  const distW = (Math.max(size.x, size.z) * 1.55) / (2 * Math.tan(fov / 2) * aspect);
-  const dist = Math.max(distH, distW, 1.35);
+  const distH = (size.y * 1.38) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 1.72) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 1.7);
   camera.position.set(
     center.x + faceDir.x * dist,
-    center.y + size.y * 0.04,
+    center.y + size.y * 0.16,
     center.z + faceDir.z * dist
   );
   camera.lookAt(center.x, center.y + size.y * 0.02, center.z);
@@ -1526,6 +1527,8 @@ function tick() {
   const t = clock.elapsedTime;
   flatT = Math.min(1, flatT + 0.045);
   const k = flat ? flatT : 1 - flatT;
+  grid.visible = k > 0.02;
+  studioGroup.visible = k < 0.92;
   for (const m of mods) {
     const breathe = reduced ? 0 : Math.sin(t * 2.2 + m.userData.phase) * 0.012;
     m.position.y = THREE.MathUtils.lerp(m.userData.baseY + breathe, 0.03, k);
