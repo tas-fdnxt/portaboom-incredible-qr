@@ -401,7 +401,7 @@ function setBoomPct(pct) {
 function tickBoom(dt) {
   if (!boomRig || !boomRig.pivot) return;
   const d = boomRig.targetPct - boomRig.shownPct;
-  const step = Math.min(Math.abs(d), 55 * dt);
+  const step = Math.min(Math.abs(d), 28 * dt);
   if (step > 0.01) boomRig.shownPct += Math.sign(d) * step;
   else boomRig.shownPct = boomRig.targetPct;
   const p = boomRig.shownPct / 100;
@@ -438,6 +438,7 @@ function paintGlb(root) {
   const matWhite = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.5, metalness: 0.05 });
   const matNavy = new THREE.MeshStandardMaterial({ color: NAVY, roughness: 0.44, metalness: 0.12 });
   const matSteel = new THREE.MeshStandardMaterial({ color: STEEL, roughness: 0.3, metalness: 0.5 });
+  const matSignalBlack = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.55, metalness: 0.12 });
   const skip = /垫|螺钉|螺柱|开口销|PART_244|PART_609|PART_602|GB_T|自攻|十字槽|环芯/i;
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -454,12 +455,143 @@ function paintGlb(root) {
     }
     o.castShadow = true;
     o.receiveShadow = true;
+    // Black signal head housing (never grey/white)
+    if (/Traffic Light|traffic|TL[_ ]|灯箱|信号|信号灯|signal/i.test(name) && !/lens|玻璃|disc|灯片/i.test(name)) {
+      o.material = matSignalBlack;
+      return;
+    }
     if (/主杆|灯条|胶条|杆|橙|orange|105/i.test(name)) o.material = matOrange;
     else if (/车轮|wheel/i.test(name)) o.material = matSteel;
     else if (/太阳能|solar/i.test(name)) o.material = matNavy;
-    else if (/箱|柜|门|compound|traffic/i.test(name)) o.material = matWhite;
+    else if (/箱|柜|门|compound/i.test(name)) o.material = matWhite;
     else o.material = r > 0.2 ? matOrange : matWhite;
   });
+}
+
+const LAMP_COL = { red: 0xff2a1a, amber: 0xffa51e, green: 0x2aff55 };
+let lampMats = { red: null, amber: null, green: null };
+let signalAspect = "green";
+let amberUntil = 0;
+let lastShownPct = 100;
+
+/** Find 3 lens discs in traffic head by height: top=red, mid=amber, bottom=green. */
+function rigTrafficLamps(root) {
+  lampMats = { red: null, amber: null, green: null };
+  const candidates = [];
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    const name = `${o.name || ""}|${o.parent?.name || ""}`;
+    if (!/Traffic Light|traffic|TL|灯|信号|lens|玻璃/i.test(name) && !/Traffic Light/i.test(o.parent?.parent?.name || "")) {
+      // still allow small discs near head
+    }
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const r = o.geometry.boundingSphere?.radius || 0;
+    if (r < 0.02 || r > 0.22) return;
+    const box = new THREE.Box3().setFromObject(o);
+    const size = box.getSize(new THREE.Vector3());
+    const roundish = Math.abs(size.x - size.y) < 0.08 || Math.abs(size.x - size.z) < 0.08;
+    if (!roundish && size.z > 0.15 && size.x > 0.15) return; // skip big panels
+    const c = box.getCenter(new THREE.Vector3());
+    candidates.push({ o, y: c.y, r });
+  });
+  // Prefer clusters: take 3 discs closest in XZ with distinct Y
+  candidates.sort((a, b) => b.y - a.y);
+  const picks = candidates.slice(0, 12);
+  // group by similar XZ
+  let best = null;
+  for (let i = 0; i < picks.length; i++) {
+    const seed = picks[i];
+    const near = picks.filter((p) => {
+      const a = new THREE.Box3().setFromObject(seed.o).getCenter(new THREE.Vector3());
+      const b = new THREE.Box3().setFromObject(p.o).getCenter(new THREE.Vector3());
+      return Math.hypot(a.x - b.x, a.z - b.z) < 0.35;
+    });
+    near.sort((a, b) => b.y - a.y);
+    if (near.length >= 3 && (!best || near.length > best.length)) best = near.slice(0, 3);
+  }
+  const trio = best || picks.slice(0, 3);
+  if (trio.length < 3) {
+    console.warn("traffic lamps: only", trio.length);
+  }
+  const kinds = ["red", "amber", "green"];
+  trio.forEach((item, i) => {
+    const kind = kinds[Math.min(i, 2)];
+    const mat = new THREE.MeshStandardMaterial({
+      color: 0x17120f,
+      emissive: LAMP_COL[kind],
+      emissiveIntensity: 0.15,
+      roughness: 0.25,
+      metalness: 0.05,
+      toneMapped: false,
+    });
+    item.o.material = mat;
+    lampMats[kind] = mat;
+  });
+  // Force any remaining Traffic Light meshes black if not lamps
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const name = `${o.name || ""}|${o.parent?.name || ""}`;
+    if (!/Traffic Light|traffic|信号/i.test(name)) return;
+    if (Object.values(lampMats).includes(o.material)) return;
+    o.material = new THREE.MeshStandardMaterial({ color: 0x0a0a0a, roughness: 0.55, metalness: 0.12 });
+  });
+  setSignalAspect("green");
+}
+
+function setSignalAspect(kind) {
+  signalAspect = kind;
+  for (const k of ["red", "amber", "green"]) {
+    const m = lampMats[k];
+    if (!m) continue;
+    m.emissiveIntensity = k === kind ? 9.0 : 0.12;
+  }
+}
+
+/** Fabian lock: green only when boom UP at rest; amber ~2s before drop; red while moving or down. */
+function syncSignalToBoom() {
+  if (!boomRig) return;
+  const moving = Math.abs(boomRig.shownPct - boomRig.targetPct) > 3;
+  const now = performance.now();
+  if (Math.abs(boomRig.shownPct - lastShownPct) > 0.05) {
+    // kinematic moving
+  }
+  lastShownPct = boomRig.shownPct;
+  const up = boomRig.shownPct >= 95 && boomRig.targetPct >= 95 && !moving;
+  const down = boomRig.shownPct <= 8 && boomRig.targetPct <= 8;
+  if (up) {
+    amberUntil = 0;
+    setSignalAspect("green");
+    return;
+  }
+  if (now < amberUntil) {
+    setSignalAspect("amber");
+    return;
+  }
+  // moving or down = red
+  setSignalAspect("red");
+}
+
+function requestBoomLower() {
+  if (!boomRig) return;
+  amberUntil = performance.now() + 2000;
+  setSignalAspect("amber");
+  setBoomPct(0);
+  setStatus("Amber… then boom lowering (red)");
+  setTimeout(() => {
+    if (!boomRig) return;
+    setBoomPct(0);
+    setSignalAspect("red");
+    setStatus("Boom lowering… red");
+  }, 2000);
+}
+
+function requestBoomRaise() {
+  if (!boomRig) return;
+  amberUntil = 0;
+  setSignalAspect("red");
+  setBoomPct(100);
+  setStatus("Boom raising… red until up");
 }
 
 function removeHero() {
@@ -507,8 +639,9 @@ function mountCad(gltf, label) {
     scene.add(boom);
     usingGlb = true;
     boomRig = rigBoomMaster(boom);
+    rigTrafficLamps(boom);
     addLogoDecal(boom);
-    if (boomRig) setStatus(label + " · boom live");
+    if (boomRig) setStatus(label + " · boom live · signal live");
     else setStatus(label);
   } catch (err) {
     console.error(err);
@@ -622,7 +755,9 @@ function tick() {
     const sc = usingGlb ? baseScale : 1;
     boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
   }
-  tickBoom(0.016);
+  const dt = Math.min(0.05, clock.getDelta());
+  tickBoom(dt);
+  syncSignalToBoom();
   renderer.render(scene, camera);
 }
 tick();
@@ -635,12 +770,14 @@ const boomBtn = document.getElementById("boomBtn");
 if (boomBtn) {
   boomBtn.addEventListener("click", () => {
     if (!boomRig) return;
-    setBoomPct(boomRig.targetPct >= 50 ? 0 : 100);
-    setStatus(boomRig.targetPct >= 50 ? "Boom raising…" : "Boom lowering…");
+    if (boomRig.targetPct >= 50) requestBoomLower();
+    else requestBoomRaise();
   });
 }
-// Living QR: gentle auto open/close every ~4s once twin ready
+// Living demo: raise/lower so Fabian sees motion + signal sequence
 setInterval(() => {
-  if (!boomRig || flat) return;
-  setBoomPct(boomRig.targetPct >= 50 ? 8 : 100);
-}, 4200);
+  if (!boomRig || flat || reduced) return;
+  if (Math.abs(boomRig.shownPct - boomRig.targetPct) > 4) return; // wait until settle
+  if (boomRig.targetPct >= 50) requestBoomLower();
+  else requestBoomRaise();
+}, 6500);
