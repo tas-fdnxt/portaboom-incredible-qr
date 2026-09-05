@@ -38,6 +38,24 @@ const LIVERY_RGB = Object.freeze({
 /** twin-core sign.ts — STOP face default round. Clamp visible while mounted. */
 let signType = "round";
 let signGroup = null;
+/** Fabian: 400 mm diameter (not twin AS 450 mm / R=0.225). */
+const SIGN_DIAMETER = 0.40;
+const SIGN_RADIUS = SIGN_DIAMETER / 2;
+/** Fraction of boom tip length. Hero: not at tip — ~1/6 of arm past the face. */
+const SIGN_ALONG_DEFAULT = 0.72;
+const SIGN_ALONG_MIN = 0.32;
+const SIGN_ALONG_MAX = 0.90;
+const SIGN_NUDGE = 0.04;
+let signAlong = SIGN_ALONG_DEFAULT;
+
+/** Hero SoT boom tape — forensic from real PB4000 photo, not 50/50 coral bands. */
+const STRIPE = Object.freeze({
+  period: 0.22,
+  redDuty: 0.33,
+  slant: 1.0,
+  red: [0.753, 0.078, 0.129],
+  white: [0.93, 0.94, 0.96],
+});
 
 /**
  * Overnight SHOW CONFIG — clean core defaults (twin-core setGroup).
@@ -177,7 +195,7 @@ function buildSign() {
   }
   if (!boomRig?.pivot) return;
   const type = signType === "octagon" ? "octagon" : "round";
-  const radius = 0.225;
+  const radius = SIGN_RADIUS;
   const tex = makeStopTex(type);
   const wrap = new THREE.Group();
   wrap.name = "PortaboomStopSign";
@@ -226,20 +244,41 @@ function buildSign() {
   back.rotation.x = Math.PI / 2;
   back.position.z = -0.015;
   const inner = new THREE.Group();
+  inner.name = "PortaboomStopInner";
   inner.add(back);
   inner.add(face);
-  inner.rotation.z = -(boomRig.drop || 0);
-  const tipY = boomRig.tipY != null ? boomRig.tipY : 1.6;
-  if (boomRig.tipAxis === "x") {
-    wrap.position.set(tipY * 0.6, 0, 0.1);
-    inner.rotation.z = 0;
-  } else {
-    wrap.position.set(0, tipY * 0.6, 0.1);
-  }
   wrap.add(inner);
   boomRig.pivot.add(wrap);
   signGroup = wrap;
+  placeSign();
+  tickSignUpright();
   if (boom) classifyGroups(boom);
+}
+
+function placeSign() {
+  if (!signGroup || !boomRig) return;
+  const tipY = boomRig.tipY != null ? boomRig.tipY : 1.6;
+  const along = tipY * signAlong;
+  if (boomRig.tipAxis === "x") signGroup.position.set(along, 0, 0.1);
+  else signGroup.position.set(0, along, 0.1);
+}
+
+function setSignAlong(t) {
+  signAlong = Math.max(SIGN_ALONG_MIN, Math.min(SIGN_ALONG_MAX, Number(t)));
+  placeSign();
+  syncDock();
+}
+
+function nudgeSign(dir) {
+  setSignAlong(signAlong + dir * SIGN_NUDGE);
+}
+
+/** Keep STOP legend world-upright as the boom drops (hero: readable when arm is down). */
+function tickSignUpright() {
+  if (!signGroup || !boomRig?.pivot) return;
+  const inner = signGroup.getObjectByName("PortaboomStopInner") || signGroup.children[0];
+  if (!inner) return;
+  inner.rotation.z = -boomRig.pivot.rotation.z;
 }
 
 function setSignType(type) {
@@ -330,7 +369,11 @@ function powderMat(hex = LIVERY.Y) {
   });
 }
 
-/** twin-core `pt()` / stripeMaterial — red/white chevrons, band ~0.12. */
+/**
+ * Hero SoT boom tape (real PB4000 photo):
+ * silver/white arm, 45° chevrons leaning away from cabinet,
+ * white gaps ~2× red width, deep #c01421 — not 50/50 coral bands.
+ */
 function stripeMaterial(geometry) {
   if (geometry && !geometry.boundingBox) geometry.computeBoundingBox();
   const t = new THREE.Vector3();
@@ -338,18 +381,23 @@ function stripeMaterial(geometry) {
   else t.set(1, 0.1, 0.1);
   const axis = t.x >= t.y && t.x >= t.z ? "x" : t.y >= t.z ? "y" : "z";
   const cross = axis === "x" ? "y" : "x";
+  const period = STRIPE.period;
+  const redDuty = STRIPE.redDuty;
+  const slant = STRIPE.slant;
   const mat = new THREE.MeshPhysicalMaterial({
-    color: 0xffffff,
-    metalness: 0,
-    roughness: 0.14,
-    clearcoat: 1,
-    clearcoatRoughness: 0.04,
-    envMapIntensity: 2.6,
-    emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 0.18,
-    toneMapped: true,
+    color: 0xe8eaee,
+    metalness: 0.22,
+    roughness: 0.28,
+    clearcoat: 0.55,
+    clearcoatRoughness: 0.12,
+    envMapIntensity: 1.4,
+    emissive: new THREE.Color(0x000000),
+    emissiveIntensity: 0,
+    toneMapped: false,
   });
   mat.userData.stripe = true;
+  mat.userData.stripePeriod = period;
+  mat.userData.stripeRedDuty = redDuty;
   mat.onBeforeCompile = (shader) => {
     shader.vertexShader = `varying vec3 vOPos;\n${shader.vertexShader}`.replace(
       "#include <begin_vertex>",
@@ -359,21 +407,21 @@ function stripeMaterial(geometry) {
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
-       float band = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
-       vec3 white = vec3(0.96,0.97,0.98);
-       vec3 red   = vec3(0.753,0.078,0.129);
+       float u = fract((vOPos.${axis} - vOPos.${cross} * ${slant.toFixed(2)}) / ${period.toFixed(3)});
+       float band = step(u, ${redDuty.toFixed(3)});
+       vec3 white = vec3(${STRIPE.white[0]},${STRIPE.white[1]},${STRIPE.white[2]});
+       vec3 red   = vec3(${STRIPE.red[0]},${STRIPE.red[1]},${STRIPE.red[2]});
        diffuseColor.rgb = mix(white, red, band);`
-      )
-      .replace(
-        "#include <emissivemap_fragment>",
-        `#include <emissivemap_fragment>
-       float band2 = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
-       totalEmissiveRadiance *= mix(vec3(0.22,0.22,0.24), vec3(0.18,0.02,0.03), band2);`
       )
       .replace(
         "#include <roughnessmap_fragment>",
         `#include <roughnessmap_fragment>
-       roughnessFactor *= mix(0.55, 0.9, band);`
+       roughnessFactor *= mix(0.42, 0.62, band);`
+      )
+      .replace(
+        "#include <metalnessmap_fragment>",
+        `#include <metalnessmap_fragment>
+       metalnessFactor *= mix(0.28, 0.04, band);`
       );
   };
   return mat;
@@ -1210,6 +1258,10 @@ function syncDock() {
     octBtn.classList.toggle("off", roundOn);
     octBtn.setAttribute("aria-pressed", !roundOn ? "true" : "false");
   }
+  const along = document.getElementById("signAlong");
+  const alongLbl = document.getElementById("signAlongLbl");
+  if (along) along.value = String(Math.round(signAlong * 100));
+  if (alongLbl) alongLbl.textContent = `STOP ${Math.round(signAlong * 100)}%`;
 }
 
 /** Port of twin-core rigBoomMaster — rotates 主杆 up/down about shaft hinge. */
@@ -2058,6 +2110,7 @@ function tick() {
     boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
   }
   tickBoom(dt);
+  tickSignUpright();
   tickShow(dt);
   updateLeds();
   if (controls) {
@@ -2094,6 +2147,14 @@ const signRoundBtn = document.getElementById("signRoundBtn");
 if (signRoundBtn) signRoundBtn.addEventListener("click", () => setSignType("round"));
 const signOctagonBtn = document.getElementById("signOctagonBtn");
 if (signOctagonBtn) signOctagonBtn.addEventListener("click", () => setSignType("octagon"));
+const signInBtn = document.getElementById("signInBtn");
+if (signInBtn) signInBtn.addEventListener("click", () => nudgeSign(-1));
+const signOutBtn = document.getElementById("signOutBtn");
+if (signOutBtn) signOutBtn.addEventListener("click", () => nudgeSign(1));
+const signAlongEl = document.getElementById("signAlong");
+if (signAlongEl) {
+  signAlongEl.addEventListener("input", (e) => setSignAlong(Number(e.target.value) / 100));
+}
 
 syncDock();
 
@@ -2167,6 +2228,11 @@ window.__iqr = {
       classifyHidden: boom?.userData?.classifyHidden || null,
       signType,
       signMounted: !!(signGroup && signGroup.parent),
+      signRadius: SIGN_RADIUS,
+      signDiameterM: SIGN_DIAMETER,
+      signAlong,
+      stripePeriod: STRIPE.period,
+      stripeRedDuty: STRIPE.redDuty,
       strayGlow: (() => {
         let n = 0;
         boom?.traverse?.((o) => {

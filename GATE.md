@@ -1,51 +1,45 @@
-# GATE — FINAL twin tidy
+# GATE — boom stripes + 400 mm STOP
 
-Phone-width (390×844) against local Pages root. Named GLB. `app.js?v=twin-tidy3`.
-SoT: hero photo of real PB4000 + live twin `dist-bice-chi-12` + twin-core `sign.ts` / `lights.ts KINDCOL` / livery `S=0xcdd0d5`.
+Phone-width (390×844) against local Pages root. Named GLB. `app.js?v=twin-tidy4`.
+SoT: hero photo of real PB4000 for tape + STOP scale. Live twin only for mount mechanics.
 This is a first-format Pages bake tidy. **Not** living ICQR. **Not** WordPress. Do not merge — Chief reviews GATE then merges.
 
-Four FINAL visual errors vs hero / live twin (review shots 1–4): green+yellow disc · black TL pole · black LED bezels + washed face LEDs · missing STOP + orange/coral boom chevrons.
+Three asks: hero chevrons · STOP Ø 400 mm · STOP movable along boom.
 
 ## SMOKE — GREEN
 
 | Check | Result |
 | --- | --- |
-| Loads on phone-width | Yes. WebGL, named twin, no JS error. Status `Idle. PB4000 clean core… · boom live` |
-| Green+yellow disc gone | Tag `G` hidden (`gVis=0`). Misplaced `SignalHalo_*` CircleGeometries were sitting at CAD lens **origins** (cabinet top y≈0.56) — now pinned to each lens bbox center (red 1.167 / amber 1.029 / green 0.891). `strayGlow=0` |
-| TL pole stainless | `poleStainless=3` when traffic ON. `LCOL.S=0xcdd0d5`, metalness 0.9. Housing loop skips poles; re-paint after `rigTrafficLamps` |
-| Door LED bezels | `bezelHex=cdd0d5` aluminum, not black `101814` |
-| Face LEDs | Rest both `2aff55` intensity 5.5. Advisory both `ff2a1a`, intensities opposite (`8` vs `1.6`) on 640 ms. KINDCOL family, not cyan |
-| Boom chevrons | `livery.stripe=14`. Shader red `vec3(0.753,0.078,0.129)` = `#c01421` on white `0.96,0.97,0.98` |
-| STOP mounted | Default **round**. Dock Round → Octagon → Round rebuilds (`signMounted=true`, `clampVis=4`). Clamp only with STOP face |
-| Boom / toggles / orbit / flatten | Kept. Traffic OFF → aspect OFF, ON → GREEN + 3 stainless poles. Flatten then restore keeps bezels / STOP / no disc |
+| Loads on phone-width | Yes. Named twin, no JS/shader error. Status `… boom live · clean core` |
+| Boom stripes | Hero recipe in `__iqr.snap`: `stripePeriod=0.22`, `stripeRedDuty=0.33`, 45° `along − cross`, red `#c01421` (`vec3(0.753,0.078,0.129)`), silver/white arm, `toneMapped=false` so ACES does not wash coral. `livery.stripe=14` |
+| STOP size | `signRadius=0.20`, `signDiameterM=0.40`. Face world radius measured **0.20** (Ø 400 mm) |
+| STOP move | Default `signAlong=0.72` (local y 1.144, not locked at tip). In ×2 → 0.64 / y 1.017. Out ×3 → 0.76. Slider 40% → y 0.636. Label tracks. Diameter stays 0.40 |
+| STOP upright | While closing, `inner.rotation.z === -pivot.rotation.z` (`upright=true`) |
+| Round / Octagon | Octagon rebuilds at Ø400 mm, same along. Round restored |
 
 ## STRESS — GREEN
 
 | Step | Result |
 | --- | --- |
-| Disc after orbit / flatten / restore | `livery.gVis=0`, `strayGlow=0`. Halos stay on lanterns, not cabinet top |
-| Lights off then on | Off: aspect OFF. On: `poleStainless=3`, HUD GREEN |
-| Round → Octagon → Round | `signType` matches. Clamp stays visible (`clampVis=4`) |
-| Door LEDs rest / advisory | Rest `2aff55`. Closing: `ff2a1a` L/R alternate (`8` / `1.6`) |
-| Reload defaults | `signType=round`, STOP mounted, `solarOn=false`, `trafficOn=true`, `spin=false`, boom starts 100, face green |
+| Nudge in then out | Steps of 0.04; slider + `STOP n%` label update; face stays 400 mm |
+| Slider drag | 40% and 72% both apply; clamp stays with STOP (`clampVis=4`) |
+| Boom lower | STOP stays upright; size unchanged |
+| Flatten / restore | `signDiameterM=0.40`, `signAlong=0.72`, `stripePeriod=0.22` persist |
 
 ## PRESSURE — GREEN (refutals)
 
 | Claim | Refute |
 | --- | --- |
-| Green+yellow disc still behind boom | Two causes killed: (1) tag `G` twin glow `#bdf7c8`/`#39e562` hidden; (2) additive `SignalHalo_green` + `SignalHalo_amber` were parented at mesh origin on the cabinet lid. Halos now use geometry bbox center on each aspect |
-| Pole still black | `rigTrafficLamps` housing no longer paints poles `0x070707`. `paintTrafficPolesStainless` after lamps. Snap `poleStainless=3` |
-| LED rings black | `alumMat()` / `stainlessMat()` `0xcdd0d5` on `PortaboomLedBezel`. Snap `bezelHex=cdd0d5` |
-| Face LEDs cyan/white | `FACE_GREEN`/`FACE_RED` are KINDCOL `0x2aff55` / `0xff2a1a`. DoorGlow sprites removed |
-| Chevrons orange/coral | Stripe red tightened from `0.686,0.192,0.165` to `#c01421` family |
-| No STOP | `setSignType('round')` after CAD mount. Dock Round/Octagon. `signMounted=true`, clamp shown |
+| Stripes still 50/50 coral | No `step(0.5, … / 0.12)`. Duty 0.33, period 0.22, lean-away, no wash emissive, `toneMapped=false` |
+| STOP still 450 mm | `SIGN_RADIUS=0.20` overrides twin `0.225`. Snap + world measure 0.20 |
+| STOP locked at tip | Default 0.72 of tip length; in/out + range move local Y 0.636–1.208 |
 
 ## Ask set (this tidy)
 
-1. Remove round green-and-yellow disc/glow behind boom / cabinet top
-2. Traffic-light pole stainless `0xcdd0d5`, high metalness, when traffic on
-3. Door LED bezels aluminum; face green/red match KINDCOL head lenses
-4. Boom true red/white chevrons; STOP mounted with round + octagon dock toggle
+1. Boom tape matches hero photo (thin true-red chevrons, wide white, silver arm)
+2. STOP diameter 400 mm
+3. STOP position adjustable; stays upright when boom lowers
+4. Round / Octagon kept
 
 Clean core + orbit + flatten-to-QR beat **kept** (not living ICQR).
 
