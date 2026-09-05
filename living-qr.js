@@ -1,13 +1,13 @@
 /**
  * Living PORTABOOM QR — ICQR Magic Tree *pattern* only.
- * Dark modules are 3D branded sculptures. From the default top-down
- * pose their dark tops + white pad are the scannable code.
+ * Dark modules are 3D branded sculptures. Default pose looks at the
+ * dark faces (XY plane, depth −Z) so the scene itself is scannable.
  * Not a textured qr.png quad. No cherry tree. No ICQR shop packs.
  */
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
 
 export const CELL = 0.07;
-export const MODULE_FILL = 0.94;
+export const MODULE_FILL = 1;
 
 function makeStripeTex(THREE) {
   const c = document.createElement("canvas");
@@ -26,21 +26,6 @@ function makeStripeTex(THREE) {
   return tex;
 }
 
-function makeGlowTex(THREE) {
-  const c = document.createElement("canvas");
-  c.width = c.height = 64;
-  const ctx = c.getContext("2d");
-  const g = ctx.createRadialGradient(32, 32, 2, 32, 32, 32);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.4, "rgba(255,255,255,0.35)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 64, 64);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  return tex;
-}
-
 function powder(THREE, hex) {
   return new THREE.MeshPhysicalMaterial({
     color: hex,
@@ -56,8 +41,9 @@ function powder(THREE, hex) {
 }
 
 /**
+ * Modules live in the XY plane (row 0 at +Y). Depth goes −Z.
+ * Dark scan faces sit on z≈0 toward the camera.
  * @param {typeof import("three")} THREE
- * @param {object} spec
  */
 export function buildLivingQr(THREE, spec) {
   const matrix = spec.matrix;
@@ -70,13 +56,14 @@ export function buildLivingQr(THREE, spec) {
   const group = new THREE.Group();
   group.name = "LivingQrTree";
 
-  const topMat = new THREE.MeshBasicMaterial({
+  const faceMat = new THREE.MeshBasicMaterial({
     color: 0x111318,
     toneMapped: false,
   });
   const paperMat = new THREE.MeshBasicMaterial({
     color: 0xffffff,
     toneMapped: false,
+    side: THREE.DoubleSide,
   });
   const cabMat = powder(THREE, livery.Y);
   const darkMat = new THREE.MeshStandardMaterial({
@@ -120,11 +107,11 @@ export function buildLivingQr(THREE, spec) {
   });
 
   const fill = cell * MODULE_FILL;
-  const topGeo = new THREE.BoxGeometry(fill, cell * 0.07, fill);
-  const bodyGeo = new THREE.BoxGeometry(fill * 0.9, 1, fill * 0.9);
-  const bandGeo = new THREE.BoxGeometry(fill * 0.92, cell * 0.045, fill * 0.92);
-  const rimGeo = new THREE.BoxGeometry(fill * 0.98, cell * 0.03, fill * 0.98);
-  const lensGeo = new THREE.CircleGeometry(cell * 0.16, 20);
+  const faceGeo = new THREE.BoxGeometry(fill, fill, cell * 0.06);
+  const bodyGeo = new THREE.BoxGeometry(fill * 0.88, fill * 0.88, 1);
+  const bandGeo = new THREE.BoxGeometry(fill * 0.9, fill * 0.18, cell * 0.04);
+  const rimGeo = new THREE.BoxGeometry(fill * 0.96, fill * 0.96, cell * 0.03);
+  const lensGeo = new THREE.CircleGeometry(cell * 0.15, 20);
 
   const origin = (n - 1) / 2;
   const mods = [];
@@ -143,51 +130,49 @@ export function buildLivingQr(THREE, spec) {
       const g = new THREE.Group();
       g.name = `QrMod_${r}_${c}`;
       const x = (c - origin) * cell;
-      const z = (r - origin) * cell;
-      const taller = vocab === "finder" || vocab === "head";
-      const bodyH = cell * (taller ? 0.42 : vocab === "timing" ? 0.22 : 0.32);
+      const y = (origin - r) * cell;
+      const deeper = vocab === "finder" || vocab === "head";
+      const bodyD = cell * (deeper ? 0.46 : vocab === "timing" ? 0.22 : 0.34);
+
       const body = new THREE.Mesh(bodyGeo, pickBodyMat(vocab, {
         cabMat, darkMat, navyMat, stripeMat,
       }));
-      body.scale.y = bodyH;
-      body.position.y = bodyH * 0.5;
-      body.castShadow = false;
+      body.scale.z = bodyD;
+      body.position.z = -bodyD * 0.5;
       g.add(body);
 
       if (vocab === "cabinet" || vocab === "finder") {
         const band = new THREE.Mesh(bandGeo, navyMat);
-        band.position.y = bodyH * 0.72;
+        band.position.set(0, fill * 0.22, -bodyD * 0.35);
         g.add(band);
       }
       if (vocab === "finder") {
         const rim = new THREE.Mesh(rimGeo, steelMat);
-        rim.position.y = bodyH * 0.18;
+        rim.position.z = -cell * 0.04;
         g.add(rim);
       }
 
-      const top = new THREE.Mesh(topGeo, topMat);
-      top.name = "QrModTop";
-      top.position.y = bodyH + cell * 0.03;
-      g.add(top);
+      const face = new THREE.Mesh(faceGeo, faceMat);
+      face.name = "QrModTop";
+      face.position.z = cell * 0.02;
+      g.add(face);
 
       if (vocab === "finder" || vocab === "led" || vocab === "head") {
         const ledMat = vocab === "head" ? ledFaceMat : (r + c) % 5 === 0 ? ledRedMat : ledFaceMat;
         const lens = new THREE.Mesh(lensGeo, ledMat);
-        lens.position.set(0, bodyH * 0.55, fill * 0.46);
+        lens.rotation.y = Math.PI / 2;
+        lens.position.set(fill * 0.45, 0, -bodyD * 0.45);
         g.add(lens);
-        if (vocab === "finder" || vocab === "led") {
-          ledMats.push(ledMat);
-        }
+        if (vocab === "finder" || vocab === "led") ledMats.push(ledMat);
       }
 
-      g.position.set(x, 0, z);
+      g.position.set(x, y, 0);
       g.userData = {
         r,
         c,
         kind,
         vocab,
-        baseY: 0,
-        topY: bodyH + cell * 0.03,
+        baseZ: 0,
         phase: ((r * 17 + c * 13) % 1000) / 1000 * Math.PI * 2,
       };
       group.add(g);
@@ -201,28 +186,8 @@ export function buildLivingQr(THREE, spec) {
     paperMat
   );
   pad.name = "LivingQrPad";
-  pad.rotation.x = -Math.PI / 2;
-  pad.position.y = -0.001;
-  pad.receiveShadow = false;
+  pad.position.z = -0.002;
   group.add(pad);
-
-  const glowTex = makeGlowTex(THREE);
-  const contact = new THREE.Mesh(
-    new THREE.CircleGeometry(padSize * 0.62, 48),
-    new THREE.MeshBasicMaterial({
-      map: glowTex,
-      color: 0xffc48a,
-      transparent: true,
-      opacity: 0.22,
-      blending: THREE.AdditiveBlending,
-      depthWrite: false,
-      toneMapped: false,
-    })
-  );
-  contact.name = "LivingQrContact";
-  contact.rotation.x = -Math.PI / 2;
-  contact.position.y = -0.002;
-  group.add(contact);
 
   group.userData = {
     n,
@@ -242,7 +207,7 @@ export function buildLivingQr(THREE, spec) {
     mods,
     pad,
     paperMat,
-    topMat,
+    topMat: faceMat,
     ledMats,
     n,
     cell,

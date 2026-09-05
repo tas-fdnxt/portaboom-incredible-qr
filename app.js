@@ -585,7 +585,7 @@ let renderer;
 try {
   renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: false,
     alpha: false,
     powerPreference: "default",
     failIfMajorPerformanceCaveat: false,
@@ -624,8 +624,8 @@ const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
 const liveCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
-liveCam.position.set(0, 8, 0.0001);
-liveCam.up.set(0, 0, -1);
+liveCam.position.set(0, 0, 8);
+liveCam.up.set(0, 1, 0);
 liveCam.lookAt(0, 0, 0);
 let camera = liveCam;
 
@@ -1268,13 +1268,18 @@ function applyLiveScanPose() {
   camera = liveCam;
   if (controls) controls.object = liveCam;
   fitLiveOrtho();
-  liveCam.up.set(0, 0, -1);
-  liveCam.position.set(0, 8, 0.0001);
+  liveCam.up.set(0, 1, 0);
+  // Tiny peek so cabinet/boom sides read as 3D without leaving the scan envelope.
+  liveCam.position.set(0.11, 0.07, 8);
   liveCam.lookAt(0, 0, 0);
+  liveCam.zoom = 1;
+  liveCam.updateProjectionMatrix();
   if (controls) {
     controls.target.set(0, 0, 0);
+    controls.enableRotate = false;
+    controls.enablePan = false;
     controls.minPolarAngle = 0;
-    controls.maxPolarAngle = 0.38;
+    controls.maxPolarAngle = Math.PI;
     controls.minDistance = 2;
     controls.maxDistance = 24;
     controls.update();
@@ -1293,6 +1298,8 @@ function applyUnitPose() {
   unitCam.updateProjectionMatrix();
   if (controls) {
     controls.target.copy(HOME.tgt);
+    controls.enableRotate = true;
+    controls.enablePan = true;
     controls.minPolarAngle = 0;
     controls.maxPolarAngle = Math.PI * 0.49;
     controls.minDistance = 0.85;
@@ -2277,15 +2284,15 @@ function tick() {
   studioGroup.visible = !live;
   if (boom) boom.visible = !live;
   if (live && lifeOn && !reduced) {
-    const amp = living.cell * 0.012;
+    const amp = living.cell * 0.02;
     for (const m of mods) {
-      m.position.y = m.userData.baseY + Math.sin(t * 1.15 + m.userData.phase) * amp;
+      m.position.z = (m.userData.baseZ || 0) + Math.sin(t * 1.15 + m.userData.phase) * amp;
     }
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
   } else if (live) {
-    for (const m of mods) m.position.y = m.userData.baseY;
+    for (const m of mods) m.position.z = m.userData.baseZ || 0;
   }
   if (!live) {
     tickBoom(dt);
@@ -2533,5 +2540,17 @@ window.__iqr = {
       texturedQuad: false,
       viewMode,
     };
+  },
+  nudgeScan(x = 0, y = 0) {
+    if (viewMode !== "live") return false;
+    liveCam.position.set(x, y, 8);
+    liveCam.lookAt(0, 0, 0);
+    liveCam.updateProjectionMatrix();
+    renderer.render(scene, liveCam);
+    return true;
+  },
+  resetScan() {
+    applyLiveScanPose();
+    renderer.render(scene, liveCam);
   },
 };
