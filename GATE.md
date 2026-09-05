@@ -1,6 +1,6 @@
 # GATE — first-format twin tidy
 
-Phone-width (390×844) against local Pages root. Named GLB. `app.js?v=twin-tidy1`.
+Phone-width (390×844) against local Pages root. Named GLB. `app.js?v=twin-tidy2`.
 SoT: live twin `dist-bice-chi-12` + twin-core `livery.ts` / `addDecals` / `classifyGroups` / `lights.ts updateLeds`.
 This is a first-format Pages bake tidy. **Not** living ICQR. **Not** WordPress. Do not merge — Chief reviews GATE then merges.
 
