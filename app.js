@@ -380,7 +380,8 @@ function plantTwin(obj) {
   let center = box.getCenter(new THREE.Vector3());
   obj.position.sub(center);
   camera.position.set(0, 0.9, 2.2);
-  obj.rotation.y = yawFaceCamera(true);
+  // twin-core instance.ts: model.rotation.y = Math.PI
+  obj.rotation.y = Math.PI;
   const hero0 = gatherHeroBox(obj);
   const heroH = Math.max(0.4, hero0.getSize(new THREE.Vector3()).y);
   const s = 1.28 / heroH;
@@ -391,8 +392,9 @@ function plantTwin(obj) {
   obj.position.z -= center.z;
   obj.position.y -= box.min.y;
   obj.position.y += 0.02;
-  obj.rotation.y = yawFaceCamera(true);
-  obj.userData.plantedYaw = obj.rotation.y;
+  obj.rotation.y = Math.PI;
+  obj.userData.plantedYaw = Math.PI;
+  // twin-core instance.ts: head.group.rotation.y = yaw (180° so lenses match cabinet front)
   faceSignalHead(obj);
   lockHeroCamera(obj);
   return s;
@@ -402,36 +404,33 @@ function findSignalHead(root) {
   let hit = null;
   root.traverse((o) => {
     if (hit) return;
-    if (/Traffic Light|HeroSignal/i.test(o.name || "")) hit = o;
+    if (/Traffic[_\s-]*Light|HeroSignal|信号灯/i.test(o.name || "")) hit = o;
   });
+  if (!hit) return null;
+  while (
+    hit.parent
+    && hit.parent !== root
+    && /Traffic[_\s-]*Light|HeroSignal|信号/i.test(hit.parent.name || "")
+  ) {
+    hit = hit.parent;
+  }
   return hit;
 }
 
 /**
- * GLB traffic head is authored 180° from the cabinet door.
- * Yaw the Traffic Light / HeroSignal node about its own center so lenses
- * face the same way as the door / viewer. Do not invent ProductLed flanks.
+ * twin-core instance.ts: head.group.rotation.y = yaw.
+ * Door is local −Z; lantern openings are local +Z — opposite after the
+ * Math.PI plant. Yaw the imported Traffic Light node in place (do not
+ * orbit a bbox pivot — that swings the head off the mast).
  */
 function faceSignalHead(root) {
   const signal = findSignalHead(root);
   if (!signal || signal.userData.signalFaced) return signal;
-  signal.updateMatrixWorld(true);
-  const box = worldBox(signal);
-  const center = box.getCenter(new THREE.Vector3());
-  const parent = signal.parent || root;
-  parent.updateMatrixWorld(true);
-  const local = center.clone();
-  parent.worldToLocal(local);
-  const pivot = new THREE.Group();
-  pivot.name = "SignalFacePivot";
-  pivot.position.copy(local);
-  parent.add(pivot);
-  pivot.attach(signal);
-  pivot.rotation.y += Math.PI;
+  signal.rotation.y += Math.PI;
   signal.userData.signalFaced = true;
-  root.userData.signalPivot = pivot;
+  root.userData.signalPivot = signal;
   root.updateMatrixWorld(true);
-  return pivot;
+  return signal;
 }
 
 function isDescendantOf(o, ancestor) {
@@ -584,88 +583,97 @@ function tickBoom(dt) {
   boomRig.pivot.rotation.z = boomRig.drop + (boomRig.rest - boomRig.drop) * p;
 }
 
-/** Knock the PNG's black field out so the wordmark sits on the cream door, not a plate. */
-function punchDarkToAlpha(tex) {
-  const img = tex.image;
-  if (!img?.width) return tex;
-  const c = document.createElement("canvas");
-  c.width = img.width;
-  c.height = img.height;
-  const ctx = c.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  const id = ctx.getImageData(0, 0, c.width, c.height);
-  const d = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const lum = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
-    if (lum < 24) d[i + 3] = 0;
-  }
-  ctx.putImageData(id, 0, 0);
-  const out = new THREE.CanvasTexture(c);
-  out.colorSpace = THREE.SRGBColorSpace;
-  out.anisotropy = 8;
-  out.needsUpdate = true;
-  return out;
-}
-
 /**
- * Twin/showtime door mark: large readable PORTABOOM on the cabinet door face,
- * parented to 115-DOOR, aimed at the viewer. Official wordmark, not a chrome plate.
+ * Port of twin-core livery.ts — ONLY two PORTABOOM logos:
+ * front approach (local −Z, yaw π) and opposite face (local +Z, yaw 0).
+ * Texture: twin door_decal.png (stacked PORTA / BOOM). No side plate. No chrome plate.
  */
 function addLogoDecal(root) {
   const stale = [];
   root.traverse((o) => {
-    if (/PortaboomLogo/.test(o.name || "")) stale.push(o);
+    if (/PortaboomLogo/.test(o.name || "") || o.userData?.decal) stale.push(o);
   });
   stale.forEach((o) => o.parent && o.parent.remove(o));
 
-  let door = null;
-  let cab = null;
-  root.traverse((o) => {
-    if (/^115-DOOR$/.test(o.name || "")) door = o;
-    if (!door && /AK-XLH-D115C-01-02-1/.test(o.name || "")) door = o;
-    if (/AK-XLH-D115C-01-01-1|HeroCabinet/.test(o.name || "") && !cab) cab = o;
-  });
-  const host = door || cab;
-  if (!host) return;
-
-  const placeWordmark = (tex, name) => {
-    const map = punchDarkToAlpha(tex);
-    host.updateMatrixWorld(true);
-    const box = worldBox(host);
-    const size = box.getSize(new THREE.Vector3());
-    const mid = box.getCenter(new THREE.Vector3());
-    const faceW = Math.max(size.x, size.z);
-    const logoW = Math.max(0.48, Math.min(faceW * 0.9, 1.2));
-    const imgW = map.image?.width || 1228;
-    const imgH = map.image?.height || 244;
-    const logoH = logoW * (imgH / imgW);
-    const plate = new THREE.Mesh(
-      new THREE.PlaneGeometry(logoW, logoH),
-      new THREE.MeshBasicMaterial({
-        map,
-        transparent: true,
-        depthWrite: false,
-        side: THREE.DoubleSide,
-        toneMapped: false,
-      })
-    );
-    plate.name = name;
-    const toCam = new THREE.Vector3(camera.position.x - mid.x, 0, camera.position.z - mid.z);
-    if (toCam.lengthSq() < 1e-6) toCam.set(0, 0, 1);
-    toCam.normalize();
-    const half = Math.max(0.014, Math.min(size.x, size.z) * 0.5 + 0.012);
-    const pos = new THREE.Vector3(mid.x, mid.y + size.y * 0.05, mid.z).addScaledVector(toCam, half);
-    plate.position.copy(pos);
-    plate.lookAt(pos.x + toCam.x, pos.y, pos.z + toCam.z);
-    scene.add(plate);
-    host.attach(plate);
-    root.userData.logoWorldW = logoW;
-  };
-
   const loader = new THREE.TextureLoader();
-  loader.load("./portaboom_logo.png", (tex) => {
+  const src = "./door_decal.png";
+  loader.load(src, (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    placeWordmark(tex, "PortaboomLogoFace");
+    tex.anisotropy = renderer.capabilities.getMaxAnisotropy();
+    const skip = /PED_|TL2_|Traffic[_\s-]*Light|HeroSignal|主杆|105|灯条|拉环|环6|FENGKONG|PRT|^006$|太阳能|固定板|管套|柱子|螺柱|调节/;
+    root.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(root.matrixWorld).invert();
+    let door = null;
+    root.traverse((o) => {
+      if (/^115-DOOR$/.test(o.name || "")) door = o;
+      if (!door && /AK-XLH-D115C-01-02-1|HeroCabinet/.test(o.name || "")) door = o;
+    });
+    let yBand = -0.3;
+    let logoW = 0.26;
+    if (door) {
+      const dc = worldBox(door).getCenter(new THREE.Vector3());
+      const ds = worldBox(door).getSize(new THREE.Vector3());
+      root.worldToLocal(dc);
+      yBand = dc.y;
+      const scale = Math.abs(root.scale?.x || 1) || 1;
+      logoW = Math.max(0.26, Math.max(ds.x, ds.z) / scale * 0.78);
+    }
+    let zMin = Infinity;
+    let zMax = -Infinity;
+    const v = new THREE.Vector3();
+    root.traverse((o) => {
+      if (!o.isMesh || !o.geometry?.attributes?.position || skip.test(o.name || "")) return;
+      const pos = o.geometry.attributes.position;
+      const step = Math.max(1, pos.count >> 7);
+      for (let i = 0; i < pos.count; i += step) {
+        v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+        if (Math.abs(v.x) > 0.22 || Math.abs(v.y - yBand) > 0.18) continue;
+        if (v.z < zMin) zMin = v.z;
+        if (v.z > zMax) zMax = v.z;
+      }
+    });
+    if (door && (!Number.isFinite(zMin) || !Number.isFinite(zMax))) {
+      const db = worldBox(door);
+      const a = db.min.clone().applyMatrix4(inv);
+      const b = db.max.clone().applyMatrix4(inv);
+      zMin = Math.min(a.z, b.z);
+      zMax = Math.max(a.z, b.z);
+    }
+    const backZ = Number.isFinite(zMax) ? zMax : 0.2525;
+    const frontZ = Number.isFinite(zMin) ? zMin : -0.2525;
+    const place = (name, x, y, z, yaw) => {
+      const plate = new THREE.Mesh(
+        new THREE.PlaneGeometry(logoW, logoW * 0.698),
+        new THREE.MeshBasicMaterial({
+          map: tex,
+          transparent: true,
+          polygonOffset: true,
+          polygonOffsetFactor: -2,
+        })
+      );
+      plate.name = name;
+      plate.position.set(x, y, z);
+      plate.rotation.y = yaw;
+      plate.userData.decal = true;
+      root.add(plate);
+    };
+    // Front approach (cabinet door / viewer after instance.ts Math.PI plant)
+    place("PortaboomLogoFace", 0, yBand, frontZ - 0.002, Math.PI);
+    // Opposite face — the only other PORTABOOM mark (livery.ts)
+    place("PortaboomLogoOpposite", 0, yBand, backZ + 0.002, 0);
+    root.userData.logoWorldW = logoW * (root.scale?.x || 1);
+  }, undefined, () => {
+    loader.load("./portaboom_logo.png", (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      const plate = new THREE.Mesh(
+        new THREE.PlaneGeometry(0.26, 0.26 * 0.698),
+        new THREE.MeshBasicMaterial({ map: tex, transparent: true, side: THREE.DoubleSide })
+      );
+      plate.name = "PortaboomLogoFace";
+      plate.position.set(0, -0.3, -0.255);
+      plate.rotation.y = Math.PI;
+      root.add(plate);
+    });
   });
 }
 
@@ -1072,6 +1080,7 @@ function mountCad(gltf, label) {
     baseScale = s || 1;
     boom.userData.restY = boom.position.y;
     scene.add(boom);
+    faceSignalHead(boom);
     usingGlb = true;
     boomRig = rigBoomMaster(boom);
     if (boomRig) boomRig.speed = 38;
@@ -1220,9 +1229,11 @@ if (boomBtn) {
 }
 
 window.__iqr = {
+  get boom() { return boom; },
   get snap() {
     const logo = boom?.getObjectByName?.("PortaboomLogoFace")
       || boom?.getObjectByName?.("PortaboomLogoDecal");
+    const logoOpp = boom?.getObjectByName?.("PortaboomLogoOpposite");
     const faces = [];
     boom?.traverse?.((o) => { if (o.name === "PortaboomFaceLed") faces.push(o.name); });
     const pivot = boom?.userData?.signalPivot;
@@ -1232,6 +1243,7 @@ window.__iqr = {
       signalAspect,
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
+      signalName: findSignalHead(boom)?.name ?? null,
       signalYaw: pivot?.rotation?.y ?? null,
       signalFaced: !!findSignalHead(boom)?.userData?.signalFaced,
       boomPct: boomRig?.shownPct ?? null,
@@ -1247,6 +1259,10 @@ window.__iqr = {
         world: logo.getWorldPosition(new THREE.Vector3()).toArray(),
         parent: logo.parent?.name || null,
         worldW: boom?.userData?.logoWorldW ?? null,
+      } : null,
+      logoOpposite: logoOpp ? {
+        name: logoOpp.name,
+        world: logoOpp.getWorldPosition(new THREE.Vector3()).toArray(),
       } : null,
     };
   },
