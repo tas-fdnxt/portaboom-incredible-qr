@@ -44,9 +44,13 @@ const REAL = Object.freeze({
   cabinetHM: 1.153,
   cabinetWM: 0.415,
   signDM: 0.40,
-  /** Hero tape: ~11 red bars on a 4 m arm, 1 red : 2 white, 45° lean-forward. */
-  stripePeriodM: 0.36,
-  stripeRedDuty: 0.33,
+  /**
+   * Hero studio tape (TAS pb4000.jpg / WZS Porta_Boom_Large_LP):
+   * period ≈ 330–345 mm (~12 repeats on a 4 m arm); red≈gap (duty ≈ 0.48);
+   * lean-forward chevrons. tidy4 0.22 local / duty 0.33 was too tight + too thin.
+   */
+  stripePeriodM: 0.34,
+  stripeRedDuty: 0.48,
 });
 /** Fraction of boom tip length. Hero: not at tip — ~1/6 of arm past the face. */
 const SIGN_ALONG_DEFAULT = 0.72;
@@ -253,6 +257,7 @@ function buildSign() {
     backGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.012, 72);
   }
   const face = new THREE.Mesh(faceGeo, faceMat);
+  face.name = "PortaboomStopFace";
   face.castShadow = true;
   const back = new THREE.Mesh(backGeo, backMat);
   back.rotation.x = Math.PI / 2;
@@ -310,46 +315,81 @@ function worldSizeOf(o) {
   return worldBox(o).getSize(new THREE.Vector3());
 }
 
+/** Uniform-ish world scale of an object (column length of matrixWorld). */
+function worldScaleAbs(o) {
+  if (!o) return 1;
+  o.updateWorldMatrix(true, false);
+  const sc = new THREE.Vector3();
+  o.getWorldScale(sc);
+  return Math.max(Math.abs(sc.x), 1e-6);
+}
+
 /**
- * Prove Ø400 mm on the planted twin. GLB is not guaranteed 1 unit = 1 m
- * after plantTwin (hero box → 1.28). Scale STOP and stripe pitch from
- * measured boom / door vs PB4000 manual metres.
+ * Measured STOP face diameter in planted world units.
+ * Do not use root.scale alone: BoomPivot.attach() compensates plant scale
+ * so new children of the pivot sit at world scale ≈ 1, not plant 0.50.
+ */
+function measureSignWorldDiameter() {
+  const face = signGroup?.getObjectByName("PortaboomStopFace");
+  if (!face?.geometry) return plantedProof?.signDiameterWorld ?? null;
+  face.updateWorldMatrix(true, false);
+  if (!face.geometry.boundingBox) face.geometry.computeBoundingBox();
+  const sz = face.geometry.boundingBox.getSize(new THREE.Vector3());
+  const localD = Math.max(sz.x, sz.y);
+  return +(localD * worldScaleAbs(face)).toFixed(4);
+}
+
+/**
+ * Prove Ø400 mm on the planted twin. GLB is not 1 unit = 1 m after
+ * plantTwin (hero box → 1.28). Ruler is cabinet height (manual 1.153 m).
+ * STOP is parented to BoomPivot; stripe meshes keep plant world scale.
  */
 function measurePlantedScale(root) {
   const scaleFactor = root?.scale?.x || 1;
   const tipY = boomRig?.tipY != null ? Math.abs(boomRig.tipY) : 0;
-  const boomLengthWorld = tipY * scaleFactor;
   const boomLengthCad = tipY;
+  const pivot = boomRig?.pivot;
+  const pivotWorldScale = pivot ? worldScaleAbs(pivot) : scaleFactor;
+  let meshWorldScale = scaleFactor;
+  root?.traverse((o) => {
+    if (!o.isMesh) return;
+    if (o.userData?.tag !== "B" && !o.material?.userData?.stripe) return;
+    meshWorldScale = worldScaleAbs(o);
+  });
+  const boomLengthWorld = tipY * pivotWorldScale;
   let door = null;
   root?.traverse((o) => {
     if (!door && /^115-DOOR$|^115_DOOR$|HeroCabinet/i.test(o.name || "")) door = o;
   });
   const doorSz = door ? worldSizeOf(door) : new THREE.Vector3();
   const doorHeightWorld = doorSz.y || 0;
-  const doorWidthWorld = Math.min(doorSz.x || 0, doorSz.z || 0) || Math.max(doorSz.x || 0, doorSz.z || 0);
+  const doorWidthWorld = Math.max(doorSz.x || 0, doorSz.z || 0);
   const doorHeightCad = scaleFactor ? doorHeightWorld / scaleFactor : 0;
   const doorWidthCad = scaleFactor ? doorWidthWorld / scaleFactor : 0;
 
-  const boomRef = boomLengthCad > 0.4;
-  const metresPerWorld = boomRef && boomLengthWorld > 0.05
-    ? REAL.boomM / boomLengthWorld
-    : (doorHeightWorld > 0.05 ? REAL.cabinetHM / doorHeightWorld : 1 / scaleFactor);
+  const doorOk = doorHeightWorld > 0.15;
+  const metresPerWorld = doorOk
+    ? REAL.cabinetHM / doorHeightWorld
+    : (boomLengthWorld > 0.05 ? REAL.boomM / boomLengthWorld : 1 / Math.max(pivotWorldScale, 1e-6));
 
   const signDiameterWorld = REAL.signDM / metresPerWorld;
-  signRadiusLocal = scaleFactor > 1e-6 ? signDiameterWorld / (2 * scaleFactor) : REAL.signDM / 2;
-  stripePeriodLocal = boomLengthCad > 0.4
-    ? boomLengthCad * (REAL.stripePeriodM / REAL.boomM)
+  signRadiusLocal = signDiameterWorld / (2 * pivotWorldScale);
+  stripePeriodLocal = metresPerWorld > 0 && meshWorldScale > 1e-6
+    ? REAL.stripePeriodM / metresPerWorld / meshWorldScale
     : REAL.stripePeriodM;
 
-  const how = boomRef
-    ? `Ø400mm world = 0.40 × plantedBoomWorld / 4.0 = ${signDiameterWorld.toFixed(4)} (boomCad ${boomLengthCad.toFixed(3)} · scale ${scaleFactor.toFixed(4)})`
-    : `Ø400mm world = 0.40 × doorWorld / 1.153 (cabinet fallback)`;
+  const how = doorOk
+    ? `Ø400mm world=${signDiameterWorld.toFixed(4)}=0.40/(1.153/doorH ${doorHeightWorld.toFixed(3)}); localR=${signRadiusLocal.toFixed(4)}=worldD/(2×pivotWorldScale ${pivotWorldScale.toFixed(4)}); plant ${scaleFactor.toFixed(4)} · m/world ${metresPerWorld.toFixed(3)} · meshScale ${meshWorldScale.toFixed(4)}`
+    : `Ø400mm world = 0.40 × boomWorld / 4.0 (door fallback)`;
 
   plantedProof = {
     scaleFactor,
+    pivotWorldScale,
+    meshWorldScale,
     boomLengthWorld,
     boomLengthCad,
     boomLengthM: REAL.boomM,
+    impliedBoomM: boomLengthWorld * metresPerWorld,
     doorHeightWorld,
     doorWidthWorld,
     doorHeightCad,
@@ -2333,6 +2373,15 @@ window.__iqr = {
       doorHeightWorld: plantedProof?.doorHeightWorld ?? null,
       doorWidthWorld: plantedProof?.doorWidthWorld ?? null,
       signDerived: plantedProof?.derived ?? null,
+      signWorldDiameter: measureSignWorldDiameter(),
+      signImpliedM: (() => {
+        const d = measureSignWorldDiameter();
+        const m = plantedProof?.metresPerWorld;
+        return d != null && m ? +(d * m).toFixed(4) : null;
+      })(),
+      pivotWorldScale: plantedProof?.pivotWorldScale ?? null,
+      meshWorldScale: plantedProof?.meshWorldScale ?? null,
+      impliedBoomM: plantedProof?.impliedBoomM ?? null,
       plantedProof,
       signAlong,
       stripePeriod: stripePeriodLocal,
