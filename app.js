@@ -780,7 +780,7 @@ function bindGroups(root) {
       o.visible = false;
       return;
     }
-    if (/太阳能板|太阳能板支架|固定板|管套|调节螺柱|^太阳能|solar/i.test(n)) solarHits.push(o);
+    if (/太阳能板|太阳能板支架|固定板|管套|调节螺柱|^太阳能|solar|^柱子/i.test(n)) solarHits.push(o);
     if (/灯条/.test(n)) return;
     if (/PED_|TL2_|行人|人行|pedestrian|walk[_\s-]*light|walk[_\s-]*signal/i.test(n)) {
       extraHits.push(o);
@@ -819,7 +819,7 @@ function classifyGroups(root) {
   const stopMounted = signType === "octagon" || signType === "STOP";
   root.traverse((o) => {
     const n = o.name || "";
-    if (/AK-XLH-D115C-03/i.test(n)) {
+    if (/AK-XLH-D115C-03|^柱子/i.test(n)) {
       o.visible = false;
       hidden.mast.push(n);
       return;
@@ -1271,10 +1271,10 @@ function paintGlb(root) {
     if (/灯条/.test(name)) return; // rigTwinLeds owns the strip
     const src = firstMat(o)?.color;
     let tag = src ? classifyLiveryRgb(src.r, src.g, src.b) : null;
-    if (!tag) {
-      if (/车轮|wheel/i.test(name)) tag = "K";
-      else if (/主杆|胶条|橙|105-|105_|105$|PRT000|FENGKONG|^006$|^0001$/i.test(name)) tag = "B";
-      else if (/AK-XLH|115-DOOR|小门|箱|柜|门|compound|DAO-ZHA|d115c|电池/i.test(name)) tag = "Y";
+    if (/车轮|wheel/i.test(name)) tag = "K";
+    else if (/主杆|胶条|105-|105_|105$|PRT000|FENGKONG|^006$|^0001$/i.test(name)) tag = "B";
+    else if (!tag) {
+      if (/AK-XLH|115-DOOR|小门|箱|柜|门|compound|DAO-ZHA|d115c|电池/i.test(name)) tag = "Y";
       else if (/LOCK-NEW|不锈钢|stainless/i.test(name)) tag = "S";
     }
     o.userData.tag = tag;
