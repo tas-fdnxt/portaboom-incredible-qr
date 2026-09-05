@@ -17,6 +17,9 @@ const FACE_RED_BASE = 0x3a0000;
 const STRIP_GREEN = 0x2dff5a;
 const STRIP_RED = 0xff0008;
 
+/** 3-aspect signal head (Traffic Light / HeroSignal). Not face-LED SoT. */
+const LAMP_COL = { red: 0xff1d12, amber: 0xffb000, green: 0x18ff5a };
+
 function makeFaceLedMat(ready) {
   return new THREE.MeshStandardMaterial({
     color: ready ? FACE_GREEN_BASE : FACE_RED_BASE,
@@ -43,10 +46,22 @@ function makeGlowTex() {
   return tex;
 }
 
+function makeLampMat(kind, on) {
+  return new THREE.MeshStandardMaterial({
+    color: on ? 0x22180c : 0x0c0a08,
+    emissive: LAMP_COL[kind],
+    emissiveIntensity: on ? 8.5 : 0.08,
+    roughness: 0.22,
+    metalness: 0.04,
+    toneMapped: false,
+  });
+}
+
 const canvas = document.getElementById("stage");
 const hintEl = document.getElementById("hint"); // optional; slim HUD may omit
 const statusEl = document.getElementById("status");
 const failEl = document.getElementById("fail");
+const aspectEl = document.getElementById("aspect");
 
 const N = 25;
 const CELL = 0.086;
@@ -239,6 +254,19 @@ function makeHeroBoom() {
   solar.position.set(-0.85, 0.58, 0);
   solar.rotation.x = -0.25;
   g.add(solar);
+  const head = new THREE.Group();
+  head.name = "HeroSignalHead";
+  head.position.set(-0.22, 1.22, 0.02);
+  const housing = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.68, 0.16), matBlack);
+  head.add(housing);
+  ["red", "amber", "green"].forEach((kind, i) => {
+    const lens = new THREE.Mesh(new THREE.CircleGeometry(0.08, 28), makeLampMat(kind, kind === "green"));
+    lens.position.set(0, 0.21 - i * 0.21, 0.086);
+    lens.name = `HeroLens_${kind}`;
+    head.add(lens);
+  });
+  g.add(head);
+  g.userData.heroHead = head;
   const matChrome = new THREE.MeshStandardMaterial({
     color: 0xe8eef4, roughness: 0.16, metalness: 0.88,
   });
@@ -365,8 +393,45 @@ function plantTwin(obj) {
   obj.position.y += 0.02;
   obj.rotation.y = yawFaceCamera(true);
   obj.userData.plantedYaw = obj.rotation.y;
+  faceSignalHead(obj);
   lockHeroCamera(obj);
   return s;
+}
+
+function findSignalHead(root) {
+  let hit = null;
+  root.traverse((o) => {
+    if (hit) return;
+    if (/Traffic Light|HeroSignal/i.test(o.name || "")) hit = o;
+  });
+  return hit;
+}
+
+/**
+ * GLB traffic head is authored 180° from the cabinet door.
+ * Yaw the Traffic Light / HeroSignal node about its own center so lenses
+ * face the same way as the door / viewer. Do not invent ProductLed flanks.
+ */
+function faceSignalHead(root) {
+  const signal = findSignalHead(root);
+  if (!signal || signal.userData.signalFaced) return signal;
+  signal.updateMatrixWorld(true);
+  const box = worldBox(signal);
+  const center = box.getCenter(new THREE.Vector3());
+  const parent = signal.parent || root;
+  parent.updateMatrixWorld(true);
+  const local = center.clone();
+  parent.worldToLocal(local);
+  const pivot = new THREE.Group();
+  pivot.name = "SignalFacePivot";
+  pivot.position.copy(local);
+  parent.add(pivot);
+  pivot.attach(signal);
+  pivot.rotation.y += Math.PI;
+  signal.userData.signalFaced = true;
+  root.userData.signalPivot = pivot;
+  root.updateMatrixWorld(true);
+  return pivot;
 }
 
 function isDescendantOf(o, ancestor) {
@@ -519,50 +584,88 @@ function tickBoom(dt) {
   boomRig.pivot.rotation.z = boomRig.drop + (boomRig.rest - boomRig.drop) * p;
 }
 
+/** Knock the PNG's black field out so the wordmark sits on the cream door, not a plate. */
+function punchDarkToAlpha(tex) {
+  const img = tex.image;
+  if (!img?.width) return tex;
+  const c = document.createElement("canvas");
+  c.width = img.width;
+  c.height = img.height;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+    if (lum < 24) d[i + 3] = 0;
+  }
+  ctx.putImageData(id, 0, 0);
+  const out = new THREE.CanvasTexture(c);
+  out.colorSpace = THREE.SRGBColorSpace;
+  out.anisotropy = 8;
+  out.needsUpdate = true;
+  return out;
+}
+
+/**
+ * Twin/showtime door mark: large readable PORTABOOM on the cabinet door face,
+ * parented to 115-DOOR, aimed at the viewer. Official wordmark, not a chrome plate.
+ */
 function addLogoDecal(root) {
-  const loader = new THREE.TextureLoader();
-  loader.load("./portaboom_logo_reversed.png", (tex) => {
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 8;
-    let door = null;
-    let cab = null;
-    root.traverse((o) => {
-      if (!o.isMesh) return;
-      if (/AK-XLH-D115C-01-02-1/.test(o.name || "")) door = o;
-      if (/AK-XLH-D115C-01-01-1/.test(o.name || "")) cab = o;
-    });
-    const host = door || cab;
-    if (!host) return;
-    if (!host.geometry.boundingBox) host.geometry.computeBoundingBox();
-    const lb = host.geometry.boundingBox;
-    const ls = lb.getSize(new THREE.Vector3());
-    const lc = lb.getCenter(new THREE.Vector3());
-    const faceW = Math.max(ls.x, ls.y * 0.42);
-    const logoW = faceW * 0.88;
-    const imgW = tex.image?.width || 4;
-    const imgH = tex.image?.height || 1;
+  const stale = [];
+  root.traverse((o) => {
+    if (/PortaboomLogo/.test(o.name || "")) stale.push(o);
+  });
+  stale.forEach((o) => o.parent && o.parent.remove(o));
+
+  let door = null;
+  let cab = null;
+  root.traverse((o) => {
+    if (/^115-DOOR$/.test(o.name || "")) door = o;
+    if (!door && /AK-XLH-D115C-01-02-1/.test(o.name || "")) door = o;
+    if (/AK-XLH-D115C-01-01-1|HeroCabinet/.test(o.name || "") && !cab) cab = o;
+  });
+  const host = door || cab;
+  if (!host) return;
+
+  const placeWordmark = (tex, name) => {
+    const map = punchDarkToAlpha(tex);
+    host.updateMatrixWorld(true);
+    const box = worldBox(host);
+    const size = box.getSize(new THREE.Vector3());
+    const mid = box.getCenter(new THREE.Vector3());
+    const faceW = Math.max(size.x, size.z);
+    const logoW = Math.max(0.48, Math.min(faceW * 0.9, 1.2));
+    const imgW = map.image?.width || 1228;
+    const imgH = map.image?.height || 244;
     const logoH = logoW * (imgH / imgW);
-    const chrome = new THREE.Mesh(
-      new THREE.PlaneGeometry(logoW * 1.06, logoH * 1.28),
-      new THREE.MeshStandardMaterial({ color: 0xf4f7fb, metalness: 0.86, roughness: 0.18 })
-    );
     const plate = new THREE.Mesh(
       new THREE.PlaneGeometry(logoW, logoH),
-      new THREE.MeshStandardMaterial({
-        map: tex, transparent: true, depthWrite: false,
-        side: THREE.DoubleSide, metalness: 0.2, roughness: 0.35, color: 0xffffff,
+      new THREE.MeshBasicMaterial({
+        map,
+        transparent: true,
+        depthWrite: false,
+        side: THREE.DoubleSide,
+        toneMapped: false,
       })
     );
-    plate.name = "PortaboomLogoDecal";
-    const zOut = lb.min.z - 0.006;
-    const y = lc.y + ls.y * 0.06;
-    chrome.position.set(lc.x, y, zOut);
-    plate.position.set(lc.x, y, zOut - 0.0015);
-    chrome.rotation.y = Math.PI;
-    plate.rotation.y = Math.PI;
-    host.add(chrome);
-    host.add(plate);
-    root.userData.logoWorldW = logoW * (root.scale?.x || 1);
+    plate.name = name;
+    const toCam = new THREE.Vector3(camera.position.x - mid.x, 0, camera.position.z - mid.z);
+    if (toCam.lengthSq() < 1e-6) toCam.set(0, 0, 1);
+    toCam.normalize();
+    const half = Math.max(0.014, Math.min(size.x, size.z) * 0.5 + 0.012);
+    const pos = new THREE.Vector3(mid.x, mid.y + size.y * 0.05, mid.z).addScaledVector(toCam, half);
+    plate.position.copy(pos);
+    plate.lookAt(pos.x + toCam.x, pos.y, pos.z + toCam.z);
+    scene.add(plate);
+    host.attach(plate);
+    root.userData.logoWorldW = logoW;
+  };
+
+  const loader = new THREE.TextureLoader();
+  loader.load("./portaboom_logo.png", (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    placeWordmark(tex, "PortaboomLogoFace");
   });
 }
 
@@ -591,7 +694,10 @@ function paintGlb(root) {
     o.castShadow = true;
     o.receiveShadow = true;
     if (traffic) {
-      // TL head 3-aspect is Chief's lane — do not invent or overwrite here.
+      // Housing only. Lenses are bound in rigTrafficLamps. No ProductLed flanks.
+      const r0 = firstMatRgb(o);
+      if (r0 === "red" || r0 === "amber" || r0 === "green") return;
+      o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
       return;
     }
     if (/主杆|灯条|胶条|杆|橙|orange|105/i.test(name)) o.material = matOrange;
@@ -600,6 +706,144 @@ function paintGlb(root) {
     else if (/箱|柜|门|compound/i.test(name)) o.material = matWhite;
     else o.material = r > 0.2 ? matOrange : matWhite;
   });
+}
+
+function firstMat(o) {
+  if (!o) return null;
+  return Array.isArray(o.material) ? o.material[0] : o.material;
+}
+
+function firstMatRgb(o) {
+  const c = firstMat(o)?.color;
+  if (!c) return "other";
+  const { r, g, b } = c;
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  if (max < 0.1) return "black";
+  if (max - min < 0.1) return "grey";
+  if (r > 0.5 && r > g * 1.55 && r > b * 1.55) return "red";
+  if (g > 0.4 && g > r * 1.1 && g >= b * 0.9) return "green";
+  if (r > 0.4 && g > 0.12 && g < 0.7 && b < 0.28) return "amber";
+  return "other";
+}
+
+let lampMats = { red: null, amber: null, green: null };
+let lampHalos = { red: null, amber: null, green: null };
+let lampLights = { red: null, amber: null, green: null };
+let signalAspect = "green";
+
+function setAspectHud(kind) {
+  if (!aspectEl) return;
+  aspectEl.dataset.aspect = kind;
+  aspectEl.textContent = kind.toUpperCase();
+}
+
+function addGlowHalo(mesh, kind) {
+  const halo = new THREE.Mesh(
+    new THREE.CircleGeometry(0.12, 28),
+    new THREE.MeshBasicMaterial({
+      color: LAMP_COL[kind],
+      transparent: true,
+      opacity: 0.08,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      toneMapped: false,
+    })
+  );
+  halo.name = `SignalHalo_${kind}`;
+  if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
+  const sz = mesh.geometry.boundingBox.getSize(new THREE.Vector3());
+  const scale = Math.max(sz.x, sz.y, sz.z) * 1.15 || 0.22;
+  halo.scale.setScalar(scale / 0.24);
+  const axis = sz.x <= sz.y && sz.x <= sz.z
+    ? "x"
+    : sz.y <= sz.z
+      ? "y"
+      : "z";
+  if (axis === "x") halo.rotation.y = Math.PI / 2;
+  else if (axis === "y") halo.rotation.x = Math.PI / 2;
+  halo.position.z = axis === "z" ? 0.004 : 0;
+  mesh.add(halo);
+  const light = new THREE.PointLight(LAMP_COL[kind], 0.2, 2.4, 2);
+  light.name = `SignalLight_${kind}`;
+  mesh.add(light);
+  return { halo, light };
+}
+
+function rigTrafficLamps(root) {
+  lampMats = { red: null, amber: null, green: null };
+  lampHalos = { red: null, amber: null, green: null };
+  lampLights = { red: null, amber: null, green: null };
+
+  const signalMeshes = [];
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    if (/Traffic Light|HeroLens|HeroSignal/i.test(ancestorBlob(o))) signalMeshes.push(o);
+  });
+
+  const byColor = { red: [], amber: [], green: [], housing: [] };
+  const discs = [];
+  signalMeshes.forEach((o) => {
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    if (!o.geometry.boundingSphere) o.geometry.computeBoundingSphere();
+    const sz = o.geometry.boundingBox.getSize(new THREE.Vector3());
+    const sorted = [sz.x, sz.y, sz.z].sort((a, b) => a - b);
+    const disc = sorted[0] < 0.045 && Math.abs(sorted[1] - sorted[2]) < 0.1 && sorted[1] > 0.07;
+    if (disc) discs.push(o);
+    const kind = firstMatRgb(o);
+    if ((kind === "red" || kind === "amber" || kind === "green") && (o.geometry.boundingSphere?.radius || 0) < 0.35) {
+      byColor[kind].push(o);
+    } else if (!disc) {
+      byColor.housing.push(o);
+    }
+  });
+  if (discs.length >= 3) {
+    discs.sort((a, b) => worldBox(b).getCenter(new THREE.Vector3()).y - worldBox(a).getCenter(new THREE.Vector3()).y);
+    byColor.red = [discs[0]];
+    byColor.amber = [discs[1]];
+    byColor.green = [discs[2]];
+  }
+
+  ["red", "amber", "green"].forEach((kind) => {
+    const mesh = byColor[kind][0];
+    if (!mesh) return;
+    const mat = makeLampMat(kind, kind === "green");
+    mesh.material = mat;
+    mesh.name = mesh.name && /lens/i.test(mesh.name) ? mesh.name : `SignalLens_${kind}`;
+    lampMats[kind] = mat;
+    const glow = addGlowHalo(mesh, kind);
+    lampHalos[kind] = glow.halo.material;
+    lampLights[kind] = glow.light;
+  });
+
+  byColor.housing.forEach((o) => {
+    if (Object.values(lampMats).includes(o.material)) return;
+    o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
+  });
+
+  setSignalAspect("green");
+}
+
+function setSignalAspect(kind) {
+  signalAspect = kind;
+  for (const k of ["red", "amber", "green"]) {
+    const on = k === kind;
+    const m = lampMats[k];
+    if (m) m.emissiveIntensity = on ? 8.8 : 0.07;
+    const h = lampHalos[k];
+    if (h) h.opacity = on ? 0.55 : 0.04;
+    const l = lampLights[k];
+    if (l) l.intensity = on ? 2.1 : 0.05;
+  }
+  const hero = boom?.userData?.heroHead;
+  if (hero) {
+    ["red", "amber", "green"].forEach((k) => {
+      const lens = hero.getObjectByName(`HeroLens_${k}`);
+      if (lens?.material) lens.material.emissiveIntensity = k === kind ? 8.8 : 0.08;
+    });
+  }
+  setAspectHud(kind);
 }
 
 /** Twin-core lights.ts updateLeds — the only LED SoT. */
@@ -740,11 +984,20 @@ function updateLeds() {
   }
 }
 
+function beginAmberThenClose() {
+  if (!boomRig) return;
+  showMode = "amber";
+  showClock = 0;
+  setSignalAspect("amber");
+  setStatus("Amber — boom holds, then drops red");
+}
+
 function beginCloseSequence() {
   if (!boomRig) return;
   showMode = "closing";
   showClock = 0;
   setBoomPct(0);
+  setSignalAspect("red");
   setStatus("Boom lowering…");
 }
 
@@ -753,27 +1006,36 @@ function beginRaiseSequence() {
   showMode = "raising";
   showClock = 0;
   setBoomPct(100);
+  setSignalAspect("red");
   setStatus("Boom raising…");
 }
 
-/** Boom motion beat only. LEDs are driven solely by updateLeds. */
+/** Boom motion beat. Face/strip LEDs stay on updateLeds. 3-aspect on the signal head. */
 function tickShow(dt) {
   if (!boomRig || flat) return;
   showClock += dt;
   if (showMode === "up") {
     setBoomPct(100);
-    if (!reduced && showClock > 0.55) beginCloseSequence();
+    setSignalAspect("green");
+    if (!reduced && showClock > 0.55) beginAmberThenClose();
+  } else if (showMode === "amber") {
+    setSignalAspect("amber");
+    if (showClock > 0.75) beginCloseSequence();
   } else if (showMode === "closing") {
+    setSignalAspect("red");
     if (boomRig.shownPct <= 1.5) {
       showMode = "down";
       showClock = 0;
     }
   } else if (showMode === "down") {
+    setSignalAspect("red");
     if (showClock > 0.4) beginRaiseSequence();
   } else if (showMode === "raising") {
+    setSignalAspect("red");
     if (boomRig.shownPct >= 99) {
       showMode = "up";
       showClock = 0;
+      setSignalAspect("green");
       setStatus("Idle. Boom up.");
     }
   }
@@ -787,23 +1049,9 @@ setStatus("Idle. PORTABOOM hero on QR grid. Loading named twin.");
 boomRig = rigHeroArm(boom);
 ledRig.faceMat = boom.userData.heroFaceMat || null;
 ledRig.stripMat = boom.getObjectByName("PortaboomBoomStrip")?.material || null;
-{
-  const plate = boom.getObjectByName("PortaboomChromePlate");
-  if (plate) {
-    new THREE.TextureLoader().load("./portaboom_logo_reversed.png", (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      plate.material = new THREE.MeshStandardMaterial({
-        map: tex,
-        transparent: true,
-        metalness: 0.84,
-        roughness: 0.16,
-        color: 0xffffff,
-        side: THREE.DoubleSide,
-        depthWrite: false,
-      });
-    });
-  }
-}
+rigTrafficLamps(boom);
+addLogoDecal(boom);
+setSignalAspect("green");
 
 const loader = new GLTFLoader();
 
@@ -828,10 +1076,12 @@ function mountCad(gltf, label) {
     boomRig = rigBoomMaster(boom);
     if (boomRig) boomRig.speed = 38;
     rigTwinLeds(boom);
+    rigTrafficLamps(boom);
     addLogoDecal(boom);
     showMode = "up";
     showClock = 0;
-    if (boomRig) setStatus(label + " · boom live");
+    setSignalAspect("green");
+    if (boomRig) setStatus(label + " · boom live · signal live");
     else setStatus(label);
   } catch (err) {
     console.error(err);
@@ -963,21 +1213,27 @@ const boomBtn = document.getElementById("boomBtn");
 if (boomBtn) {
   boomBtn.addEventListener("click", () => {
     if (!boomRig) return;
-    if (showMode === "up" || boomRig.shownPct >= 50) beginCloseSequence();
+    if (showMode === "up") beginAmberThenClose();
+    else if (showMode === "amber" || boomRig.shownPct >= 50) beginCloseSequence();
     else beginRaiseSequence();
   });
 }
 
 window.__iqr = {
   get snap() {
-    const logo = boom?.getObjectByName?.("PortaboomLogoDecal");
+    const logo = boom?.getObjectByName?.("PortaboomLogoFace")
+      || boom?.getObjectByName?.("PortaboomLogoDecal");
     const faces = [];
     boom?.traverse?.((o) => { if (o.name === "PortaboomFaceLed") faces.push(o.name); });
+    const pivot = boom?.userData?.signalPivot;
     return {
       usingGlb,
       showMode,
+      signalAspect,
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
+      signalYaw: pivot?.rotation?.y ?? null,
+      signalFaced: !!findSignalHead(boom)?.userData?.signalFaced,
       boomPct: boomRig?.shownPct ?? null,
       boomTarget: boomRig?.targetPct ?? null,
       faceLeds: faces.length,
@@ -987,8 +1243,10 @@ window.__iqr = {
       faceIntensity: ledRig.faceMat?.emissiveIntensity ?? null,
       stripHex: ledRig.stripMat ? ledRig.stripMat.emissive.getHexString() : null,
       logo: logo ? {
+        name: logo.name,
         world: logo.getWorldPosition(new THREE.Vector3()).toArray(),
         parent: logo.parent?.name || null,
+        worldW: boom?.userData?.logoWorldW ?? null,
       } : null,
     };
   },
