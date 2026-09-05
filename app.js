@@ -30,6 +30,12 @@ let optsVisible = { solar: SHOW_CONFIG.solar, traffic: SHOW_CONFIG.traffic };
 let spin = false;
 let controls = null;
 let framed = false;
+const HOME = {
+  pos: new THREE.Vector3(0, 1.5, 5.4),
+  tgt: new THREE.Vector3(0, 1.1, 0),
+  fov: 32,
+};
+let camGlide = null;
 let lampMats = { red: null, amber: null, green: null };
 let lampHalos = { red: null, amber: null, green: null };
 let lampLights = { red: null, amber: null, green: null };
@@ -765,7 +771,58 @@ function initOrbit(root) {
   controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
   controls.update();
   framed = true;
+  captureHome();
   return controls;
+}
+
+function captureHome() {
+  HOME.pos.copy(camera.position);
+  HOME.fov = camera.fov;
+  if (controls) HOME.tgt.copy(controls.target);
+  else HOME.tgt.set(0, 0.7, 0);
+}
+
+function qrPose() {
+  const qrW = N * CELL + 0.28;
+  const fovDeg = 36;
+  const fov = THREE.MathUtils.degToRad(fovDeg);
+  const aspect = Math.max(0.42, camera.aspect || 0.46);
+  const dist = (qrW * 0.6) / (2 * Math.tan(fov / 2) * aspect);
+  return {
+    pos: new THREE.Vector3(0, Math.max(2.55, dist), qrW * 0.07),
+    tgt: new THREE.Vector3(0, 0.05, 0),
+    fov: fovDeg,
+  };
+}
+
+function startCamGlide(to, dur = 0.62) {
+  camGlide = {
+    fromPos: camera.position.clone(),
+    fromTgt: (controls ? controls.target.clone() : HOME.tgt.clone()),
+    fromFov: camera.fov,
+    toPos: to.pos.clone(),
+    toTgt: to.tgt.clone(),
+    toFov: to.fov ?? camera.fov,
+    t: 0,
+    dur,
+  };
+}
+
+function tickCamGlide(dt) {
+  if (!camGlide) return;
+  camGlide.t += dt;
+  const u = Math.min(1, camGlide.t / camGlide.dur);
+  const e = u * u * (3 - 2 * u);
+  camera.position.lerpVectors(camGlide.fromPos, camGlide.toPos, e);
+  camera.fov = THREE.MathUtils.lerp(camGlide.fromFov, camGlide.toFov, e);
+  camera.updateProjectionMatrix();
+  if (controls) {
+    controls.target.lerpVectors(camGlide.fromTgt, camGlide.toTgt, e);
+    controls.update();
+  } else {
+    camera.lookAt(camGlide.toTgt);
+  }
+  if (u >= 1) camGlide = null;
 }
 
 function syncDock() {
@@ -1461,6 +1518,7 @@ function mountCad(gltf, label) {
     } else {
       initOrbit(boom);
     }
+    captureHome();
     if (boomRig) setStatus(label + " · boom live · clean core");
     else setStatus(label);
   } catch (err) {
@@ -1509,14 +1567,27 @@ requestAnimationFrame(() => {
 function setFlat(next) {
   flat = next;
   flatT = 0;
+  const flattenBtn = document.getElementById("flattenBtn");
   if (flat) {
     setStatus("Flattened. Scan-proof QR error H. PB4000 product.");
     if (hintEl) hintEl.innerHTML = "QR ready. Scan with Camera, or open the product page.";
+    if (flattenBtn) flattenBtn.textContent = "Restore unit";
+    if (controls) {
+      controls.enabled = false;
+      controls.autoRotate = false;
+    }
+    startCamGlide(qrPose(), 0.64);
   } else {
     setStatus(usingGlb
-      ? "Idle. PB4000 twin on QR grid. Tap to flatten."
-      : "Idle. PORTABOOM hero on QR grid. Tap to flatten.");
-    if (hintEl) hintEl.textContent = "Tap the boom. Navy modules flatten to a scan-H plane.";
+      ? "Idle. PB4000 clean core. Front. Orbit."
+      : "Idle. PORTABOOM hero. Front. Orbit.");
+    if (hintEl) hintEl.textContent = "Tap Flatten to drop the twin onto a scan-H QR.";
+    if (flattenBtn) flattenBtn.textContent = "Flatten to QR";
+    if (controls) {
+      controls.enabled = true;
+      if (!spin) controls.autoRotate = false;
+    }
+    startCamGlide({ pos: HOME.pos, tgt: HOME.tgt, fov: HOME.fov }, 0.64);
   }
 }
 
@@ -1539,7 +1610,9 @@ function tick() {
   flatT = Math.min(1, flatT + 0.045);
   const k = flat ? flatT : 1 - flatT;
   grid.visible = k > 0.02;
-  studioGroup.visible = k < 0.92;
+  studioGroup.visible = true;
+  paperMat.color.setHex(k > 0.2 ? 0xf4f6f9 : 0x0a0e14);
+  tickCamGlide(dt);
   for (const m of mods) {
     const breathe = reduced ? 0 : Math.sin(t * 2.2 + m.userData.phase) * 0.012;
     m.position.y = THREE.MathUtils.lerp(m.userData.baseY + breathe, 0.03, k);
@@ -1628,6 +1701,9 @@ window.__iqr = {
       showMode,
       signalAspect,
       showConfig: SHOW_CONFIG,
+      flat,
+      scanOpacity: scanPlane?.material?.opacity ?? 0,
+      gridVisible: !!grid.visible,
       solarOn: optsVisible.solar,
       trafficOn: optsVisible.traffic,
       spin,
