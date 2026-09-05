@@ -1,5 +1,7 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -8,6 +10,30 @@ const CREAM = 0xfce3cc;
 const STEEL = 0xc5cad3;
 const INK = 0x202020;
 const DEST = "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/";
+
+/**
+ * Overnight SHOW CONFIG — clean core defaults (twin-core setGroup).
+ * KEEP: cabinet + boom + ONE traffic head.
+ * HIDE: solar group until user toggles ON. Hide 2nd head / ped if present.
+ * OrbitControls on; autoRotate only via setSpin (default OFF).
+ */
+const SHOW_CONFIG = Object.freeze({
+  solar: false,
+  traffic: true,
+  secondHead: false,
+  productLedFlanks: false,
+  spin: false,
+});
+
+let groups = { solar: [], traffic: [], traffic2: [] };
+let optsVisible = { solar: SHOW_CONFIG.solar, traffic: SHOW_CONFIG.traffic };
+let spin = false;
+let controls = null;
+let framed = false;
+let lampMats = { red: null, amber: null, green: null };
+let lampHalos = { red: null, amber: null, green: null };
+let lampLights = { red: null, amber: null, green: null };
+let signalAspect = "green";
 
 /** Twin-core lights.ts updateLeds SoT. Face rounds + boom strip. Red+green only. */
 const FACE_GREEN = 0x3fe868;
@@ -87,42 +113,102 @@ if (!renderer.getContext()) {
 }
 
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-renderer.setClearColor(0xF4F6F9, 1);
+renderer.setClearColor(0x0d0d12, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.22;
+renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0xF4F6F9);
-scene.fog = new THREE.Fog(0xE9EEF5, 14, 32);
+// twin-core Ye() studio: background 0x0d0d12, RoomEnvironment, no fog
+scene.background = new THREE.Color(0x0d0d12);
+scene.backgroundBlurriness = 0;
+try {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+  scene.environmentIntensity = 1;
+} catch (err) {
+  console.warn("RoomEnvironment skipped", err);
+}
 
-// Showtime-lock hero camera. No OrbitControls. No auto-rotate.
 const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
-camera.position.set(0, 0.85, 2.1);
-camera.lookAt(0, 0.62, 0);
+camera.position.set(0, 1.5, 5.4);
+camera.lookAt(0, 1.1, 0);
 
-scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1b2a4a, 1.12));
-const key = new THREE.DirectionalLight(0xfff4e8, 1.7);
+scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
+const key = new THREE.DirectionalLight(0xffffff, 1.1);
 key.position.set(2.6, 5.8, 3.6);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
+key.shadow.bias = -0.0003;
 scene.add(key);
-const fill = new THREE.DirectionalLight(0xdce7ff, 0.38);
+const fill = new THREE.DirectionalLight(0x9fbfff, 0.32);
 fill.position.set(-2.2, 3.2, 2.4);
 scene.add(fill);
-const rim = new THREE.DirectionalLight(ORANGE, 0.55);
+const rim = new THREE.DirectionalLight(0xffe2c4, 0.38);
 rim.position.set(-3.2, 2.4, -3.4);
 scene.add(rim);
 
+/** twin-core scenes.ts ct() — studio floor + warm contact + cyclorama horizon */
+const studioGroup = new THREE.Group();
+studioGroup.name = "TwinStudio";
 const floor = new THREE.Mesh(
-  new THREE.CircleGeometry(5.2, 48),
-  new THREE.MeshStandardMaterial({ color: 0xE9EEF5, roughness: 1, metalness: 0 })
+  new THREE.PlaneGeometry(14, 80),
+  new THREE.MeshStandardMaterial({
+    color: 0x040507, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.05,
+  })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
-scene.add(floor);
+studioGroup.add(floor);
+{
+  const c = document.createElement("canvas");
+  c.width = c.height = 256;
+  const ctx = c.getContext("2d");
+  const g = ctx.createRadialGradient(128, 128, 10, 128, 128, 126);
+  g.addColorStop(0, "rgba(255,214,170,0.22)");
+  g.addColorStop(0.55, "rgba(255,190,130,0.07)");
+  g.addColorStop(1, "rgba(255,180,120,0)");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 256, 256);
+  const glow = new THREE.Mesh(
+    new THREE.CircleGeometry(3.2, 64),
+    new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(c),
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      depthWrite: false,
+      toneMapped: false,
+    })
+  );
+  glow.rotation.x = -Math.PI / 2;
+  glow.position.y = 0.012;
+  studioGroup.add(glow);
+}
+{
+  const c = document.createElement("canvas");
+  c.width = 4;
+  c.height = 512;
+  const ctx = c.getContext("2d");
+  const g = ctx.createLinearGradient(0, 0, 0, 512);
+  g.addColorStop(0, "#030508");
+  g.addColorStop(0.55, "#0a0e14");
+  g.addColorStop(1, "#0c1118");
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 4, 512);
+  const cyc = new THREE.Mesh(
+    new THREE.CylinderGeometry(38, 38, 26, 64, 1, true),
+    new THREE.MeshBasicMaterial({
+      map: new THREE.CanvasTexture(c),
+      side: THREE.BackSide,
+      toneMapped: false,
+    })
+  );
+  cyc.position.y = 12.8;
+  studioGroup.add(cyc);
+}
+scene.add(studioGroup);
 
 function hash(i, j) {
   let x = Math.imul(i + 1, 374761393) ^ Math.imul(j + 1, 668265263);
@@ -135,13 +221,13 @@ grid.name = "QrModuleGrid";
 scene.add(grid);
 
 const moduleMat = new THREE.MeshStandardMaterial({
-  color: NAVY, roughness: 0.42, metalness: 0.1,
+  color: 0x151c28, roughness: 0.55, metalness: 0.18, envMapIntensity: 0.25,
 });
 const paperMat = new THREE.MeshStandardMaterial({
-  color: PAPER, roughness: 0.88, metalness: 0.02,
+  color: 0x0a0e14, roughness: 0.92, metalness: 0.04, envMapIntensity: 0.08,
 });
 const accentMat = new THREE.MeshStandardMaterial({
-  color: ORANGE, roughness: 0.34, metalness: 0.18, emissive: ORANGE, emissiveIntensity: 0.1,
+  color: ORANGE, roughness: 0.34, metalness: 0.18, emissive: ORANGE, emissiveIntensity: 0.06,
 });
 
 const mods = [];
@@ -251,8 +337,10 @@ function makeHeroBoom() {
   arm.add(tip);
   g.add(arm);
   const solar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.02, 0.28), matNavy);
+  solar.name = "太阳能板";
   solar.position.set(-0.85, 0.58, 0);
   solar.rotation.x = -0.25;
+  solar.visible = SHOW_CONFIG.solar;
   g.add(solar);
   const head = new THREE.Group();
   head.name = "HeroSignalHead";
@@ -267,13 +355,6 @@ function makeHeroBoom() {
   });
   g.add(head);
   g.userData.heroHead = head;
-  const matChrome = new THREE.MeshStandardMaterial({
-    color: 0xe8eef4, roughness: 0.16, metalness: 0.88,
-  });
-  const chromePlate = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.13), matChrome);
-  chromePlate.position.set(-0.85, 0.36, 0.356);
-  chromePlate.name = "PortaboomChromePlate";
-  g.add(chromePlate);
   const faceMat = makeFaceLedMat(false);
   const bezelMat = new THREE.MeshStandardMaterial({ color: 0x101814, roughness: 0.8, metalness: 0.12 });
   for (const dx of [-0.09, 0.09]) {
@@ -295,7 +376,10 @@ let boom = makeHeroBoom();
 boom.userData.plantedYaw = yawFaceCamera(false);
 boom.rotation.y = boom.userData.plantedYaw;
 scene.add(boom);
+bindGroups(boom);
+applyCoreShowConfig(boom);
 lockHeroCamera(boom);
+initOrbit(boom);
 if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
@@ -308,9 +392,26 @@ function setStatus(text) {
 }
 
 
+function isVisibleInTree(o) {
+  let p = o;
+  while (p) {
+    if (p.visible === false) return false;
+    p = p.parent;
+  }
+  return true;
+}
+
 function worldBox(obj) {
   obj.updateMatrixWorld(true);
-  return new THREE.Box3().setFromObject(obj);
+  const box = new THREE.Box3();
+  let any = false;
+  obj.traverse((o) => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!isVisibleInTree(o)) return;
+    box.expandByObject(o);
+    any = true;
+  });
+  return any ? box : new THREE.Box3().setFromObject(obj);
 }
 
 function ancestorBlob(o) {
@@ -340,15 +441,16 @@ function gatherHeroBox(root) {
   root.traverse((o) => {
     if (!o.isMesh) return;
     const n = ancestorBlob(o);
-    if (!/115-DOOR|AK-XLH-D115C-01-01|Traffic[_\s-]*Light|HeroCabinet|PortaboomChromePlate|PortaboomFaceLed/i.test(n)) return;
-    if (/PART_|GB_T|螺钉|垫|自攻/.test(n)) return;
+    if (!isVisibleInTree(o)) return;
+    if (!/115-DOOR|AK-XLH-D115C-01-01|Traffic[_\s-]*Light|HeroCabinet|PortaboomFaceLed/i.test(n)) return;
+    if (/PART_|GB_T|螺钉|垫|自攻|太阳能|solar|PED_|TL2_/i.test(n)) return;
     box.union(new THREE.Box3().setFromObject(o));
     any = true;
   });
   return any ? box : worldBox(root);
 }
 
-/** Frontal lock on cabinet + traffic head. Product fills frame. No orbit. */
+/** Front framing on cabinet + traffic head. Orbit takes over after init. */
 function lockHeroCamera(root) {
   const box = gatherHeroBox(root);
   const size = box.getSize(new THREE.Vector3());
@@ -440,6 +542,155 @@ function isDescendantOf(o, ancestor) {
     p = p.parent;
   }
   return false;
+}
+
+function collectTops(hits) {
+  return hits.filter((o) => !hits.some((p) => p !== o && isDescendantOf(o, p)));
+}
+
+/**
+ * twin-core De() + setGroup(solar/traffic).
+ * Solar: 太阳能板 / 支架 / 固定板 / 管套 / 调节螺柱.
+ * Traffic: port1 Traffic Light. Extra / ped / TL2 hidden for clean core.
+ */
+function bindGroups(root) {
+  groups = { solar: [], traffic: [], traffic2: [] };
+  if (!root) return groups;
+  const solarHits = [];
+  const trafficHits = [];
+  const extraHits = [];
+  root.traverse((o) => {
+    const n = o.name || "";
+    if (/ProductLed/i.test(n)) {
+      o.visible = false;
+      return;
+    }
+    if (/太阳能板|太阳能板支架|固定板|管套|调节螺柱|^太阳能|solar/i.test(n)) solarHits.push(o);
+    if (/灯条/.test(n)) return;
+    if (/PED_|TL2_|行人|人行|pedestrian|walk[_\s-]*light|walk[_\s-]*signal/i.test(n)) {
+      extraHits.push(o);
+      return;
+    }
+    if (/Traffic[_\s.-]*Light|HeroSignal|信号灯/i.test(n)) trafficHits.push(o);
+  });
+  groups.solar = collectTops(solarHits);
+  const trafficTops = collectTops(trafficHits);
+  const keep = trafficTops.find((o) => /Traffic[_\s.-]*Light|HeroSignal/i.test(o.name || "") && !/PED_|TL2_/i.test(o.name || ""))
+    || trafficTops[0]
+    || null;
+  groups.traffic = keep ? [keep] : [];
+  groups.traffic2 = [
+    ...collectTops(extraHits),
+    ...trafficTops.filter((o) => o !== keep),
+  ];
+  root.userData.groups = {
+    solar: groups.solar.map((o) => o.name),
+    traffic: groups.traffic.map((o) => o.name),
+    extra: groups.traffic2.map((o) => o.name),
+  };
+  return groups;
+}
+
+/** twin-core lights.ts setGroup — visibility only. */
+function setGroup(name, on) {
+  optsVisible[name] = !!on;
+  const list = groups[name] || [];
+  list.forEach((o) => { o.visible = !!on; });
+  if (name === "traffic") {
+    if (!on) {
+      for (const k of ["red", "amber", "green"]) {
+        if (lampLights[k]) lampLights[k].intensity = 0;
+        if (lampHalos[k]) lampHalos[k].opacity = 0;
+      }
+      setAspectHud("off");
+    } else {
+      setSignalAspect(signalAspect || "green");
+    }
+  }
+}
+
+function setSolar(on) {
+  setGroup("solar", on);
+  syncDock();
+}
+
+function setTrafficLights(on) {
+  setGroup("traffic", on);
+  if (!on) groups.traffic2.forEach((o) => { o.visible = false; });
+  syncDock();
+}
+
+/** twin-core setSpin. autoRotate stays false unless the user turns spin on. */
+function setSpin(on) {
+  spin = !!on;
+  if (controls) {
+    controls.autoRotate = spin;
+    controls.autoRotateSpeed = 1;
+  }
+  syncDock();
+}
+
+function applyCoreShowConfig(root) {
+  bindGroups(root);
+  groups.traffic2.forEach((o) => { o.visible = false; });
+  root.traverse((o) => {
+    if (/ProductLed/i.test(o.name || "")) o.visible = false;
+  });
+  setGroup("solar", SHOW_CONFIG.solar);
+  setGroup("traffic", SHOW_CONFIG.traffic);
+  root.userData.coreShow = {
+    solarOn: optsVisible.solar,
+    trafficOn: optsVisible.traffic,
+    keepName: groups.traffic[0]?.name || null,
+    extraHidden: (root.userData.groups?.extra || []),
+  };
+}
+
+function initOrbit(root) {
+  if (controls) return controls;
+  controls = new OrbitControls(camera, renderer.domElement);
+  controls.enableDamping = true;
+  controls.dampingFactor = 0.08;
+  controls.maxPolarAngle = Math.PI * 0.49;
+  controls.minDistance = 0.85;
+  controls.maxDistance = 12;
+  controls.enablePan = true;
+  controls.autoRotate = false;
+  controls.autoRotateSpeed = 1;
+  controls.touches = {
+    ONE: THREE.TOUCH.ROTATE,
+    TWO: THREE.TOUCH.DOLLY_PAN,
+  };
+  const box = gatherHeroBox(root);
+  const center = box.getCenter(new THREE.Vector3());
+  controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
+  controls.update();
+  framed = true;
+  return controls;
+}
+
+function syncDock() {
+  const solarBtn = document.getElementById("solarBtn");
+  const lightsBtn = document.getElementById("lightsBtn");
+  const spinBtn = document.getElementById("spinBtn");
+  if (solarBtn) {
+    solarBtn.textContent = optsVisible.solar ? "Solar ON" : "Solar OFF";
+    solarBtn.classList.toggle("on", optsVisible.solar);
+    solarBtn.classList.toggle("off", !optsVisible.solar);
+    solarBtn.setAttribute("aria-pressed", optsVisible.solar ? "true" : "false");
+  }
+  if (lightsBtn) {
+    lightsBtn.textContent = optsVisible.traffic ? "Traffic lights ON" : "Traffic lights OFF";
+    lightsBtn.classList.toggle("on", optsVisible.traffic);
+    lightsBtn.classList.toggle("off", !optsVisible.traffic);
+    lightsBtn.setAttribute("aria-pressed", optsVisible.traffic ? "true" : "false");
+  }
+  if (spinBtn) {
+    spinBtn.textContent = spin ? "Spin ON" : "Spin OFF";
+    spinBtn.classList.toggle("on", spin);
+    spinBtn.classList.toggle("off", !spin);
+    spinBtn.setAttribute("aria-pressed", spin ? "true" : "false");
+  }
 }
 
 /** Port of twin-core rigBoomMaster — rotates 主杆 up/down about shaft hinge. */
@@ -735,11 +986,6 @@ function firstMatRgb(o) {
   return "other";
 }
 
-let lampMats = { red: null, amber: null, green: null };
-let lampHalos = { red: null, amber: null, green: null };
-let lampLights = { red: null, amber: null, green: null };
-let signalAspect = "green";
-
 function setAspectHud(kind) {
   if (!aspectEl) return;
   aspectEl.dataset.aspect = kind;
@@ -787,7 +1033,7 @@ function rigTrafficLamps(root) {
   const signalMeshes = [];
   root.traverse((o) => {
     if (!o.isMesh) return;
-    if (/Traffic Light|HeroLens|HeroSignal/i.test(ancestorBlob(o))) signalMeshes.push(o);
+    if (/Traffic[_\s.-]*Light|HeroLens|HeroSignal|信号灯/i.test(ancestorBlob(o))) signalMeshes.push(o);
   });
 
   const byColor = { red: [], amber: [], green: [], housing: [] };
@@ -835,6 +1081,18 @@ function rigTrafficLamps(root) {
 
 function setSignalAspect(kind) {
   signalAspect = kind;
+  if (!optsVisible.traffic) {
+    setAspectHud("off");
+    for (const k of ["red", "amber", "green"]) {
+      const m = lampMats[k];
+      if (m) m.emissiveIntensity = 0.02;
+      const h = lampHalos[k];
+      if (h) h.opacity = 0;
+      const l = lampLights[k];
+      if (l) l.intensity = 0;
+    }
+    return;
+  }
   for (const k of ["red", "amber", "green"]) {
     const on = k === kind;
     const m = lampMats[k];
@@ -1018,14 +1276,13 @@ function beginRaiseSequence() {
   setStatus("Boom raising…");
 }
 
-/** Boom motion beat. Face/strip LEDs stay on updateLeds. 3-aspect on the signal head. */
+/** Boom motion beat. No auto-cycle — user dock drives raise/lower. */
 function tickShow(dt) {
   if (!boomRig || flat) return;
   showClock += dt;
   if (showMode === "up") {
     setBoomPct(100);
-    setSignalAspect("green");
-    if (!reduced && showClock > 0.55) beginAmberThenClose();
+    if (optsVisible.traffic) setSignalAspect("green");
   } else if (showMode === "amber") {
     setSignalAspect("amber");
     if (showClock > 0.75) beginCloseSequence();
@@ -1074,6 +1331,7 @@ function mountCad(gltf, label) {
       return;
     }
     paintGlb(cad);
+    applyCoreShowConfig(cad);
     const s = plantTwin(cad);
     removeHero();
     boom = cad;
@@ -1087,10 +1345,20 @@ function mountCad(gltf, label) {
     rigTwinLeds(boom);
     rigTrafficLamps(boom);
     addLogoDecal(boom);
+    applyCoreShowConfig(boom);
     showMode = "up";
     showClock = 0;
     setSignalAspect("green");
-    if (boomRig) setStatus(label + " · boom live · signal live");
+    lockHeroCamera(boom);
+    if (controls) {
+      const box = gatherHeroBox(boom);
+      const center = box.getCenter(new THREE.Vector3());
+      controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
+      controls.update();
+    } else {
+      initOrbit(boom);
+    }
+    if (boomRig) setStatus(label + " · boom live · clean core");
     else setStatus(label);
   } catch (err) {
     console.error(err);
@@ -1149,33 +1417,12 @@ function setFlat(next) {
   }
 }
 
-const ray = new THREE.Raycaster();
-const ptr = new THREE.Vector2();
-let down = null;
-canvas.addEventListener("pointerdown", (e) => {
-  down = { x: e.clientX, y: e.clientY, t: performance.now() };
-});
-canvas.addEventListener("pointerup", (e) => {
-  if (!down) return;
-  const dx = e.clientX - down.x;
-  const dy = e.clientY - down.y;
-  const dt = performance.now() - down.t;
-  down = null;
-  if (Math.hypot(dx, dy) > 14 || dt > 480) return;
-  const rect = canvas.getBoundingClientRect();
-  ptr.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-  ptr.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-  ray.setFromCamera(ptr, camera);
-  setFlat(!flat);
-});
-
 function resize() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
-  if (boom) lockHeroCamera(boom);
 }
 addEventListener("resize", resize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
@@ -1184,13 +1431,13 @@ resize();
 const clock = new THREE.Clock();
 function tick() {
   requestAnimationFrame(tick);
-  const t = clock.getElapsedTime();
+  const dt = Math.min(0.05, clock.getDelta());
+  const t = clock.elapsedTime;
   flatT = Math.min(1, flatT + 0.045);
   const k = flat ? flatT : 1 - flatT;
   for (const m of mods) {
-    const breathe = reduced ? 0 : Math.sin(t * 2.2 + m.userData.phase) * 0.025;
-    const jump = reduced ? 0 : Math.max(0, Math.sin(t * 3.1 + m.userData.phase)) * 0.04;
-    m.position.y = THREE.MathUtils.lerp(m.userData.baseY + breathe + jump, 0.03, k);
+    const breathe = reduced ? 0 : Math.sin(t * 2.2 + m.userData.phase) * 0.012;
+    m.position.y = THREE.MathUtils.lerp(m.userData.baseY + breathe, 0.03, k);
     m.scale.y = THREE.MathUtils.lerp(1, 0.15, k);
     m.visible = k < 0.95;
   }
@@ -1199,17 +1446,19 @@ function tick() {
   if (boom) {
     boom.visible = k < 0.92;
     if (boom.userData.restY == null) boom.userData.restY = boom.position.y;
-    const breatheY = reduced ? 0 : Math.sin(t * 1.5) * 0.03;
-    boom.position.y = THREE.MathUtils.lerp(boom.userData.restY + breatheY, 0.08, k);
+    boom.position.y = THREE.MathUtils.lerp(boom.userData.restY, 0.08, k);
     const planted = boom.userData.plantedYaw ?? 0;
     boom.rotation.y = planted;
     const sc = usingGlb ? baseScale : 1;
     boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
   }
-  const dt = Math.min(0.05, clock.getDelta());
   tickBoom(dt);
   tickShow(dt);
   updateLeds();
+  if (controls) {
+    if (!spin) controls.autoRotate = false;
+    controls.update();
+  }
   renderer.render(scene, camera);
 }
 tick();
@@ -1217,6 +1466,14 @@ tick();
 const flattenBtn = document.getElementById("flattenBtn");
 if (flattenBtn) flattenBtn.addEventListener("click", () => setFlat(!flat));
 
+const solarBtn = document.getElementById("solarBtn");
+if (solarBtn) solarBtn.addEventListener("click", () => setSolar(!optsVisible.solar));
+
+const lightsBtn = document.getElementById("lightsBtn");
+if (lightsBtn) lightsBtn.addEventListener("click", () => setTrafficLights(!optsVisible.traffic));
+
+const spinBtn = document.getElementById("spinBtn");
+if (spinBtn) spinBtn.addEventListener("click", () => setSpin(!spin));
 
 const boomBtn = document.getElementById("boomBtn");
 if (boomBtn) {
@@ -1228,6 +1485,8 @@ if (boomBtn) {
   });
 }
 
+syncDock();
+
 window.__iqr = {
   get boom() { return boom; },
   get snap() {
@@ -1237,10 +1496,34 @@ window.__iqr = {
     const faces = [];
     boom?.traverse?.((o) => { if (o.name === "PortaboomFaceLed") faces.push(o.name); });
     const pivot = boom?.userData?.signalPivot;
+    let solarVisible = 0;
+    let extraHeads = 0;
+    let productLeds = 0;
+    let trafficHeads = 0;
+    boom?.traverse?.((o) => {
+      const n = o.name || "";
+      if (/太阳能板|太阳能板支架|^太阳能|solar/i.test(n) && isVisibleInTree(o) && !/灯条/.test(n)) solarVisible += 1;
+      if (/ProductLed/i.test(n) && o.visible) productLeds += 1;
+      if (/灯条/.test(n)) return;
+      if (/Traffic[_\s.-]*Light|HeroSignal/i.test(n) && isVisibleInTree(o) && !/Traffic[_\s.-]*Light|HeroSignal/i.test(o.parent?.name || "")) {
+        trafficHeads += 1;
+      }
+      if (/PED_|TL2_|行人|人行|pedestrian/i.test(n) && isVisibleInTree(o)) extraHeads += 1;
+    });
     return {
       usingGlb,
       showMode,
       signalAspect,
+      showConfig: SHOW_CONFIG,
+      solarOn: optsVisible.solar,
+      trafficOn: optsVisible.traffic,
+      spin,
+      autoRotate: !!(controls && controls.autoRotate),
+      damping: !!(controls && controls.enableDamping),
+      solarVisible,
+      trafficHeads,
+      extraHeads,
+      productLeds,
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
       signalName: findSignalHead(boom)?.name ?? null,
