@@ -153,10 +153,40 @@ scene.add(rim);
 /** twin-core scenes.ts ct() — studio floor + warm contact + cyclorama horizon */
 const studioGroup = new THREE.Group();
 studioGroup.name = "TwinStudio";
+function makeStudioGroundTex() {
+  const c = document.createElement("canvas");
+  c.width = c.height = 512;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#16181c";
+  ctx.fillRect(0, 0, 512, 512);
+  for (let i = 0; i < 2400; i += 1) {
+    const x = Math.random() * 512;
+    const y = Math.random() * 512;
+    const n = 18 + Math.random() * 28;
+    ctx.fillStyle = `rgba(${n},${n + 2},${n + 6},${0.08 + Math.random() * 0.12})`;
+    ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
+  }
+  ctx.strokeStyle = "rgba(255,255,255,0.035)";
+  ctx.lineWidth = 1;
+  for (let g = 32; g < 512; g += 32) {
+    ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, 512); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(0, g); ctx.lineTo(512, g); ctx.stroke();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(8, 14);
+  tex.anisotropy = 8;
+  tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
 const floor = new THREE.Mesh(
-  new THREE.PlaneGeometry(14, 80),
+  new THREE.PlaneGeometry(28, 48),
   new THREE.MeshStandardMaterial({
-    color: 0x040507, roughness: 0.5, metalness: 0.05, envMapIntensity: 0.05,
+    color: 0x8a8e94,
+    map: makeStudioGroundTex(),
+    roughness: 0.88,
+    metalness: 0.08,
+    envMapIntensity: 0.22,
   })
 );
 floor.rotation.x = -Math.PI / 2;
@@ -197,16 +227,23 @@ studioGroup.add(floor);
   g.addColorStop(1, "#0c1118");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 4, 512);
+  const cycTex = new THREE.CanvasTexture(c);
   const cyc = new THREE.Mesh(
-    new THREE.CylinderGeometry(38, 38, 26, 64, 1, true),
+    new THREE.CylinderGeometry(16, 16, 18, 64, 1, true),
     new THREE.MeshBasicMaterial({
-      map: new THREE.CanvasTexture(c),
+      map: cycTex,
       side: THREE.BackSide,
       toneMapped: false,
     })
   );
-  cyc.position.y = 12.8;
+  cyc.position.y = 7.2;
   studioGroup.add(cyc);
+  const cove = new THREE.Mesh(
+    new THREE.PlaneGeometry(22, 10),
+    new THREE.MeshBasicMaterial({ map: cycTex, toneMapped: false })
+  );
+  cove.position.set(0, 4.2, -7.5);
+  studioGroup.add(cove);
 }
 scene.add(studioGroup);
 
@@ -461,9 +498,9 @@ function lockHeroCamera(root) {
   camera.updateProjectionMatrix();
   const fov = THREE.MathUtils.degToRad(camera.fov);
   const aspect = Math.max(0.55, camera.aspect || 1);
-  const distH = (size.y * 1.06) / (2 * Math.tan(fov / 2));
-  const distW = (Math.max(size.x, size.z) * 1.28) / (2 * Math.tan(fov / 2) * aspect);
-  const dist = Math.max(distH, distW, 1.05);
+  const distH = (size.y * 1.22) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 1.55) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 1.35);
   camera.position.set(
     center.x + faceDir.x * dist,
     center.y + size.y * 0.04,
@@ -520,19 +557,69 @@ function findSignalHead(root) {
 }
 
 /**
- * twin-core instance.ts: head.group.rotation.y = yaw.
- * Door is local −Z; lantern openings are local +Z — opposite after the
- * Math.PI plant. Yaw the imported Traffic Light node in place (do not
- * orbit a bbox pivot — that swings the head off the mast).
+ * twin-core instance.ts: head.group.rotation.y at the mast socket.
+ * A bbox-center spin swings the STEP off the pole — wrap at the cabinet
+ * mount, then yaw so lanterns sit on the door / camera side and face it.
  */
 function faceSignalHead(root) {
   const signal = findSignalHead(root);
   if (!signal || signal.userData.signalFaced) return signal;
-  signal.rotation.y += Math.PI;
-  signal.userData.signalFaced = true;
-  root.userData.signalPivot = signal;
+
   root.updateMatrixWorld(true);
-  return signal;
+  const doorFwd = new THREE.Vector3(-Math.sin(root.rotation.y), 0, -Math.cos(root.rotation.y));
+  let door = null;
+  root.traverse((o) => {
+    if (!door && /^115-DOOR$|^115_DOOR$|HeroCabinet/i.test(o.name || "")) door = o;
+  });
+  const cabC = door
+    ? worldBox(door).getCenter(new THREE.Vector3())
+    : worldBox(root).getCenter(new THREE.Vector3());
+
+  const headBox = worldBox(signal);
+  const mount = new THREE.Vector3(
+    THREE.MathUtils.clamp(cabC.x, headBox.min.x, headBox.max.x),
+    headBox.min.y + Math.max(0.04, headBox.getSize(new THREE.Vector3()).y * 0.12),
+    THREE.MathUtils.clamp(cabC.z, headBox.min.z, headBox.max.z)
+  );
+
+  const yawGroup = new THREE.Group();
+  yawGroup.name = "TwinHeadYaw";
+  const parent = signal.parent || root;
+  parent.updateMatrixWorld(true);
+  parent.add(yawGroup);
+  parent.worldToLocal(mount);
+  yawGroup.position.copy(mount);
+  yawGroup.attach(signal);
+
+  const lensC = new THREE.Vector3();
+  let lensN = 0;
+  const sample = (o) => {
+    if (!o.isMesh || !o.geometry) return;
+    if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+    const sz = o.geometry.boundingBox.getSize(new THREE.Vector3());
+    const sorted = [sz.x, sz.y, sz.z].sort((a, b) => a - b);
+    const disc = sorted[0] < 0.05 && sorted[1] > 0.06;
+    if (!disc) return;
+    const c = worldBox(o).getCenter(new THREE.Vector3());
+    lensC.add(c);
+    lensN += 1;
+  };
+  signal.traverse(sample);
+  if (lensN) lensC.multiplyScalar(1 / lensN);
+  else headBox.getCenter(lensC);
+
+  const pivotW = yawGroup.getWorldPosition(new THREE.Vector3());
+  const toLens = lensC.clone().sub(pivotW);
+  toLens.y = 0;
+  if (toLens.lengthSq() > 1e-8 && toLens.dot(doorFwd) < 0) {
+    yawGroup.rotation.y += Math.PI;
+    yawGroup.updateMatrixWorld(true);
+  }
+
+  root.updateMatrixWorld(true);
+  signal.userData.signalFaced = true;
+  root.userData.signalPivot = yawGroup;
+  return yawGroup;
 }
 
 function isDescendantOf(o, ancestor) {
@@ -573,7 +660,7 @@ function bindGroups(root) {
     }
     if (/Traffic[_\s.-]*Light|HeroSignal|信号灯/i.test(n)) trafficHits.push(o);
   });
-  groups.solar = collectTops(solarHits);
+  groups.solar = solarHits;
   const trafficTops = collectTops(trafficHits);
   const keep = trafficTops.find((o) => /Traffic[_\s.-]*Light|HeroSignal/i.test(o.name || "") && !/PED_|TL2_/i.test(o.name || ""))
     || trafficTops[0]
@@ -867,7 +954,8 @@ function addLogoDecal(root) {
       root.worldToLocal(dc);
       yBand = dc.y;
       const scale = Math.abs(root.scale?.x || 1) || 1;
-      logoW = Math.max(0.26, Math.max(ds.x, ds.z) / scale * 0.78);
+      const faceSpan = Math.max(ds.x, ds.y);
+      logoW = Math.max(0.26, faceSpan / scale * 0.72);
     }
     let zMin = Infinity;
     let zMax = -Infinity;
@@ -932,7 +1020,7 @@ function paintGlb(root) {
   const matOrange = new THREE.MeshStandardMaterial({
     color: ORANGE, roughness: 0.38, metalness: 0.1, emissive: ORANGE, emissiveIntensity: 0.04,
   });
-  const matWhite = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.5, metalness: 0.05 });
+  const matWhite = new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.48, metalness: 0.06 });
   const matNavy = new THREE.MeshStandardMaterial({ color: NAVY, roughness: 0.44, metalness: 0.12 });
   const matSteel = new THREE.MeshStandardMaterial({ color: STEEL, roughness: 0.3, metalness: 0.5 });
   const skip = /垫|螺钉|螺柱|开口销|PART_244|PART_609|PART_602|GB_T|自攻|十字槽|环芯/i;
@@ -959,11 +1047,14 @@ function paintGlb(root) {
       o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
       return;
     }
-    if (/主杆|灯条|胶条|杆|橙|orange|105/i.test(name)) o.material = matOrange;
+    if (/主杆|灯条|胶条|橙|orange|105-|105_|105$|PRT000|FENGKONG|^006$|^0001$/i.test(name)) o.material = matOrange;
     else if (/车轮|wheel/i.test(name)) o.material = matSteel;
     else if (/太阳能|solar/i.test(name)) o.material = matNavy;
-    else if (/箱|柜|门|compound/i.test(name)) o.material = matWhite;
-    else o.material = r > 0.2 ? matOrange : matWhite;
+    else if (/AK-XLH|115-DOOR|小门|箱|柜|门|compound|DAO-ZHA|d115c|LOCK-NEW|电池/i.test(name)) {
+      o.material = matWhite;
+    } else {
+      o.material = r > 0.55 ? matOrange : matWhite;
+    }
   });
 }
 
@@ -1178,7 +1269,7 @@ function rigTwinLeds(root) {
       depthWrite: false, toneMapped: false, opacity: 0.9,
     });
     const glow = new THREE.Sprite(glowMat);
-    glow.scale.set(r * 5.2, r * 5.2, 1);
+    glow.scale.set(r * 2.4, r * 2.4, 1);
     glow.position.copy(pos).addScaledVector(toCam, 0.012);
     scene.add(glow);
     root.attach(glow);
@@ -1373,7 +1464,7 @@ function loadNamed(reason) {
   setStatus("Loading named twin…");
   loader.load(
     NAMED,
-    (gltf) => mountCad(gltf, "Idle. PB4000 twin on QR grid. Tap to flatten."),
+    (gltf) => mountCad(gltf, "Idle. PB4000 clean core. Front. Orbit."),
     (e) => {
       if (e.total && !usingGlb) {
         setStatus(`Loading named twin ${Math.round((100 * e.loaded) / e.total)}%.`);
