@@ -242,8 +242,19 @@ studioGroup.add(floor);
     new THREE.PlaneGeometry(22, 10),
     new THREE.MeshBasicMaterial({ map: cycTex, toneMapped: false })
   );
-  cove.position.set(0, 4.2, -7.5);
+  cove.position.set(0, 3.4, -4.8);
   studioGroup.add(cove);
+  const haze = new THREE.Mesh(
+    new THREE.PlaneGeometry(28, 6),
+    new THREE.MeshBasicMaterial({
+      color: 0x1a2433,
+      transparent: true,
+      opacity: 0.55,
+      depthWrite: false,
+    })
+  );
+  haze.position.set(0, 1.6, -4.6);
+  studioGroup.add(haze);
 }
 scene.add(studioGroup);
 
@@ -1583,6 +1594,14 @@ syncDock();
 
 window.__iqr = {
   get boom() { return boom; },
+  get camera() {
+    return {
+      pos: camera.position.toArray(),
+      target: controls ? controls.target.toArray() : null,
+      autoRotate: !!(controls && controls.autoRotate),
+      damping: !!(controls && controls.enableDamping),
+    };
+  },
   get snap() {
     const logo = boom?.getObjectByName?.("PortaboomLogoFace")
       || boom?.getObjectByName?.("PortaboomLogoDecal");
