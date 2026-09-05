@@ -2,6 +2,8 @@ import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
+import { buildLivingQr } from "./living-qr.js";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -9,7 +11,6 @@ const PAPER = 0xffffff;
 const CREAM = 0xfce3cc;
 const STEEL = 0xc5cad3;
 const INK = 0x202020;
-const DEST = "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/";
 
 /** twin-core livery.ts palette. Do not invent hex. */
 const LIVERY = Object.freeze({
@@ -575,15 +576,16 @@ const statusEl = document.getElementById("status");
 const failEl = document.getElementById("fail");
 const aspectEl = document.getElementById("aspect");
 
-const N = 25;
-const CELL = 0.086;
+const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+let viewMode = "live"; // live = scannable 3D QR · unit = twin-tidy5 dock
+let lifeOn = !reduced;
 
 let renderer;
 try {
   renderer = new THREE.WebGLRenderer({
     canvas,
-    antialias: true,
+    antialias: false,
     alpha: false,
     powerPreference: "default",
     failIfMajorPerformanceCaveat: false,
@@ -599,16 +601,16 @@ if (!renderer.getContext()) {
 }
 
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-renderer.setClearColor(0x0d0d12, 1);
+renderer.setClearColor(0xffffff, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMapping = THREE.NoToneMapping;
 renderer.toneMappingExposure = 1.12;
 renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 // twin-core Ye() studio: background 0x0d0d12, RoomEnvironment, no fog
-scene.background = new THREE.Color(0x0d0d12);
+scene.background = new THREE.Color(0xffffff);
 scene.backgroundBlurriness = 0;
 try {
   const pmrem = new THREE.PMREMGenerator(renderer);
@@ -618,9 +620,14 @@ try {
   console.warn("RoomEnvironment skipped", err);
 }
 
-const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
-camera.position.set(0, 1.5, 5.4);
-camera.lookAt(0, 1.1, 0);
+const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
+unitCam.position.set(0, 1.5, 5.4);
+unitCam.lookAt(0, 1.1, 0);
+const liveCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
+liveCam.position.set(0, 0, 8);
+liveCam.up.set(0, 1, 0);
+liveCam.lookAt(0, 0, 0);
+let camera = liveCam;
 
 scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -742,87 +749,22 @@ studioGroup.add(floor);
   haze.position.set(0, 1.6, -4.6);
   studioGroup.add(haze);
 }
+studioGroup.visible = false;
 scene.add(studioGroup);
 
-function hash(i, j) {
-  let x = Math.imul(i + 1, 374761393) ^ Math.imul(j + 1, 668265263);
-  x = Math.imul(x ^ (x >>> 13), 1274126177);
-  return ((x >>> 0) % 1000) / 1000;
-}
-
-const grid = new THREE.Group();
+const living = buildLivingQr(THREE, {
+  matrix: destQr.matrix,
+  dest: DEST,
+  livery: LIVERY,
+  kindcol: KINDCOL,
+});
+const grid = living.group;
 grid.name = "QrModuleGrid";
-grid.visible = false;
+grid.visible = true;
 scene.add(grid);
-
-const moduleMat = new THREE.MeshStandardMaterial({
-  color: 0x151c28, roughness: 0.55, metalness: 0.18, envMapIntensity: 0.25,
-});
-const paperMat = new THREE.MeshStandardMaterial({
-  color: 0x0a0e14, roughness: 0.92, metalness: 0.04, envMapIntensity: 0.08,
-});
-const accentMat = new THREE.MeshStandardMaterial({
-  color: ORANGE, roughness: 0.34, metalness: 0.18, emissive: ORANGE, emissiveIntensity: 0.06,
-});
-
-const mods = [];
-for (let i = 0; i < N; i += 1) {
-  for (let j = 0; j < N; j += 1) {
-    const finder = (i < 7 && j < 7) || (i < 7 && j > N - 8) || (i > N - 8 && j < 7);
-    let on = false;
-    if (finder) {
-      on = i === 0 || i === 6 || j === 0 || j === 6 || (i > 1 && i < 5 && j > 1 && j < 5);
-      if (i > N - 8 && j < 7) {
-        const ii = i - (N - 7);
-        on = ii === 0 || ii === 6 || j === 0 || j === 6 || (ii > 1 && ii < 5 && j > 1 && j < 5);
-      }
-      if (i < 7 && j > N - 8) {
-        const jj = j - (N - 7);
-        on = i === 0 || i === 6 || jj === 0 || jj === 6 || (i > 1 && i < 5 && jj > 1 && jj < 5);
-      }
-    } else {
-      on = hash(i, j) > 0.48;
-    }
-    if (!on) continue;
-    const mesh = new THREE.Mesh(
-      new THREE.BoxGeometry(CELL * 0.86, CELL * 0.38, CELL * 0.86),
-      moduleMat
-    );
-    mesh.castShadow = true;
-    mesh.position.set((i - N / 2) * CELL, CELL * 0.22, (j - N / 2) * CELL);
-    mesh.userData = { baseY: mesh.position.y, phase: hash(i, j) * Math.PI * 2 };
-    grid.add(mesh);
-    mods.push(mesh);
-  }
-}
-
-const pad = new THREE.Mesh(
-  new THREE.PlaneGeometry(N * CELL + 0.38, N * CELL + 0.38),
-  paperMat
-);
-pad.rotation.x = -Math.PI / 2;
-pad.position.y = 0.012;
-pad.receiveShadow = true;
-grid.add(pad);
-
-const frame = new THREE.Mesh(
-  new THREE.BoxGeometry(N * CELL + 0.24, 0.035, N * CELL + 0.24),
-  accentMat
-);
-frame.position.y = 0.018;
-grid.add(frame);
-
-const qrTex = new THREE.TextureLoader().load("./qr.png");
-qrTex.colorSpace = THREE.SRGBColorSpace;
-qrTex.anisotropy = 8;
-const scanPlane = new THREE.Mesh(
-  new THREE.PlaneGeometry(N * CELL, N * CELL),
-  new THREE.MeshBasicMaterial({ map: qrTex, transparent: true, opacity: 0 })
-);
-scanPlane.rotation.x = -Math.PI / 2;
-scanPlane.position.y = 0.055;
-scanPlane.visible = false;
-grid.add(scanPlane);
+const mods = living.mods;
+const paperMat = living.paperMat;
+const scanPlane = null;
 
 function makeHeroBoom() {
   const g = new THREE.Group();
@@ -911,19 +853,21 @@ function makeHeroBoom() {
 }
 
 let boom = makeHeroBoom();
-boom.userData.plantedYaw = yawFaceCamera(false);
+boom.userData.plantedYaw = Math.PI;
 boom.rotation.y = boom.userData.plantedYaw;
+boom.visible = false;
 scene.add(boom);
 bindGroups(boom);
 applyCoreShowConfig(boom);
-lockHeroCamera(boom);
 initOrbit(boom);
+applyLiveScanPose();
 if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
 let flat = false;
 let flatT = 0;
 let boomRig = null;
+let unitHomeCaptured = false;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -1019,7 +963,7 @@ function plantTwin(obj) {
   let box = worldBox(obj);
   let center = box.getCenter(new THREE.Vector3());
   obj.position.sub(center);
-  camera.position.set(0, 0.9, 2.2);
+  if (viewMode === "unit") camera.position.set(0, 0.9, 2.2);
   // twin-core instance.ts: model.rotation.y = Math.PI
   obj.rotation.y = Math.PI;
   const hero0 = gatherHeroBox(obj);
@@ -1036,7 +980,7 @@ function plantTwin(obj) {
   obj.userData.plantedYaw = Math.PI;
   // twin-core instance.ts: head.group.rotation.y = yaw (180° so lenses match cabinet front)
   faceSignalHead(obj);
-  lockHeroCamera(obj);
+  if (viewMode === "unit") lockHeroCamera(obj);
   return s;
 }
 
@@ -1285,9 +1229,10 @@ function initOrbit(root) {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = Math.PI * 0.49;
+  controls.maxPolarAngle = 0.42;
+  controls.minPolarAngle = 0;
   controls.minDistance = 0.85;
-  controls.maxDistance = 12;
+  controls.maxDistance = 24;
   controls.enablePan = true;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 1;
@@ -1295,13 +1240,74 @@ function initOrbit(root) {
     ONE: THREE.TOUCH.ROTATE,
     TWO: THREE.TOUCH.DOLLY_PAN,
   };
-  const box = gatherHeroBox(root);
-  const center = box.getCenter(new THREE.Vector3());
-  controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
+  controls.target.set(0, 0, 0);
   controls.update();
   framed = true;
-  captureHome();
   return controls;
+}
+
+function fitLiveOrtho() {
+  const w = Math.max(1, canvas.clientWidth || innerWidth);
+  const h = Math.max(1, canvas.clientHeight || innerHeight);
+  const aspect = w / h;
+  const padSize = living.padSize;
+  const fracW = 0.86;
+  const fracH = 0.56;
+  const worldH = Math.max(padSize / fracH, (padSize / fracW) / aspect);
+  const worldW = worldH * aspect;
+  liveCam.left = -worldW / 2;
+  liveCam.right = worldW / 2;
+  liveCam.top = worldH / 2;
+  liveCam.bottom = -worldH / 2;
+  liveCam.near = 0.05;
+  liveCam.far = 80;
+  liveCam.updateProjectionMatrix();
+}
+
+function applyLiveScanPose() {
+  camera = liveCam;
+  if (controls) controls.object = liveCam;
+  fitLiveOrtho();
+  liveCam.up.set(0, 1, 0);
+  // Tiny peek so cabinet/boom sides read as 3D without leaving the scan envelope.
+  liveCam.position.set(0.11, 0.07, 8);
+  liveCam.lookAt(0, 0, 0);
+  liveCam.zoom = 1;
+  liveCam.updateProjectionMatrix();
+  if (controls) {
+    controls.target.set(0, 0, 0);
+    controls.enableRotate = false;
+    controls.enablePan = false;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI;
+    controls.minDistance = 2;
+    controls.maxDistance = 24;
+    controls.update();
+  }
+}
+
+function applyUnitPose() {
+  camera = unitCam;
+  if (controls) controls.object = unitCam;
+  unitCam.near = 0.05;
+  unitCam.far = 80;
+  if (HOME.pos.lengthSq() > 0.01) {
+    unitCam.position.copy(HOME.pos);
+    unitCam.fov = HOME.fov || 32;
+  }
+  unitCam.updateProjectionMatrix();
+  if (controls) {
+    controls.target.copy(HOME.tgt);
+    controls.enableRotate = true;
+    controls.enablePan = true;
+    controls.minPolarAngle = 0;
+    controls.maxPolarAngle = Math.PI * 0.49;
+    controls.minDistance = 0.85;
+    controls.maxDistance = 12;
+    controls.update();
+  } else {
+    unitCam.lookAt(HOME.tgt);
+  }
 }
 
 function captureHome() {
@@ -1312,15 +1318,10 @@ function captureHome() {
 }
 
 function qrPose() {
-  const qrW = N * CELL + 0.28;
-  const fovDeg = 36;
-  const fov = THREE.MathUtils.degToRad(fovDeg);
-  const aspect = Math.max(0.42, camera.aspect || 0.46);
-  const dist = (qrW * 0.6) / (2 * Math.tan(fov / 2) * aspect);
   return {
-    pos: new THREE.Vector3(0, Math.max(2.55, dist), qrW * 0.07),
-    tgt: new THREE.Vector3(0, 0.05, 0),
-    fov: fovDeg,
+    pos: new THREE.Vector3(0, 8, 0.0001),
+    tgt: new THREE.Vector3(0, 0, 0),
+    fov: 12,
   };
 }
 
@@ -1934,7 +1935,10 @@ function rigTwinLeds(root) {
     const c = box.getCenter(new THREE.Vector3());
     const sz = box.getSize(new THREE.Vector3());
     const r = Math.max(0.028, Math.min(sz.x, sz.y) * 0.48);
-    const toCam = new THREE.Vector3(camera.position.x - c.x, 0, camera.position.z - c.z).normalize();
+    const camPos = unitCam.position;
+    const toCam = new THREE.Vector3(camPos.x - c.x, 0, camPos.z - c.z);
+    if (toCam.lengthSq() < 1e-6) toCam.set(0, 0, 1);
+    else toCam.normalize();
     const bezel = new THREE.Mesh(new THREE.CircleGeometry(r + 0.006, 40), bezelMat);
     bezel.name = "PortaboomLedBezel";
     const lens = new THREE.Mesh(new THREE.CircleGeometry(r, 48), faceMat);
@@ -2075,7 +2079,7 @@ function removeHero() {
   if (boom && boom.parent) boom.parent.remove(boom);
 }
 
-setStatus("Idle. PORTABOOM hero on QR grid. Loading named twin.");
+setStatus("Living QR · scan the 3D scene");
 boomRig = rigHeroArm(boom);
 ledRig.faceMats = boom.userData.heroFaceMats || [];
 ledRig.faceMat = ledRig.faceMats[0] || boom.userData.heroFaceMat || null;
@@ -2121,18 +2125,25 @@ function mountCad(gltf, label) {
     showMode = "up";
     showClock = 0;
     setSignalAspect("green");
-    lockHeroCamera(boom);
-    if (controls) {
-      const box = gatherHeroBox(boom);
-      const center = box.getCenter(new THREE.Vector3());
-      controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
-      controls.update();
+    if (viewMode === "unit") {
+      lockHeroCamera(boom);
+      if (controls) {
+        const box = gatherHeroBox(boom);
+        const center = box.getCenter(new THREE.Vector3());
+        controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
+        controls.update();
+      } else {
+        initOrbit(boom);
+      }
+      captureHome();
+      unitHomeCaptured = true;
+      if (boomRig) setStatus(label + " · boom live · clean core");
+      else setStatus(label);
     } else {
-      initOrbit(boom);
+      boom.visible = false;
+      applyLiveScanPose();
+      setStatus("Living QR · scan the 3D scene · twin ready in Unit dock");
     }
-    captureHome();
-    if (boomRig) setStatus(label + " · boom live · clean core");
-    else setStatus(label);
   } catch (err) {
     console.error(err);
     setStatus("CAD parse error. Hero stand-in still live.");
@@ -2154,7 +2165,7 @@ function loadNamed(reason) {
     },
     (err2) => {
       console.error(err2);
-      setStatus("CAD blocked. Hero stand-in still live. Tap to flatten.");
+      setStatus("CAD blocked. Hero stand-in still live in Unit dock.");
     }
   );
 }
@@ -2177,38 +2188,86 @@ requestAnimationFrame(() => {
 });
 
 function setFlat(next) {
-  flat = next;
-  flatT = 0;
-  const flattenBtn = document.getElementById("flattenBtn");
-  if (flat) {
-    setStatus("Flattened. Scan-proof QR error H. PB4000 product.");
-    if (hintEl) hintEl.innerHTML = "QR ready. Scan with Camera, or open the product page.";
-    if (flattenBtn) flattenBtn.textContent = "Restore unit";
-    if (controls) {
-      controls.enabled = false;
-      controls.autoRotate = false;
-    }
-    startCamGlide(qrPose(), 0.64);
-  } else {
-    setStatus(usingGlb
-      ? "Idle. PB4000 clean core. Front. Orbit."
-      : "Idle. PORTABOOM hero. Front. Orbit.");
-    if (hintEl) hintEl.textContent = "Tap Flatten to drop the twin onto a scan-H QR.";
-    if (flattenBtn) flattenBtn.textContent = "Flatten to QR";
-    if (controls) {
-      controls.enabled = true;
-      if (!spin) controls.autoRotate = false;
-    }
-    startCamGlide({ pos: HOME.pos, tgt: HOME.tgt, fov: HOME.fov }, 0.64);
+  // Flatten-to-qr.png is demoted. Print PNG is the export; live 3D is the scan.
+  if (next) exportPrintPng();
+  else setViewMode("unit");
+}
+
+function exportPrintPng() {
+  const result = downloadPrintPng(destQr.matrix);
+  setStatus("Print export saved — not the live scan. Point a phone at the 3D scene.");
+  if (hintEl) hintEl.textContent = "Print PNG is a secondary export. Scan the living 3D QR.";
+  return result;
+}
+
+function syncModeHud() {
+  const live = viewMode === "live";
+  document.body.classList.toggle("live-scan", live);
+  document.body.classList.toggle("unit-dock", !live);
+  const badge = document.getElementById("modeBadge");
+  if (badge) badge.textContent = live ? "Living QR" : "Unit dock";
+  const liveDock = document.getElementById("liveDock");
+  const unitDock = document.getElementById("unitDock");
+  if (liveDock) liveDock.hidden = !live;
+  if (unitDock) unitDock.hidden = live;
+  const lifeBtn = document.getElementById("lifeBtn");
+  if (lifeBtn) {
+    lifeBtn.textContent = lifeOn ? "Life ON" : "Life OFF";
+    lifeBtn.classList.toggle("on", lifeOn);
+    lifeBtn.classList.toggle("off", !lifeOn);
+    lifeBtn.setAttribute("aria-pressed", lifeOn ? "true" : "false");
   }
+}
+
+function setViewMode(next) {
+  viewMode = next === "unit" ? "unit" : "live";
+  flat = false;
+  if (viewMode === "live") {
+    if (boom) boom.visible = false;
+    studioGroup.visible = false;
+    grid.visible = true;
+    scene.background.setHex(0xffffff);
+    renderer.setClearColor(0xffffff, 1);
+    renderer.toneMapping = THREE.NoToneMapping;
+    applyLiveScanPose();
+    setStatus("Living QR · scan the 3D scene");
+    if (hintEl) hintEl.textContent = "Point your phone camera at the 3D modules.";
+  } else {
+    grid.visible = false;
+    studioGroup.visible = true;
+    if (boom) boom.visible = true;
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    scene.background.setHex(0x0d0d12);
+    renderer.setClearColor(0x0d0d12, 1);
+    camera = unitCam;
+    if (controls) controls.object = unitCam;
+    if (!unitHomeCaptured && boom) {
+      lockHeroCamera(boom);
+      if (controls) {
+        const box = gatherHeroBox(boom);
+        const center = box.getCenter(new THREE.Vector3());
+        controls.target.set(center.x, center.y + box.getSize(new THREE.Vector3()).y * 0.02, center.z);
+        controls.update();
+      }
+      captureHome();
+      unitHomeCaptured = true;
+    }
+    applyUnitPose();
+    setStatus(usingGlb
+      ? "Unit dock. PB4000 clean core. Front. Orbit."
+      : "Unit dock. PORTABOOM hero. Front. Orbit.");
+  }
+  syncModeHud();
 }
 
 function resize() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   renderer.setSize(w, h, false);
-  camera.aspect = w / h;
-  camera.updateProjectionMatrix();
+  unitCam.aspect = w / h;
+  unitCam.updateProjectionMatrix();
+  if (viewMode === "live") fitLiveOrtho();
+  else camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
@@ -2219,43 +2278,51 @@ function tick() {
   requestAnimationFrame(tick);
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
-  flatT = Math.min(1, flatT + 0.045);
-  const k = flat ? flatT : 1 - flatT;
-  grid.visible = k > 0.02;
-  studioGroup.visible = true;
-  paperMat.color.setHex(k > 0.2 ? 0xf4f6f9 : 0x0a0e14);
   tickCamGlide(dt);
-  for (const m of mods) {
-    const breathe = reduced ? 0 : Math.sin(t * 2.2 + m.userData.phase) * 0.012;
-    m.position.y = THREE.MathUtils.lerp(m.userData.baseY + breathe, 0.03, k);
-    m.scale.y = THREE.MathUtils.lerp(1, 0.15, k);
-    m.visible = k < 0.95;
+  const live = viewMode === "live";
+  grid.visible = live;
+  studioGroup.visible = !live;
+  if (boom) boom.visible = !live;
+  if (live && lifeOn && !reduced) {
+    const amp = living.cell * 0.02;
+    for (const m of mods) {
+      m.position.z = (m.userData.baseZ || 0) + Math.sin(t * 1.15 + m.userData.phase) * amp;
+    }
+    living.ledMats.forEach((mat, i) => {
+      mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
+    });
+  } else if (live) {
+    for (const m of mods) m.position.z = m.userData.baseZ || 0;
   }
-  scanPlane.visible = k > 0.45;
-  scanPlane.material.opacity = THREE.MathUtils.smoothstep(k, 0.5, 0.95);
-  if (boom) {
-    boom.visible = k < 0.92;
-    if (boom.userData.restY == null) boom.userData.restY = boom.position.y;
-    boom.position.y = THREE.MathUtils.lerp(boom.userData.restY, 0.08, k);
-    const planted = boom.userData.plantedYaw ?? 0;
-    boom.rotation.y = planted;
-    const sc = usingGlb ? baseScale : 1;
-    boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
+  if (!live) {
+    tickBoom(dt);
+    tickSignUpright();
+    tickShow(dt);
+    updateLeds();
   }
-  tickBoom(dt);
-  tickSignUpright();
-  tickShow(dt);
-  updateLeds();
   if (controls) {
-    if (!spin) controls.autoRotate = false;
+    if (!spin || live) controls.autoRotate = false;
     controls.update();
   }
   renderer.render(scene, camera);
 }
 tick();
 
-const flattenBtn = document.getElementById("flattenBtn");
-if (flattenBtn) flattenBtn.addEventListener("click", () => setFlat(!flat));
+const unitBtn = document.getElementById("unitBtn");
+if (unitBtn) unitBtn.addEventListener("click", () => setViewMode("unit"));
+const liveBtn = document.getElementById("liveBtn");
+if (liveBtn) liveBtn.addEventListener("click", () => setViewMode("live"));
+const printBtn = document.getElementById("printBtn");
+if (printBtn) printBtn.addEventListener("click", () => exportPrintPng());
+const printBtn2 = document.getElementById("printBtn2");
+if (printBtn2) printBtn2.addEventListener("click", () => exportPrintPng());
+const lifeBtn = document.getElementById("lifeBtn");
+if (lifeBtn) {
+  lifeBtn.addEventListener("click", () => {
+    lifeOn = !lifeOn;
+    syncModeHud();
+  });
+}
 
 const solarBtn = document.getElementById("solarBtn");
 if (solarBtn) solarBtn.addEventListener("click", () => setSolar(!optsVisible.solar));
@@ -2290,6 +2357,7 @@ if (signAlongEl) {
 }
 
 syncDock();
+syncModeHud();
 
 window.__iqr = {
   get boom() { return boom; },
@@ -2327,8 +2395,23 @@ window.__iqr = {
       showMode,
       signalAspect,
       showConfig: SHOW_CONFIG,
+      viewMode,
+      living: true,
+      dest: DEST,
+      ecc: ECC,
+      matrixN: destQr.size,
+      qrVersion: destQr.version,
+      darkCount: living.darkCount,
+      moduleMeshGroups: mods.length,
+      texturedQuad: false,
+      scanPlanePresent: false,
+      product: "modular-geometry",
+      printClaimReady: false,
+      lifeOn,
+      kinds: living.kinds,
+      vocabs: living.vocabs,
       flat,
-      scanOpacity: scanPlane?.material?.opacity ?? 0,
+      scanOpacity: 0,
       gridVisible: !!grid.visible,
       solarOn: optsVisible.solar,
       trafficOn: optsVisible.traffic,
@@ -2441,5 +2524,33 @@ window.__iqr = {
         world: logoOpp.getWorldPosition(new THREE.Vector3()).toArray(),
       } : null,
     };
+  },
+  captureScan() {
+    renderer.render(scene, camera);
+    return canvas.toDataURL("image/png");
+  },
+  get living() {
+    return {
+      dest: DEST,
+      ecc: ECC,
+      size: destQr.size,
+      dark: living.darkCount,
+      kinds: living.kinds,
+      vocabs: living.vocabs,
+      texturedQuad: false,
+      viewMode,
+    };
+  },
+  nudgeScan(x = 0, y = 0) {
+    if (viewMode !== "live") return false;
+    liveCam.position.set(x, y, 8);
+    liveCam.lookAt(0, 0, 0);
+    liveCam.updateProjectionMatrix();
+    renderer.render(scene, liveCam);
+    return true;
+  },
+  resetScan() {
+    applyLiveScanPose();
+    renderer.render(scene, liveCam);
   },
 };

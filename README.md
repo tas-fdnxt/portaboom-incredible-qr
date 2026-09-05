@@ -1,22 +1,21 @@
 # PORTABOOM Incredible QR
 
-Phone door for PORTABOOM PB4000 Incredible QR (Output C / golden).
+Living Incredible QR for PORTABOOM PB4000 (ICQR Magic Tree *pattern*: a 3D scene that is itself scannable).
 
-- `pb4000_master.compressed.glb` — golden 3D subject (Meshopt first on phones)
-- `pb4000_named.glb` — fallback twin if Meshopt/golden fails
-- `qr.png` — QR art
-- Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
+- Default pose is a phone-scan / orthographic-ish look at the **living 3D matrix**
+- Dark modules are PORTABOOM-branded sculptures (cabinet / boom stripe / head / LED)
+- Twin-tidy5 unit stays as **Unit dock** (powder orange, hero stripes, Ø400 mm STOP, Al rings, KINDCOL LEDs, stainless pole)
+- Print PNG is a secondary export — never the READY claim
+- DEST: https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
 
-## Meshes rigged (this cut)
+Cache-bust: `app.js?v=living1`
 
-- **Boom / orange:** `主杆`, `105-5`, `105_1`, `105-0`, `灯条`, `胶条` / `FENGKONGGAI*`, `PRT00033`, `PRT0001`, `006` — TAS `#EE7202`.
-- **Cabinet / cream:** `AK-XLH-D115C-01-01*` (body, doors), `01-02`, `01-03`, `01-04`, `小门`, `115-DOOR`.
-- **Navy accents:** `太阳能板`, `01-01-4`, `01-01-5`, `01-01-8`.
-- **Signal head:** `Traffic Light 20260330(1).STEP` — housing forced black; three thin discs stacked by world Y = red / amber / green, emissive + halo + point light.
-- **Twin round LEDs:** product meshes were not two clear beacons (XT parts are 6×15 mm fasteners). **Invented** `ProductLed_A` / `ProductLed_B` — 100 mm amber/orange emissive discs + dome + halo, parented to the signal head flanks so they stay in the hero frame and pulse with boom motion.
-- **Logos:** `PortaboomLogoFace` (`portaboom_logo_reversed.png`) on the camera-facing cabinet; `PortaboomLogoSide` (`portaboom_logo.png`) on the three-quarter side; `PortaboomLogoHero` (`portaboom-pb4000-master.png`) product plate. Large, readable.
-- **Camera:** locked three-quarter hero. No continuous model spin.
+Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
-DEST stays https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
+## How to scan
 
-Not sunset-island. Not Command Hub. Vercel held. NEVER SEND.
+1. Open the page on a laptop or phone.
+2. Point the phone camera at the **3D scene** (the white field of modules). Do not wait for a flatten-to-PNG beat.
+3. Optional: Unit dock to orbit the planted twin. Print PNG if you need a paper export.
+
+Not WordPress. Not Command Hub. NEVER SEND until Chief merges after GATE.

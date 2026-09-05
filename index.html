@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
-<meta name="theme-color" content="#101317">
+<meta name="theme-color" content="#f4f6f9">
 <meta name="robots" content="noindex,nofollow">
 <title>PREVIEW · PORTABOOM® Incredible QR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -20,9 +20,12 @@
   --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--soft);overflow:hidden;font-family:var(--sans)}
-canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch-action:none;background:#0d0d12}
-.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 45%,transparent 60%,rgba(5,7,10,.5) 100%);z-index:2}
+html,body{margin:0;height:100%;background:#f4f6f9;overflow:hidden;font-family:var(--sans)}
+body.unit-dock{background:var(--soft)}
+canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch-action:none;background:#ffffff}
+body.unit-dock canvas#stage{background:#0d0d12}
+.vig{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 90% at 50% 45%,transparent 60%,rgba(5,7,10,.5) 100%);z-index:2;display:none}
+body.unit-dock .vig{display:block}
 #hud{position:fixed;inset:0;z-index:3;pointer-events:none;padding:calc(var(--sat)+12px) calc(var(--sar)+12px) calc(var(--sab)+12px) calc(var(--sal)+12px);display:flex;flex-direction:column;justify-content:space-between}
 .row{display:flex;justify-content:space-between;align-items:center;gap:10px}
 .badge{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#fff;border-radius:999px;padding:8px 12px;font:800 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
@@ -30,6 +33,7 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
 .brand img{height:26px;background:#fff;border-radius:999px;padding:3px 7px}
 .brand span{font:700 12px/1 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dock{pointer-events:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:min(100%,560px);margin:0 auto}
+.dock[hidden]{display:none !important}
 .sign-row{display:flex;align-items:center;gap:8px;flex:1 1 100%;width:100%}
 .sign-row .btn{flex:0 0 auto}
 .sign-row input[type=range]{flex:1;min-width:72px;accent-color:var(--orange);height:28px}
@@ -39,14 +43,16 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
 .btn.ghost{background:rgba(238,242,250,.92);color:var(--navy);border:1px solid var(--line)}
 .btn.on{background:var(--orange);color:#fff}
 .btn.off{background:rgba(13,21,40,.88);color:#eef2fa;border:1px solid var(--line)}
-#status{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#ffb84d;background:rgba(13,21,40,.88);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#1b2a4a;background:rgba(255,255,255,.88);backdrop-filter:blur(10px);border:1px solid rgba(27,42,74,.16);border-radius:999px;padding:8px 12px;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.unit-dock #status{color:#ffb84d;background:rgba(13,21,40,.88);border-color:var(--line)}
 #aspect{position:fixed;right:12px;top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:800 11px/1 var(--sans);letter-spacing:.12em;border-radius:999px;padding:8px 10px;color:#081018;background:#18ff5a}
+body.live-scan #aspect{display:none}
 #aspect[data-aspect="amber"]{background:#ffb000}
 #aspect[data-aspect="red"]{background:#ff1d12;color:#fff}
 #aspect[data-aspect="green"]{background:#18ff5a}
 #aspect[data-aspect="off"]{background:#5d6f93;color:#eef2fa}
 #stage:not([data-iqr-ready]){background:
-  radial-gradient(ellipse at 50% 38%,#1B2A4A 0%,#101317 52%,#0B0D10 100%)}
+  radial-gradient(ellipse at 50% 38%,#f4f6f9 0%,#ffffff 52%,#e8edf4 100%)}
 #fail{display:none;position:fixed;inset:0;place-items:center;background:var(--soft);color:#fff;padding:28px;text-align:center;z-index:20}
 #fail.show{display:grid}
 @media (max-width:480px){
@@ -56,19 +62,25 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
 }
 </style>
 </head>
-<body>
-<canvas id="stage" aria-label="PORTABOOM PB4000 Incredible QR preview"></canvas>
+<body class="live-scan">
+<canvas id="stage" aria-label="PORTABOOM PB4000 living Incredible QR"></canvas>
 <div class="vig" aria-hidden="true"></div>
-<div id="status">PORTABOOM studio…</div>
+<div id="status">Living QR · scan the 3D scene</div>
 <div id="aspect" data-aspect="green">GREEN</div>
 <div id="hud">
   <div class="row">
-    <div class="badge">Preview</div>
+    <div class="badge" id="modeBadge">Living QR</div>
     <a class="brand" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">
       <img src="./portaboom_logo.png" alt="PORTABOOM"><span>PB4000</span>
     </a>
   </div>
-  <div class="dock">
+  <div class="dock" id="liveDock">
+    <button class="btn primary" id="unitBtn" type="button">Unit dock</button>
+    <button class="btn ghost" id="printBtn" type="button">Print PNG</button>
+    <button class="btn on" id="lifeBtn" type="button" aria-pressed="true">Life ON</button>
+  </div>
+  <div class="dock" id="unitDock" hidden>
+    <button class="btn primary" id="liveBtn" type="button">Living QR</button>
     <button class="btn off" id="solarBtn" type="button" aria-pressed="false">Solar OFF</button>
     <button class="btn on" id="lightsBtn" type="button" aria-pressed="true">Traffic lights ON</button>
     <button class="btn primary" id="boomBtn" type="button">Raise / lower boom</button>
@@ -81,7 +93,7 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
       <span class="pct" id="signAlongLbl">STOP 72%</span>
       <button class="btn off" id="signOutBtn" type="button">STOP out</button>
     </div>
-    <button class="btn ghost" id="flattenBtn" type="button">Flatten to QR</button>
+    <button class="btn ghost" id="printBtn2" type="button">Print PNG</button>
   </div>
 </div>
 <div id="fail"><div><h2>WebGL unavailable</h2><p>Open on a phone or laptop with WebGL.</p></div></div>
@@ -91,6 +103,6 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 }}
 </script>
-<script type="module" src="./app.js?v=twin-tidy5"></script>
+<script type="module" src="./app.js?v=living1"></script>
 </body>
 </html>
