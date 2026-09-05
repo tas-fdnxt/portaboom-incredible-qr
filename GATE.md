@@ -11,6 +11,7 @@ SoT: live twin `dist-bice-chi-12` + twin-core `setGroup` / `livery.ts` / `instan
 | Boom works | Raise/lower dock drives amber→red drop, then raise. `shownPct` travels 100→0→100 |
 | Toggles work | Solar OFF/ON (0 ↔ 4 solar meshes). Traffic lights ON/OFF (1 ↔ 0 heads, HUD GREEN/OFF) |
 | Orbit works | OrbitControls + damping. Finger/mouse drag moved camera **5.6 m** (`z 3.12 → −2.08`) |
+| Flatten-to-QR beat | Dock **Flatten to QR** glides camera onto a scan-H `qr.png` card (`cam y≈4.86`, `scanOpacity=1`, unit hidden). **Restore unit** returns HOME front (`z≈3.12`), grid off, twin visible, defaults intact |
 | No auto-spin | `spin=false`, `controls.autoRotate=false` on load and after reload. Spin ON only if user taps Spin |
 
 ## STRESS — GREEN
@@ -22,6 +23,7 @@ SoT: live twin `dist-bice-chi-12` + twin-core `setGroup` / `livery.ts` / `instan
 | Boom up/down | Up at rest green / face `#3fe868`. Moving or down: face+strip red flash `#ff1c10` / `#ff0008`, traffic red |
 | Orbit drag | Camera leaves front lock; autoRotate stays false |
 | Reload keeps defaults | `solarOn=false`, `trafficHeads=1`, `extraHeads=0`, `productLeds=0`, `spin=false`, boom 100, face green, front cam `z≈3.12` |
+| Flatten then restore | QR fills phone; restore keeps solar off, one head, no auto-spin, face green |
 
 ## PRESSURE — GREEN (refutals)
 
@@ -44,5 +46,6 @@ SoT: live twin `dist-bice-chi-12` + twin-core `setGroup` / `livery.ts` / `instan
 8. OrbitControls, damping on, autoRotate off unless Spin
 9. Cream cabinet, orange boom, black head, showtime framing
 11. Twin **studio** environment (`ct`/`Ye`): asphalt ground, warm contact, cyclorama/horizon, RoomEnvironment. QR module grid stays hidden until Flatten. Not twin ROAD (no 2k HDR on this phone door)
+12. **Flatten-to-QR beat kept** — Incredible QR scan-H plane, then Restore unit back to twin studio
 
 Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
