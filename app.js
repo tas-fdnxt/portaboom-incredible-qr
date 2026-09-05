@@ -1,6 +1,5 @@
 import * as THREE from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
-import { MeshoptDecoder } from "three/addons/libs/meshopt_decoder.module.js";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -181,6 +180,7 @@ function makeHeroBoom() {
   pivot.position.set(-0.55, 0.82, 0);
   g.add(pivot);
   const arm = new THREE.Group();
+  arm.name = "HeroBoomArm";
   arm.position.set(-0.55, 0.82, 0);
   const armLen = 2.05;
   const armMain = new THREE.Mesh(new THREE.BoxGeometry(armLen, 0.09, 0.12), matOrange);
@@ -198,16 +198,26 @@ function makeHeroBoom() {
   solar.position.set(-0.85, 0.58, 0);
   solar.rotation.x = -0.25;
   g.add(solar);
+  const matChrome = new THREE.MeshStandardMaterial({
+    color: 0xe8eef4, roughness: 0.16, metalness: 0.88,
+  });
+  const chromePlate = new THREE.Mesh(new THREE.PlaneGeometry(0.36, 0.13), matChrome);
+  chromePlate.position.set(-0.85, 0.36, 0.356);
+  chromePlate.name = "PortaboomChromePlate";
+  g.add(chromePlate);
+  g.userData.heroArm = arm;
   g.position.y = 0.02;
   return g;
 }
 
 let boom = makeHeroBoom();
 scene.add(boom);
+if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
 let flat = false;
 let flatT = 0;
+let boomRig = null;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -248,8 +258,6 @@ function plantTwin(obj, targetLen = 2.55) {
   camera.lookAt(0, size.y * 0.38, 0);
   return targetLen / longest;
 }
-
-let boomRig = null; // { pivot, rest, drop, shownPct, targetPct }
 
 function isDescendantOf(o, ancestor) {
   let p = o;
@@ -375,6 +383,16 @@ function rigBoomMaster(root) {
   return { pivot: boomPivot, rest: boomRest, drop: boomDrop, shownPct: 100, targetPct: 100 };
 }
 
+/** Hero stand-in arm — raise/lower works before (and if) the CAD rig mounts. */
+function rigHeroArm(hero) {
+  const arm = hero?.userData?.heroArm || hero?.getObjectByName?.("HeroBoomArm");
+  if (!arm) return null;
+  const drop = 0.06;
+  const rest = 1.12;
+  arm.rotation.z = rest;
+  return { pivot: arm, rest, drop, shownPct: 100, targetPct: 100 };
+}
+
 function setBoomPct(pct) {
   if (!boomRig) return;
   boomRig.targetPct = Math.max(0, Math.min(100, pct));
@@ -394,8 +412,14 @@ function addLogoDecal(root) {
   const loader = new THREE.TextureLoader();
   loader.load("./portaboom_logo_reversed.png", (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
-    const mat = new THREE.MeshBasicMaterial({
-      map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    const mat = new THREE.MeshStandardMaterial({
+      map: tex,
+      transparent: true,
+      depthWrite: false,
+      side: THREE.DoubleSide,
+      metalness: 0.84,
+      roughness: 0.16,
+      color: 0xffffff,
     });
     const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.2), mat);
     // Place on side of cabinet approx — attach to root after plant
@@ -442,7 +466,25 @@ function removeHero() {
   if (boom && boom.parent) boom.parent.remove(boom);
 }
 
-setStatus("Preview only. Loading PB4000 twin.");
+setStatus("Idle. PORTABOOM hero on QR grid. Loading named twin.");
+boomRig = rigHeroArm(boom);
+{
+  const plate = boom.getObjectByName("PortaboomChromePlate");
+  if (plate) {
+    new THREE.TextureLoader().load("./portaboom_logo_reversed.png", (tex) => {
+      tex.colorSpace = THREE.SRGBColorSpace;
+      plate.material = new THREE.MeshStandardMaterial({
+        map: tex,
+        transparent: true,
+        metalness: 0.84,
+        roughness: 0.16,
+        color: 0xffffff,
+        side: THREE.DoubleSide,
+        depthWrite: false,
+      });
+    });
+  }
+}
 
 const loader = new GLTFLoader();
 
@@ -474,7 +516,6 @@ function mountCad(gltf, label) {
   }
 }
 
-const GOLDEN = new URL("./pb4000_master.compressed.glb", import.meta.url).href;
 const NAMED = new URL("./pb4000_named.glb", import.meta.url).href;
 
 function loadNamed(reason) {
@@ -496,33 +537,21 @@ function loadNamed(reason) {
 }
 
 async function bootTwin() {
-  // Named twin first: same PB4000 topology, no Meshopt — paints fast on phone.
-  // Golden compressed upgrades in place when Meshopt is ready.
-  loadNamed("named-first");
+  // Named twin first, no Meshopt. Static MeshoptDecoder import blanked phones.
+  // Golden compressed.glb skipped for this preview (EXT_meshopt_compression).
   try {
-    if (MeshoptDecoder.ready) await MeshoptDecoder.ready;
-    loader.setMeshoptDecoder(MeshoptDecoder);
+    const { DRACOLoader } = await import("three/addons/loaders/DRACOLoader.js");
+    const draco = new DRACOLoader();
+    draco.setDecoderPath("https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/libs/draco/gltf/");
+    loader.setDRACOLoader(draco);
   } catch (e) {
-    console.warn("Meshopt ready failed; keeping named twin", e);
-    return;
+    console.warn("Draco setup failed; hero stand-in stays if named needs it", e);
   }
-  loader.load(
-    GOLDEN,
-    (gltf) => {
-      if (flat) return;
-      mountCad(gltf, "Idle. Golden PB4000 twin on QR grid. Tap to flatten.");
-    },
-    (e) => {
-      if (e.total && usingGlb) {
-        /* named already live — quiet upgrade */
-      } else if (e.total) {
-        setStatus(`Upgrading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
-      }
-    },
-    (err) => console.warn("golden upgrade skipped", err)
-  );
+  loadNamed("named-first");
 }
-bootTwin();
+requestAnimationFrame(() => {
+  requestAnimationFrame(bootTwin);
+});
 
 function setFlat(next) {
   flat = next;
