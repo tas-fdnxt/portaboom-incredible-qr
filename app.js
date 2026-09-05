@@ -1162,9 +1162,21 @@ async function bootTwin() {
       }
     );
   } catch (e) {
-    console.warn("Meshopt/golden skipped; named twin", e);
-    clearTimeout(watchdog);
-    fallbackNamed("meshopt-failed");
+    console.warn("Meshopt decoder failed; trying full GOLDEN", e);
+    loader.load(
+      GOLDEN_FULL,
+      (gltf) => {
+        clearTimeout(watchdog);
+        if (flat) return;
+        mountCad(gltf, "Idle. Full GOLDEN PB4000 twin. Tap to flatten.");
+      },
+      undefined,
+      (err2) => {
+        console.warn(err2);
+        clearTimeout(watchdog);
+        fallbackNamed("meshopt-failed");
+      }
+    );
   }
 }
 requestAnimationFrame(() => {
