@@ -496,41 +496,30 @@ function loadNamed(reason) {
 }
 
 async function bootTwin() {
+  // Named twin first: same PB4000 topology, no Meshopt — paints fast on phone.
+  // Golden compressed upgrades in place when Meshopt is ready.
+  loadNamed("named-first");
   try {
-    // Meshopt WASM must be ready or compressed golden hangs forever on "Loading…"
     if (MeshoptDecoder.ready) await MeshoptDecoder.ready;
     loader.setMeshoptDecoder(MeshoptDecoder);
   } catch (e) {
-    console.warn("Meshopt ready failed", e);
-    loadNamed("meshopt-ready-failed");
+    console.warn("Meshopt ready failed; keeping named twin", e);
     return;
   }
-  let settled = false;
-  const watchdog = setTimeout(() => {
-    if (settled || usingGlb) return;
-    settled = true;
-    setStatus("Golden slow. Switching to named twin…");
-    loadNamed("golden-watchdog-12s");
-  }, 12000);
   loader.load(
     GOLDEN,
     (gltf) => {
-      if (settled && usingGlb) return;
-      settled = true;
-      clearTimeout(watchdog);
+      if (flat) return;
       mountCad(gltf, "Idle. Golden PB4000 twin on QR grid. Tap to flatten.");
     },
     (e) => {
-      if (e.total && !usingGlb) {
-        setStatus(`Loading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
+      if (e.total && usingGlb) {
+        /* named already live — quiet upgrade */
+      } else if (e.total) {
+        setStatus(`Upgrading golden twin ${Math.round((100 * e.loaded) / e.total)}%.`);
       }
     },
-    (err) => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(watchdog);
-      loadNamed(err);
-    }
+    (err) => console.warn("golden upgrade skipped", err)
   );
 }
 bootTwin();
