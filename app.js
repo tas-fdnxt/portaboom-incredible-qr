@@ -1584,7 +1584,9 @@ function addGlowHalo(mesh, kind) {
   );
   halo.name = `SignalHalo_${kind}`;
   if (!mesh.geometry.boundingBox) mesh.geometry.computeBoundingBox();
-  const sz = mesh.geometry.boundingBox.getSize(new THREE.Vector3());
+  const bb = mesh.geometry.boundingBox;
+  const sz = bb.getSize(new THREE.Vector3());
+  const mid = bb.getCenter(new THREE.Vector3());
   const scale = Math.max(sz.x, sz.y, sz.z) * 1.15 || 0.22;
   halo.scale.setScalar(scale / 0.24);
   const axis = sz.x <= sz.y && sz.x <= sz.z
@@ -1594,10 +1596,14 @@ function addGlowHalo(mesh, kind) {
       : "z";
   if (axis === "x") halo.rotation.y = Math.PI / 2;
   else if (axis === "y") halo.rotation.x = Math.PI / 2;
-  halo.position.z = axis === "z" ? 0.004 : 0;
+  halo.position.copy(mid);
+  if (axis === "z") halo.position.z += 0.004;
+  else if (axis === "x") halo.position.x += 0.004;
+  else halo.position.y += 0.004;
   mesh.add(halo);
   const light = new THREE.PointLight(LAMP_COL[kind], 0.2, 2.4, 2);
   light.name = `SignalLight_${kind}`;
+  light.position.copy(mid);
   mesh.add(light);
   return { halo, light };
 }
