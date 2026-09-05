@@ -11,7 +11,7 @@ const INK = 0x202020;
 const DEST = "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/";
 
 const canvas = document.getElementById("stage");
-const hintEl = document.getElementById("hint");
+const hintEl = document.getElementById("hint"); // optional; slim HUD may omit
 const statusEl = document.getElementById("status");
 const failEl = document.getElementById("fail");
 
@@ -213,92 +213,184 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
+
 function worldBox(obj) {
   obj.updateMatrixWorld(true);
   return new THREE.Box3().setFromObject(obj);
 }
 
-function scoreUpright(obj) {
-  // Prefer: longest span on X (arm), height on Y meaningful, wheels near bottom.
-  const box = worldBox(obj);
-  const size = box.getSize(new THREE.Vector3());
-  let wheelY = 0;
-  let wheelN = 0;
-  obj.traverse((o) => {
-    if (!o.isMesh) return;
-    const n = `${o.name || ""}|${o.parent?.name || ""}`;
-    if (!/车轮|wheel/i.test(n)) return;
-    const wb = new THREE.Box3().setFromObject(o);
-    wheelY += wb.min.y;
-    wheelN += 1;
-  });
-  const avgWheel = wheelN ? wheelY / wheelN : box.min.y;
-  const armScore = size.x; // want long arm across X
-  const heightScore = size.y;
-  const flatPenalty = size.y < Math.max(size.x, size.z) * 0.18 ? -10 : 0;
-  const wheelPenalty = Math.abs(avgWheel - box.min.y) * 4;
-  return armScore * 1.2 + heightScore - wheelPenalty + flatPenalty;
-}
-
-function fitObject(obj, targetLen = 2.35) {
+/** Twin plant (from pb4000-viewer-rebuild): center, face fix, wheels on ground. */
+function plantTwin(obj, targetLen = 2.55) {
   obj.rotation.set(0, 0, 0);
   obj.scale.setScalar(1);
   obj.position.set(0, 0, 0);
-
-  // Candidate orientations so the unit stands like a PORTABOOM on wheels
-  const candidates = [
-    [0, 0, 0],
-    [0, Math.PI / 2, 0],
-    [0, -Math.PI / 2, 0],
-    [0, Math.PI, 0],
-    [Math.PI / 2, 0, 0],
-    [-Math.PI / 2, 0, 0],
-    [0, 0, Math.PI / 2],
-    [0, 0, -Math.PI / 2],
-    [Math.PI / 2, Math.PI / 2, 0],
-    [-Math.PI / 2, Math.PI / 2, 0],
-  ];
-  let best = null;
-  let bestScore = -Infinity;
-  for (const [rx, ry, rz] of candidates) {
-    obj.rotation.set(rx, ry, rz);
-    obj.position.set(0, 0, 0);
-    const s = scoreUpright(obj);
-    if (s > bestScore) {
-      bestScore = s;
-      best = [rx, ry, rz];
-    }
-  }
-  obj.rotation.set(...best);
-
-  // Center horizontally, then scale to target length
   let box = worldBox(obj);
   let size = box.getSize(new THREE.Vector3());
   let center = box.getCenter(new THREE.Vector3());
-  obj.position.x -= center.x;
-  obj.position.z -= center.z;
-  obj.position.y -= center.y;
-
+  obj.position.sub(center);
+  // GLB authored facing away — twin applies half-turn
+  obj.rotation.y = Math.PI;
   box = worldBox(obj);
   size = box.getSize(new THREE.Vector3());
   const longest = Math.max(size.x, size.y, size.z) || 1;
-  const s = targetLen / longest;
-  obj.scale.setScalar(s);
-
-  // Plant: wheels / bbox bottom on the QR paper (y ≈ 0.02)
-  box = worldBox(obj);
-  obj.position.y -= box.min.y;
-  obj.position.y += 0.03;
-
-  // Nudge camera to a 3/4 product angle
+  obj.scale.setScalar(targetLen / longest);
   box = worldBox(obj);
   size = box.getSize(new THREE.Vector3());
-  camera.position.set(2.6, Math.max(1.35, size.y * 0.85), 3.2);
-  camera.lookAt(0, size.y * 0.35, 0);
-  return s;
+  center = box.getCenter(new THREE.Vector3());
+  obj.position.x -= center.x;
+  obj.position.z -= center.z;
+  // wheels / bbox bottom on QR paper
+  obj.position.y -= box.min.y;
+  obj.position.y += 0.02;
+  box = worldBox(obj);
+  size = box.getSize(new THREE.Vector3());
+  camera.position.set(2.8, Math.max(1.45, size.y * 0.75), 3.4);
+  camera.lookAt(0, size.y * 0.38, 0);
+}
+
+let boomRig = null; // { pivot, rest, drop, shownPct, targetPct }
+
+function isDescendantOf(o, ancestor) {
+  let p = o;
+  while (p) {
+    if (p === ancestor) return true;
+    p = p.parent;
+  }
+  return false;
+}
+
+/** Port of twin-core rigBoomMaster — rotates 主杆 up/down about shaft hinge. */
+function rigBoomMaster(root) {
+  const boomMeshes = [];
+  const box = new THREE.Box3();
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    box.setFromObject(o);
+    const tall = box.max.y > 2.2;
+    const slim = box.max.x - box.min.x < 0.35 && box.max.z - box.min.z < 0.35;
+    if (tall && slim) boomMeshes.push(o);
+    else if (/主杆|105|灯条/.test(o.name || "")) boomMeshes.push(o);
+  });
+  if (!boomMeshes.length) {
+    root.traverse((o) => {
+      if (o.isMesh && /主杆|105/.test(o.name || "")) boomMeshes.push(o);
+    });
+  }
+  if (!boomMeshes.length) return null;
+
+  const hinge = new THREE.Vector3(0, 1.3, 0);
+  let shaft = null;
+  root.traverse((o) => {
+    if (o.isMesh && /AK-D115-02-03-2/.test(o.name || "")) shaft = o;
+  });
+  if (shaft) {
+    const sb = new THREE.Box3().setFromObject(shaft);
+    sb.getCenter(hinge);
+    hinge.y = sb.max.y;
+  } else {
+    let cx = 0, cz = 0;
+    boomMeshes.forEach((o) => {
+      box.setFromObject(o);
+      cx += (box.min.x + box.max.x) / 2;
+      cz += (box.min.z + box.max.z) / 2;
+    });
+    hinge.x = cx / boomMeshes.length;
+    hinge.z = cz / boomMeshes.length;
+  }
+
+  const boomPivot = new THREE.Group();
+  boomPivot.name = "BoomPivot";
+  boomPivot.position.copy(hinge);
+  // attach via scene then reparent under root (same as twin)
+  scene.attach(boomPivot);
+  boomMeshes.forEach((o) => {
+    if (!isDescendantOf(o, boomPivot)) boomPivot.attach(o);
+  });
+  root.attach(boomPivot);
+
+  let poleA0, poleA1;
+  {
+    boomPivot.updateMatrixWorld(true);
+    const inv = new THREE.Matrix4().copy(boomPivot.matrixWorld).invert();
+    const v = new THREE.Vector3();
+    const polePts = [];
+    boomPivot.traverse((o) => {
+      if (!o.isMesh || !o.geometry) return;
+      if (!/主杆|105|灯条/.test(o.name || "")) return;
+      const pos = o.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 200));
+      for (let k = 0; k < pos.count; k += step) {
+        v.fromBufferAttribute(pos, k).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+        polePts.push([v.x, v.y]);
+      }
+    });
+    if (polePts.length < 4) {
+      boomPivot.traverse((o) => {
+        if (!o.isMesh || !o.geometry) return;
+        const pos = o.geometry.attributes.position;
+        for (let k = 0; k < pos.count; k += Math.max(1, pos.count >> 6)) {
+          v.fromBufferAttribute(pos, k).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
+          polePts.push([v.x, v.y]);
+        }
+      });
+    }
+    let far = -1;
+    for (let a2 = 0; a2 < polePts.length; a2 += 3) {
+      for (let b2 = a2 + 3; b2 < polePts.length; b2 += 3) {
+        const dx = polePts[a2][0] - polePts[b2][0];
+        const dy = polePts[a2][1] - polePts[b2][1];
+        const d = dx * dx + dy * dy;
+        if (d > far) {
+          far = d;
+          poleA0 = polePts[a2];
+          poleA1 = polePts[b2];
+        }
+      }
+    }
+  }
+  if (!poleA0 || !poleA1) return null;
+  const d0 = poleA0[0] ** 2 + poleA0[1] ** 2;
+  const d1 = poleA1[0] ** 2 + poleA1[1] ** 2;
+  const base = d0 <= d1 ? poleA0 : poleA1;
+  const tip = d0 <= d1 ? poleA1 : poleA0;
+  const poleAngle = Math.atan2(tip[1] - base[1], tip[0] - base[0]);
+  let boomRest = Math.PI / 2 - poleAngle;
+  while (boomRest > Math.PI) boomRest -= 2 * Math.PI;
+  while (boomRest < -Math.PI) boomRest += 2 * Math.PI;
+  const probe = new THREE.Vector3();
+  boomPivot.rotation.z = boomRest;
+  boomPivot.updateMatrixWorld(true);
+  probe.set(tip[0], tip[1], 0).applyMatrix4(boomPivot.matrixWorld);
+  if (probe.y < hinge.y) boomRest += Math.PI;
+  let boomDrop = -poleAngle;
+  boomPivot.rotation.z = boomDrop;
+  boomPivot.updateMatrixWorld(true);
+  probe.set(tip[0], tip[1], 0).applyMatrix4(boomPivot.matrixWorld);
+  if (probe.x < hinge.x) boomDrop = Math.PI - poleAngle;
+  while (boomDrop - boomRest > Math.PI) boomDrop -= 2 * Math.PI;
+  while (boomDrop - boomRest < -Math.PI) boomDrop += 2 * Math.PI;
+  boomPivot.rotation.z = boomRest; // start UP
+  return { pivot: boomPivot, rest: boomRest, drop: boomDrop, shownPct: 100, targetPct: 100 };
+}
+
+function setBoomPct(pct) {
+  if (!boomRig) return;
+  boomRig.targetPct = Math.max(0, Math.min(100, pct));
+}
+
+function tickBoom(dt) {
+  if (!boomRig || !boomRig.pivot) return;
+  const d = boomRig.targetPct - boomRig.shownPct;
+  const step = Math.min(Math.abs(d), 55 * dt);
+  if (step > 0.01) boomRig.shownPct += Math.sign(d) * step;
+  else boomRig.shownPct = boomRig.targetPct;
+  const p = boomRig.shownPct / 100;
+  boomRig.pivot.rotation.z = boomRig.drop + (boomRig.rest - boomRig.drop) * p;
 }
 
 function addLogoDecal(root) {
+{
   const loader = new THREE.TextureLoader();
   loader.load("./portaboom_logo_reversed.png", (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
@@ -366,7 +458,7 @@ function mountCad(gltf, label) {
       return;
     }
     paintGlb(cad);
-    const s = fitObject(cad, 2.25);
+    const s = plantTwin(cad, 2.25);
     removeHero();
     boom = cad;
     baseScale = s;
@@ -412,12 +504,12 @@ function setFlat(next) {
   flatT = 0;
   if (flat) {
     setStatus("Flattened. Scan-proof QR error H. PB4000 product.");
-    hintEl.innerHTML = "QR ready. Scan with Camera, or open the product page.";
+    if (hintEl) hintEl.innerHTML = "QR ready. Scan with Camera, or open the product page.";
   } else {
     setStatus(usingGlb
       ? "Idle. PB4000 twin on QR grid. Tap to flatten."
       : "Idle. PORTABOOM hero on QR grid. Tap to flatten.");
-    hintEl.textContent = "Tap the boom. Navy modules flatten to a scan-H plane.";
+    if (hintEl) hintEl.textContent = "Tap the boom. Navy modules flatten to a scan-H plane.";
   }
 }
 
@@ -476,9 +568,25 @@ function tick() {
     const sc = usingGlb ? baseScale : 1;
     boom.scale.setScalar(sc * THREE.MathUtils.lerp(1, 0.05, k));
   }
+  tickBoom(0.016);
   renderer.render(scene, camera);
 }
 tick();
 
 const flattenBtn = document.getElementById("flattenBtn");
 if (flattenBtn) flattenBtn.addEventListener("click", () => setFlat(!flat));
+
+
+const boomBtn = document.getElementById("boomBtn");
+if (boomBtn) {
+  boomBtn.addEventListener("click", () => {
+    if (!boomRig) return;
+    setBoomPct(boomRig.targetPct >= 50 ? 0 : 100);
+    setStatus(boomRig.targetPct >= 50 ? "Boom raising…" : "Boom lowering…");
+  });
+}
+// Living QR: gentle auto open/close every ~4s once twin ready
+setInterval(() => {
+  if (!boomRig || flat) return;
+  setBoomPct(boomRig.targetPct >= 50 ? 8 : 100);
+}, 4200);

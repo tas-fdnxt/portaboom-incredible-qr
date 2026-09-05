@@ -8,68 +8,49 @@
 <title>PREVIEW · PORTABOOM® Incredible QR</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
 :root{
-  --soft:#F4F6F9; --ground-tint:#E9EEF5; --paper:#FFFFFF; --paper-soft:#FAFBFC;
-  --ink:#202020; --ink-soft:#5B6573; --ink-faint:#7D8794;
-  --line:#E2E8F0; --navy:#1B2A4A; --navy-deep:#101B30; --navy-line:#2b3c5e;
-  --orange:#EE7202; --orange-h:#FF8420; --orange-deep:#D76100;
-  --cream:#FCE3CC; --r:12px; --r-lg:18px;
-  --shadow:0 1px 2px rgba(32,32,32,.04); --shadow-lift:0 8px 28px rgba(32,32,32,.08);
-  --serif:"Fraunces","Hoefler Text",Georgia,serif;
+  --soft:#F4F6F9; --paper:#FFFFFF; --ink:#202020; --ink-soft:#5B6573;
+  --line:#E2E8F0; --navy:#1B2A4A; --navy-deep:#101B30;
+  --orange:#EE7202; --orange-h:#FF8420;
   --sans:"Inter",-apple-system,system-ui,sans-serif;
-  --mono:"JetBrains Mono","SF Mono",Menlo,monospace;
+  --serif:"Fraunces",Georgia,serif; --mono:"JetBrains Mono",Menlo,monospace;
   --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
   --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;height:100%;background:var(--soft);color:var(--ink);font-family:var(--sans);overflow:hidden;overscroll-behavior:none}
-canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch-action:none;background:radial-gradient(ellipse at 50% 42%, #ffffff 0%, var(--soft) 42%, var(--ground-tint) 100%)}
-#chrome{position:fixed;inset:0;pointer-events:none;padding:calc(var(--sat) + 14px) calc(var(--sar) + 14px) calc(var(--sab) + 16px) calc(var(--sal) + 14px);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
-.top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.card{pointer-events:auto;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lift);padding:12px 14px}
-.badge{display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#fff;border-radius:999px;padding:8px 12px;font:800 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
-.badge i{width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.28)}
-.brand-pill{display:inline-flex;align-items:center;gap:10px;background:var(--navy);color:#fff;border-radius:999px;padding:8px 12px 8px 8px;text-decoration:none;max-width:min(62vw,280px);box-shadow:var(--shadow-lift)}
-.brand-pill img{height:28px;width:auto;display:block;background:#fff;border-radius:999px;padding:4px 8px}
-.brand-pill span{font:700 12px/1.1 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.hero-copy{max-width:min(92vw,26rem)}
-.hero-copy h1{margin:0 0 6px;font-family:var(--serif);font-weight:700;font-size:clamp(26px,6.4vw,40px);letter-spacing:-.03em;color:var(--navy-deep);line-height:1.05}
-.hero-copy h1 b{color:var(--orange)}
-.hero-copy p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.45}
-#status{margin-top:10px;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--orange-deep)}
-.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
-.btn{pointer-events:auto;appearance:none;border:0;border-radius:999px;padding:11px 16px;font:700 13px/1 var(--sans);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+html,body{margin:0;height:100%;background:var(--soft);overflow:hidden;font-family:var(--sans)}
+canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch-action:none;background:radial-gradient(ellipse at 50% 40%,#fff 0%,var(--soft) 55%,#E9EEF5 100%)}
+#hud{position:fixed;inset:0;pointer-events:none;padding:calc(var(--sat)+12px) calc(var(--sar)+12px) calc(var(--sab)+12px) calc(var(--sal)+12px);display:flex;flex-direction:column;justify-content:space-between}
+.row{display:flex;justify-content:space-between;align-items:center;gap:10px}
+.badge{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#fff;border-radius:999px;padding:8px 12px;font:800 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.brand{pointer-events:auto;display:inline-flex;align-items:center;gap:8px;background:var(--navy);color:#fff;border-radius:999px;padding:6px 12px 6px 6px;text-decoration:none;max-width:min(58vw,260px)}
+.brand img{height:26px;background:#fff;border-radius:999px;padding:3px 7px}
+.brand span{font:700 12px/1 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dock{pointer-events:auto;display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:center;width:100%}
+.btn{appearance:none;border:0;border-radius:999px;padding:12px 16px;font:700 13px/1 var(--sans);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px;box-shadow:0 8px 28px rgba(32,32,32,.08)}
 .btn.primary{background:var(--orange);color:#fff}
-.btn.primary:hover{background:var(--orange-h)}
 .btn.ghost{background:var(--paper);color:var(--navy);border:1px solid var(--line)}
-.meta{font:500 11px/1.3 var(--mono);color:var(--ink-faint)}
+#status{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--sat)+56px);pointer-events:none;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--orange);background:rgba(255,255,255,.82);backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #fail{display:none;position:fixed;inset:0;place-items:center;background:var(--soft);color:var(--navy);padding:28px;text-align:center}
 #fail.show{display:grid}
 </style>
 </head>
 <body>
 <canvas id="stage" aria-label="PORTABOOM PB4000 Incredible QR preview"></canvas>
-<div id="chrome">
-  <div class="top">
-    <div class="badge"><i></i> Preview</div>
-    <a class="brand-pill" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">
-      <img src="./portaboom_logo.png" alt="PORTABOOM">
-      <span>PB4000 series</span>
+<div id="status">Loading twin…</div>
+<div id="hud">
+  <div class="row">
+    <div class="badge">Preview</div>
+    <a class="brand" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">
+      <img src="./portaboom_logo.png" alt="PORTABOOM"><span>PB4000</span>
     </a>
   </div>
-  <div class="bottom">
-    <div class="card hero-copy">
-      <h1><b>PORTABOOM</b>® on a living QR</h1>
-      <p id="hint">Real PB4000 twin, wheels on the grid. Tap to flatten into a scan-proof code.</p>
-      <div id="status">Loading twin…</div>
-      <div class="actions">
-        <button class="btn primary" id="flattenBtn" type="button">Flatten to QR</button>
-        <a class="btn ghost" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">Product page</a>
-      </div>
-      <p class="meta" style="margin:10px 0 0">TAS Design System tokens · Fraunces + Inter</p>
-    </div>
+  <div class="dock">
+    <button class="btn primary" id="boomBtn" type="button">Raise / lower boom</button>
+    <button class="btn ghost" id="flattenBtn" type="button">Flatten to QR</button>
+    <a class="btn ghost" href="./portaboom-pb4000-master.png" download="PORTABOOM-PB4000-master-QR.png">Download print QR</a>
   </div>
 </div>
 <div id="fail"><div><h2>WebGL unavailable</h2><p>Open on a phone or laptop with WebGL.</p></div></div>
