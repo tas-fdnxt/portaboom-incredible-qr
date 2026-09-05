@@ -83,9 +83,10 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xF4F6F9);
 scene.fog = new THREE.Fog(0xE9EEF5, 14, 32);
 
-const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 80);
-camera.position.set(2.55, 1.55, 3.35);
-camera.lookAt(0.04, 0.72, 0);
+// Showtime-lock hero camera. No OrbitControls. No auto-rotate.
+const camera = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
+camera.position.set(0, 0.85, 2.1);
+camera.lookAt(0, 0.62, 0);
 
 scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1b2a4a, 1.12));
 const key = new THREE.DirectionalLight(0xfff4e8, 1.7);
@@ -199,6 +200,7 @@ function makeHeroBoom() {
   const matBlack = new THREE.MeshStandardMaterial({ color: INK, roughness: 0.62, metalness: 0.18 });
 
   const cab = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.42, 0.7), matCab);
+  cab.name = "HeroCabinet";
   cab.position.set(-0.85, 0.35, 0);
   cab.castShadow = true;
   g.add(cab);
@@ -265,6 +267,7 @@ let boom = makeHeroBoom();
 boom.userData.plantedYaw = yawFaceCamera(false);
 boom.rotation.y = boom.userData.plantedYaw;
 scene.add(boom);
+lockHeroCamera(boom);
 if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
@@ -298,25 +301,61 @@ function isTrafficNode(o) {
 
 /** Door + signal lenses are authored on local −Z. Yaw so that face looks at the camera. */
 function yawFaceCamera(negZIsFace = true) {
-  const yawToCam = Math.atan2(camera.position.x, camera.position.z);
+  const yawToCam = Math.atan2(camera.position.x || 0.0001, camera.position.z || 1);
   return negZIsFace ? yawToCam + Math.PI : yawToCam;
 }
 
-/** Twin plant: center, face camera (cabinet + signal), wheels on ground. */
-function plantTwin(obj, targetLen = 2.55) {
+function gatherHeroBox(root) {
+  const box = new THREE.Box3();
+  let any = false;
+  root.updateMatrixWorld(true);
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    const n = ancestorBlob(o);
+    if (!/115-DOOR|AK-XLH-D115C-01-01|Traffic[_\s-]*Light|HeroCabinet|PortaboomChromePlate|PortaboomFaceLed/i.test(n)) return;
+    if (/PART_|GB_T|螺钉|垫|自攻/.test(n)) return;
+    box.union(new THREE.Box3().setFromObject(o));
+    any = true;
+  });
+  return any ? box : worldBox(root);
+}
+
+/** Frontal lock on cabinet + traffic head. Product fills frame. No orbit. */
+function lockHeroCamera(root) {
+  const box = gatherHeroBox(root);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const yaw = root.rotation.y;
+  const faceDir = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  camera.fov = 32;
+  camera.updateProjectionMatrix();
+  const fov = THREE.MathUtils.degToRad(camera.fov);
+  const aspect = Math.max(0.55, camera.aspect || 1);
+  const distH = (size.y * 1.06) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 1.28) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 1.05);
+  camera.position.set(
+    center.x + faceDir.x * dist,
+    center.y + size.y * 0.04,
+    center.z + faceDir.z * dist
+  );
+  camera.lookAt(center.x, center.y + size.y * 0.02, center.z);
+  camera.updateProjectionMatrix();
+}
+
+/** Twin plant: wheels on ground, face camera, then hero-lock on cabinet + signal. */
+function plantTwin(obj) {
   obj.rotation.set(0, 0, 0);
   obj.scale.setScalar(1);
   obj.position.set(0, 0, 0);
   let box = worldBox(obj);
   let center = box.getCenter(new THREE.Vector3());
   obj.position.sub(center);
-  // Camera sits in +X/+Z; local −Z is the door + traffic-lens face.
-  camera.position.set(2.6, 1.55, 3.25);
+  camera.position.set(0, 0.9, 2.2);
   obj.rotation.y = yawFaceCamera(true);
-  box = worldBox(obj);
-  const size0 = box.getSize(new THREE.Vector3());
-  const longest = Math.max(size0.x, size0.y, size0.z) || 1;
-  const s = targetLen / longest;
+  const hero0 = gatherHeroBox(obj);
+  const heroH = Math.max(0.4, hero0.getSize(new THREE.Vector3()).y);
+  const s = 1.28 / heroH;
   obj.scale.setScalar(s);
   box = worldBox(obj);
   center = box.getCenter(new THREE.Vector3());
@@ -324,12 +363,9 @@ function plantTwin(obj, targetLen = 2.55) {
   obj.position.z -= center.z;
   obj.position.y -= box.min.y;
   obj.position.y += 0.02;
-  box = worldBox(obj);
-  const size = box.getSize(new THREE.Vector3());
-  camera.position.set(2.6, Math.max(1.42, size.y * 0.68), 3.25);
-  camera.lookAt(0.04, size.y * 0.34, 0);
   obj.rotation.y = yawFaceCamera(true);
   obj.userData.plantedYaw = obj.rotation.y;
+  lockHeroCamera(obj);
   return s;
 }
 
@@ -492,37 +528,41 @@ function addLogoDecal(root) {
     let cab = null;
     root.traverse((o) => {
       if (!o.isMesh) return;
-      const n = `${o.name || ""}|${o.parent?.name || ""}`;
-      if (/115-DOOR|01-02-1/i.test(n) && !door) door = o;
+      if (/AK-XLH-D115C-01-02-1/.test(o.name || "")) door = o;
       if (/AK-XLH-D115C-01-01-1/.test(o.name || "")) cab = o;
     });
-    const host = door || cab || root;
-    const box = worldBox(host);
-    const size = box.getSize(new THREE.Vector3());
-    const faceW = Math.max(size.x, size.y * 0.35);
-    const logoW = THREE.MathUtils.clamp(Math.min(faceW * 0.88, 0.30), 0.18, 0.32);
-    const imgW = tex.image?.width || 3;
+    const host = door || cab;
+    if (!host) return;
+    if (!host.geometry.boundingBox) host.geometry.computeBoundingBox();
+    const lb = host.geometry.boundingBox;
+    const ls = lb.getSize(new THREE.Vector3());
+    const lc = lb.getCenter(new THREE.Vector3());
+    const faceW = Math.max(ls.x, ls.y * 0.42);
+    const logoW = faceW * 0.88;
+    const imgW = tex.image?.width || 4;
     const imgH = tex.image?.height || 1;
     const logoH = logoW * (imgH / imgW);
-    const mat = new THREE.MeshStandardMaterial({
-      map: tex,
-      transparent: true,
-      depthWrite: false,
-      side: THREE.DoubleSide,
-      metalness: 0.84,
-      roughness: 0.16,
-      color: 0xffffff,
-    });
-    const plate = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), mat);
+    const chrome = new THREE.Mesh(
+      new THREE.PlaneGeometry(logoW * 1.06, logoH * 1.28),
+      new THREE.MeshStandardMaterial({ color: 0xf4f7fb, metalness: 0.86, roughness: 0.18 })
+    );
+    const plate = new THREE.Mesh(
+      new THREE.PlaneGeometry(logoW, logoH),
+      new THREE.MeshStandardMaterial({
+        map: tex, transparent: true, depthWrite: false,
+        side: THREE.DoubleSide, metalness: 0.2, roughness: 0.35, color: 0xffffff,
+      })
+    );
     plate.name = "PortaboomLogoDecal";
-    const c = box.getCenter(new THREE.Vector3());
-    const toCam = new THREE.Vector3(camera.position.x - c.x, 0, camera.position.z - c.z).normalize();
-    const halfDepth = Math.max(0.012, Math.min(size.x, size.z) * 0.5 + 0.008);
-    plate.position.set(c.x + toCam.x * halfDepth, box.min.y + size.y * 0.48, c.z + toCam.z * halfDepth);
-    plate.lookAt(c.x + toCam.x * 2, plate.position.y, c.z + toCam.z * 2);
-    scene.add(plate);
-    root.attach(plate);
-    root.userData.logoWorldW = logoW;
+    const zOut = lb.min.z - 0.006;
+    const y = lc.y + ls.y * 0.06;
+    chrome.position.set(lc.x, y, zOut);
+    plate.position.set(lc.x, y, zOut - 0.0015);
+    chrome.rotation.y = Math.PI;
+    plate.rotation.y = Math.PI;
+    host.add(chrome);
+    host.add(plate);
+    root.userData.logoWorldW = logoW * (root.scale?.x || 1);
   });
 }
 
@@ -778,7 +818,7 @@ function mountCad(gltf, label) {
       return;
     }
     paintGlb(cad);
-    const s = plantTwin(cad, 2.55);
+    const s = plantTwin(cad);
     removeHero();
     boom = cad;
     baseScale = s || 1;
@@ -876,6 +916,7 @@ function resize() {
   renderer.setSize(w, h, false);
   camera.aspect = w / h;
   camera.updateProjectionMatrix();
+  if (boom) lockHeroCamera(boom);
 }
 addEventListener("resize", resize);
 if (window.visualViewport) window.visualViewport.addEventListener("resize", resize);
