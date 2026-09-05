@@ -787,7 +787,7 @@ function rigTrafficLamps(root) {
   const signalMeshes = [];
   root.traverse((o) => {
     if (!o.isMesh) return;
-    if (/Traffic Light|HeroLens|HeroSignal/i.test(ancestorBlob(o))) signalMeshes.push(o);
+    if (/Traffic[_\s-]*Light|HeroLens|HeroSignal|信号/i.test(ancestorBlob(o))) signalMeshes.push(o);
   });
 
   const byColor = { red: [], amber: [], green: [], housing: [] };
