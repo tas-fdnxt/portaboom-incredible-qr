@@ -60,6 +60,7 @@ try {
     alpha: false,
     powerPreference: "default",
     failIfMajorPerformanceCaveat: false,
+    preserveDrawingBuffer: true,
   });
 } catch (err) {
   failEl.classList.add("show");
@@ -82,12 +83,12 @@ const scene = new THREE.Scene();
 scene.background = new THREE.Color(0xF4F6F9);
 scene.fog = new THREE.Fog(0xE9EEF5, 14, 32);
 
-const camera = new THREE.PerspectiveCamera(36, 1, 0.05, 80);
-camera.position.set(2.15, 1.48, 2.95);
-camera.lookAt(0.02, 0.78, 0);
+const camera = new THREE.PerspectiveCamera(38, 1, 0.05, 80);
+camera.position.set(2.55, 1.55, 3.35);
+camera.lookAt(0.04, 0.72, 0);
 
-scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1b2a4a, 0.95));
-const key = new THREE.DirectionalLight(0xfff4e8, 1.85);
+scene.add(new THREE.HemisphereLight(0xfff6ea, 0x1b2a4a, 1.12));
+const key = new THREE.DirectionalLight(0xfff4e8, 1.7);
 key.position.set(2.6, 5.8, 3.6);
 key.castShadow = true;
 key.shadow.mapSize.set(1024, 1024);
@@ -310,7 +311,7 @@ function plantTwin(obj, targetLen = 2.55) {
   let center = box.getCenter(new THREE.Vector3());
   obj.position.sub(center);
   // Camera sits in +X/+Z; local −Z is the door + traffic-lens face.
-  camera.position.set(2.15, 1.48, 2.85);
+  camera.position.set(2.6, 1.55, 3.25);
   obj.rotation.y = yawFaceCamera(true);
   box = worldBox(obj);
   const size0 = box.getSize(new THREE.Vector3());
@@ -325,8 +326,8 @@ function plantTwin(obj, targetLen = 2.55) {
   obj.position.y += 0.02;
   box = worldBox(obj);
   const size = box.getSize(new THREE.Vector3());
-  camera.position.set(2.15, Math.max(1.35, size.y * 0.62), 2.85);
-  camera.lookAt(0.02, size.y * 0.36, 0);
+  camera.position.set(2.6, Math.max(1.42, size.y * 0.68), 3.25);
+  camera.lookAt(0.04, size.y * 0.34, 0);
   obj.rotation.y = yawFaceCamera(true);
   obj.userData.plantedYaw = obj.rotation.y;
   return s;
@@ -532,9 +533,6 @@ function paintGlb(root) {
   const matWhite = new THREE.MeshStandardMaterial({ color: 0xf4f6f9, roughness: 0.5, metalness: 0.05 });
   const matNavy = new THREE.MeshStandardMaterial({ color: NAVY, roughness: 0.44, metalness: 0.12 });
   const matSteel = new THREE.MeshStandardMaterial({ color: STEEL, roughness: 0.3, metalness: 0.5 });
-  const matSignalBlack = new THREE.MeshStandardMaterial({
-    color: 0x0a0a0a, roughness: 0.88, metalness: 0.04, emissive: 0x000000, emissiveIntensity: 0,
-  });
   const skip = /垫|螺钉|螺柱|开口销|PART_244|PART_609|PART_602|GB_T|自攻|十字槽|环芯/i;
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -553,7 +551,7 @@ function paintGlb(root) {
     o.castShadow = true;
     o.receiveShadow = true;
     if (traffic) {
-      o.material = matSignalBlack;
+      // TL head 3-aspect is Chief's lane — do not invent or overwrite here.
       return;
     }
     if (/主杆|灯条|胶条|杆|橙|orange|105/i.test(name)) o.material = matOrange;
@@ -639,7 +637,7 @@ function rigTwinLeds(root) {
   let stripMat = null;
   root.traverse((o) => {
     if (!o.isMesh) return;
-    if (!/^灯条$/.test(o.name || "")) return;
+    if (!/灯条/.test(`${o.name || ""}|${o.parent?.name || ""}`)) return;
     stripMat = new THREE.MeshStandardMaterial({
       color: FACE_GREEN_BASE, emissive: STRIP_GREEN, emissiveIntensity: 6,
       roughness: 0.28, metalness: 0.08, toneMapped: false,
@@ -940,9 +938,13 @@ window.__iqr = {
       plantedYaw: boom?.userData?.plantedYaw ?? null,
       rotY: boom?.rotation?.y ?? null,
       boomPct: boomRig?.shownPct ?? null,
+      boomTarget: boomRig?.targetPct ?? null,
       faceLeds: faces.length,
       hasStrip: !!ledRig.stripMat,
       hasFace: !!ledRig.faceMat,
+      faceHex: ledRig.faceMat ? ledRig.faceMat.emissive.getHexString() : null,
+      faceIntensity: ledRig.faceMat?.emissiveIntensity ?? null,
+      stripHex: ledRig.stripMat ? ledRig.stripMat.emissive.getHexString() : null,
       logo: logo ? {
         world: logo.getWorldPosition(new THREE.Vector3()).toArray(),
         parent: logo.parent?.name || null,
