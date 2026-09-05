@@ -157,16 +157,16 @@ function makeStudioGroundTex() {
   const c = document.createElement("canvas");
   c.width = c.height = 512;
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "#16181c";
+  ctx.fillStyle = "#2a2d33";
   ctx.fillRect(0, 0, 512, 512);
-  for (let i = 0; i < 2400; i += 1) {
+  for (let i = 0; i < 3200; i += 1) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    const n = 18 + Math.random() * 28;
-    ctx.fillStyle = `rgba(${n},${n + 2},${n + 6},${0.08 + Math.random() * 0.12})`;
+    const n = 40 + Math.random() * 50;
+    ctx.fillStyle = `rgba(${n},${n + 2},${n + 6},${0.14 + Math.random() * 0.18})`;
     ctx.fillRect(x, y, 1 + Math.random() * 3, 1 + Math.random() * 2);
   }
-  ctx.strokeStyle = "rgba(255,255,255,0.035)";
+  ctx.strokeStyle = "rgba(255,255,255,0.06)";
   ctx.lineWidth = 1;
   for (let g = 32; g < 512; g += 32) {
     ctx.beginPath(); ctx.moveTo(g, 0); ctx.lineTo(g, 512); ctx.stroke();
@@ -182,7 +182,7 @@ function makeStudioGroundTex() {
 const floor = new THREE.Mesh(
   new THREE.PlaneGeometry(28, 48),
   new THREE.MeshStandardMaterial({
-    color: 0x8a8e94,
+    color: 0xb4b8be,
     map: makeStudioGroundTex(),
     roughness: 0.88,
     metalness: 0.08,
@@ -197,8 +197,8 @@ studioGroup.add(floor);
   c.width = c.height = 256;
   const ctx = c.getContext("2d");
   const g = ctx.createRadialGradient(128, 128, 10, 128, 128, 126);
-  g.addColorStop(0, "rgba(255,214,170,0.22)");
-  g.addColorStop(0.55, "rgba(255,190,130,0.07)");
+  g.addColorStop(0, "rgba(255,214,170,0.42)");
+  g.addColorStop(0.45, "rgba(255,190,130,0.16)");
   g.addColorStop(1, "rgba(255,180,120,0)");
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, 256, 256);
@@ -1633,6 +1633,8 @@ window.__iqr = {
       spin,
       autoRotate: !!(controls && controls.autoRotate),
       damping: !!(controls && controls.enableDamping),
+      cam: camera.position.toArray(),
+      target: controls ? controls.target.toArray() : null,
       solarVisible,
       trafficHeads,
       extraHeads,
