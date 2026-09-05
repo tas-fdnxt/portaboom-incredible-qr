@@ -5,111 +5,80 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1">
 <meta name="theme-color" content="#1B2A4A">
 <meta name="robots" content="noindex,nofollow">
-<title>PREVIEW · PORTABOOM Incredible QR</title>
-<meta name="description" content="PREVIEW only. Incredible PORTABOOM PB4000 QR boom-reveal. Tap the boom to flatten the navy module grid into a scan-H plane. Not a live send.">
+<title>PREVIEW · PORTABOOM® Incredible QR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --soft: #F4F6F9;
-    --paper: #FFFFFF;
-    --navy: #1B2A4A;
-    --orange: #EE7202;
-    --cream: #FCE3CC;
-    --ink: #202020;
-    --sat: env(safe-area-inset-top, 0px);
-    --sab: env(safe-area-inset-bottom, 0px);
-    --sal: env(safe-area-inset-left, 0px);
-    --sar: env(safe-area-inset-right, 0px);
-  }
-  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
-  html, body {
-    margin: 0; height: 100%; background: var(--navy); color: var(--paper);
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-    overflow: hidden; overscroll-behavior: none;
-  }
-  canvas#stage {
-    position: fixed; inset: 0; width: 100%; height: 100dvh;
-    display: block; touch-action: none;
-    background: radial-gradient(ellipse at 50% 38%, #2b3c5e 0%, #1B2A4A 72%);
-  }
-  #chrome {
-    position: fixed; inset: 0; pointer-events: none;
-    padding: calc(var(--sat) + 12px) calc(var(--sar) + 12px) calc(var(--sab) + 16px) calc(var(--sal) + 12px);
-    display: flex; flex-direction: column; justify-content: space-between;
-  }
-  .row { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-  #preview-badge {
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--orange); color: var(--paper);
-    border-radius: 999px; padding: 8px 14px;
-    font-weight: 800; font-size: 12px; letter-spacing: 0.16em;
-    text-transform: uppercase; box-shadow: 0 6px 18px rgba(27,42,74,0.28);
-  }
-  #preview-badge i {
-    width: 8px; height: 8px; border-radius: 50%; background: var(--paper);
-    box-shadow: 0 0 0 3px rgba(255,255,255,0.28);
-  }
-  #product-pill {
-    pointer-events: auto;
-    display: inline-flex; align-items: center; gap: 8px;
-    background: var(--paper); color: var(--navy);
-    border-radius: 999px; padding: 8px 12px 8px 8px;
-    text-decoration: none; font-weight: 700; font-size: 12px;
-    box-shadow: 0 8px 22px rgba(16,22,36,0.22);
-    max-width: min(58vw, 240px);
-  }
-  #product-pill span.mark {
-    background: var(--navy); color: var(--paper);
-    border-radius: 999px; padding: 5px 8px; font-size: 10px; letter-spacing: 0.08em;
-  }
-  #product-pill span.name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  #copy { pointer-events: none; max-width: 22rem; }
-  #copy h1 {
-    margin: 0 0 6px; font-size: clamp(22px, 6vw, 32px); letter-spacing: -0.03em;
-    color: var(--paper); line-height: 1.05;
-  }
-  #copy h1 b { color: var(--orange); font-weight: 800; }
-  #hint { margin: 0; color: var(--cream); font-size: 14px; line-height: 1.4; opacity: 0.92; }
-  #status {
-    margin: 8px 0 0; font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
-    text-transform: uppercase; color: var(--orange);
-  }
-  #fail {
-    display: none; position: fixed; inset: 0; place-items: center;
-    background: var(--soft); color: var(--navy); padding: 28px; text-align: center;
-  }
-  #fail.show { display: grid; }
-</style>
-<script type="importmap">
-{
-  "imports": {
-    "three": "https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
-    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
-  }
+:root{
+  --soft:#F4F6F9; --ground-tint:#E9EEF5; --paper:#FFFFFF; --paper-soft:#FAFBFC;
+  --ink:#202020; --ink-soft:#5B6573; --ink-faint:#7D8794;
+  --line:#E2E8F0; --navy:#1B2A4A; --navy-deep:#101B30; --navy-line:#2b3c5e;
+  --orange:#EE7202; --orange-h:#FF8420; --orange-deep:#D76100;
+  --cream:#FCE3CC; --r:12px; --r-lg:18px;
+  --shadow:0 1px 2px rgba(32,32,32,.04); --shadow-lift:0 8px 28px rgba(32,32,32,.08);
+  --serif:"Fraunces","Hoefler Text",Georgia,serif;
+  --sans:"Inter",-apple-system,system-ui,sans-serif;
+  --mono:"JetBrains Mono","SF Mono",Menlo,monospace;
+  --sat:env(safe-area-inset-top,0px); --sab:env(safe-area-inset-bottom,0px);
+  --sal:env(safe-area-inset-left,0px); --sar:env(safe-area-inset-right,0px);
 }
-</script>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;background:var(--soft);color:var(--ink);font-family:var(--sans);overflow:hidden;overscroll-behavior:none}
+canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch-action:none;background:radial-gradient(ellipse at 50% 42%, #ffffff 0%, var(--soft) 42%, var(--ground-tint) 100%)}
+#chrome{position:fixed;inset:0;pointer-events:none;padding:calc(var(--sat) + 14px) calc(var(--sar) + 14px) calc(var(--sab) + 16px) calc(var(--sal) + 14px);display:flex;flex-direction:column;justify-content:space-between;gap:12px}
+.top,.bottom{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.card{pointer-events:auto;background:var(--paper);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--shadow-lift);padding:12px 14px}
+.badge{display:inline-flex;align-items:center;gap:8px;background:var(--orange);color:#fff;border-radius:999px;padding:8px 12px;font:800 11px/1 var(--sans);letter-spacing:.14em;text-transform:uppercase}
+.badge i{width:7px;height:7px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(255,255,255,.28)}
+.brand-pill{display:inline-flex;align-items:center;gap:10px;background:var(--navy);color:#fff;border-radius:999px;padding:8px 12px 8px 8px;text-decoration:none;max-width:min(62vw,280px);box-shadow:var(--shadow-lift)}
+.brand-pill img{height:28px;width:auto;display:block;background:#fff;border-radius:999px;padding:4px 8px}
+.brand-pill span{font:700 12px/1.1 var(--sans);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hero-copy{max-width:min(92vw,26rem)}
+.hero-copy h1{margin:0 0 6px;font-family:var(--serif);font-weight:700;font-size:clamp(26px,6.4vw,40px);letter-spacing:-.03em;color:var(--navy-deep);line-height:1.05}
+.hero-copy h1 b{color:var(--orange)}
+.hero-copy p{margin:0;color:var(--ink-soft);font-size:14px;line-height:1.45}
+#status{margin-top:10px;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--orange-deep)}
+.actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.btn{pointer-events:auto;appearance:none;border:0;border-radius:999px;padding:11px 16px;font:700 13px/1 var(--sans);cursor:pointer;text-decoration:none;display:inline-flex;align-items:center;gap:8px}
+.btn.primary{background:var(--orange);color:#fff}
+.btn.primary:hover{background:var(--orange-h)}
+.btn.ghost{background:var(--paper);color:var(--navy);border:1px solid var(--line)}
+.meta{font:500 11px/1.3 var(--mono);color:var(--ink-faint)}
+#fail{display:none;position:fixed;inset:0;place-items:center;background:var(--soft);color:var(--navy);padding:28px;text-align:center}
+#fail.show{display:grid}
+</style>
 </head>
 <body>
-<canvas id="stage" aria-label="PORTABOOM Incredible QR boom-reveal preview"></canvas>
+<canvas id="stage" aria-label="PORTABOOM PB4000 Incredible QR preview"></canvas>
 <div id="chrome">
-  <div class="row">
-    <div id="preview-badge"><i></i> Preview</div>
-    <a id="product-pill" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" rel="noopener noreferrer">
-      <span class="mark">PB4000</span>
-      <span class="name">PORTABOOM series</span>
+  <div class="top">
+    <div class="badge"><i></i> Preview</div>
+    <a class="brand-pill" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">
+      <img src="./portaboom_logo.png" alt="PORTABOOM">
+      <span>PB4000 series</span>
     </a>
   </div>
-  <div id="copy">
-    <h1><b>PORTABOOM</b> Incredible QR</h1>
-    <p id="hint">Tap the boom. Navy modules flatten to a scan-H plane.</p>
-    <p id="status">Preview only. Loading PB4000 twin.</p>
+  <div class="bottom">
+    <div class="card hero-copy">
+      <h1><b>PORTABOOM</b>® on a living QR</h1>
+      <p id="hint">Real PB4000 twin, wheels on the grid. Tap to flatten into a scan-proof code.</p>
+      <div id="status">Loading twin…</div>
+      <div class="actions">
+        <button class="btn primary" id="flattenBtn" type="button">Flatten to QR</button>
+        <a class="btn ghost" href="https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/" target="_blank" rel="noopener">Product page</a>
+      </div>
+      <p class="meta" style="margin:10px 0 0">TAS Design System tokens · Fraunces + Inter</p>
+    </div>
   </div>
 </div>
-<div id="fail">
-  <div>
-    <strong>WebGL is needed for this preview.</strong>
-    <p>Open this page on iPhone Safari or Chrome with WebGL allowed.</p>
-  </div>
-</div>
+<div id="fail"><div><h2>WebGL unavailable</h2><p>Open on a phone or laptop with WebGL.</p></div></div>
+<script type="importmap">
+{"imports":{
+  "three":"https://unpkg.com/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://unpkg.com/three@0.170.0/examples/jsm/"
+}}
+</script>
 <script type="module" src="./app.js"></script>
 </body>
 </html>

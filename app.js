@@ -38,7 +38,7 @@ if (!renderer.getContext()) {
 }
 
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
-renderer.setClearColor(NAVY, 1);
+renderer.setClearColor(0xF4F6F9, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.15;
@@ -46,8 +46,8 @@ renderer.shadowMap.enabled = true;
 renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(NAVY);
-scene.fog = new THREE.Fog(NAVY, 10, 22);
+scene.background = new THREE.Color(0xF4F6F9);
+scene.fog = new THREE.Fog(0xE9EEF5, 12, 28);
 
 const camera = new THREE.PerspectiveCamera(40, 1, 0.05, 80);
 camera.position.set(2.55, 1.72, 3.55);
@@ -65,7 +65,7 @@ scene.add(rim);
 
 const floor = new THREE.Mesh(
   new THREE.CircleGeometry(5.2, 48),
-  new THREE.MeshStandardMaterial({ color: 0x152238, roughness: 1, metalness: 0 })
+  new THREE.MeshStandardMaterial({ color: 0xE9EEF5, roughness: 1, metalness: 0 })
 );
 floor.rotation.x = -Math.PI / 2;
 floor.receiveShadow = true;
@@ -213,28 +213,106 @@ function setStatus(text) {
   statusEl.textContent = text;
 }
 
-function fitObject(obj, targetLen = 2.25) {
-  const box = new THREE.Box3().setFromObject(obj);
-  const size = new THREE.Vector3();
-  const center = new THREE.Vector3();
-  box.getSize(size);
-  box.getCenter(center);
-  obj.position.sub(center);
-  if (size.y >= size.x && size.y >= size.z) obj.rotation.z += Math.PI / 2;
-  else if (size.z >= size.x && size.z >= size.y) obj.rotation.y += Math.PI / 2;
-  const box2 = new THREE.Box3().setFromObject(obj);
-  box2.getSize(size);
-  box2.getCenter(center);
-  obj.position.sub(center);
+function worldBox(obj) {
+  obj.updateMatrixWorld(true);
+  return new THREE.Box3().setFromObject(obj);
+}
+
+function scoreUpright(obj) {
+  // Prefer: longest span on X (arm), height on Y meaningful, wheels near bottom.
+  const box = worldBox(obj);
+  const size = box.getSize(new THREE.Vector3());
+  let wheelY = 0;
+  let wheelN = 0;
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    const n = `${o.name || ""}|${o.parent?.name || ""}`;
+    if (!/车轮|wheel/i.test(n)) return;
+    const wb = new THREE.Box3().setFromObject(o);
+    wheelY += wb.min.y;
+    wheelN += 1;
+  });
+  const avgWheel = wheelN ? wheelY / wheelN : box.min.y;
+  const armScore = size.x; // want long arm across X
+  const heightScore = size.y;
+  const flatPenalty = size.y < Math.max(size.x, size.z) * 0.18 ? -10 : 0;
+  const wheelPenalty = Math.abs(avgWheel - box.min.y) * 4;
+  return armScore * 1.2 + heightScore - wheelPenalty + flatPenalty;
+}
+
+function fitObject(obj, targetLen = 2.35) {
+  obj.rotation.set(0, 0, 0);
+  obj.scale.setScalar(1);
+  obj.position.set(0, 0, 0);
+
+  // Candidate orientations so the unit stands like a PORTABOOM on wheels
+  const candidates = [
+    [0, 0, 0],
+    [0, Math.PI / 2, 0],
+    [0, -Math.PI / 2, 0],
+    [0, Math.PI, 0],
+    [Math.PI / 2, 0, 0],
+    [-Math.PI / 2, 0, 0],
+    [0, 0, Math.PI / 2],
+    [0, 0, -Math.PI / 2],
+    [Math.PI / 2, Math.PI / 2, 0],
+    [-Math.PI / 2, Math.PI / 2, 0],
+  ];
+  let best = null;
+  let bestScore = -Infinity;
+  for (const [rx, ry, rz] of candidates) {
+    obj.rotation.set(rx, ry, rz);
+    obj.position.set(0, 0, 0);
+    const s = scoreUpright(obj);
+    if (s > bestScore) {
+      bestScore = s;
+      best = [rx, ry, rz];
+    }
+  }
+  obj.rotation.set(...best);
+
+  // Center horizontally, then scale to target length
+  let box = worldBox(obj);
+  let size = box.getSize(new THREE.Vector3());
+  let center = box.getCenter(new THREE.Vector3());
+  obj.position.x -= center.x;
+  obj.position.z -= center.z;
+  obj.position.y -= center.y;
+
+  box = worldBox(obj);
+  size = box.getSize(new THREE.Vector3());
   const longest = Math.max(size.x, size.y, size.z) || 1;
   const s = targetLen / longest;
   obj.scale.setScalar(s);
-  const box3 = new THREE.Box3().setFromObject(obj);
-  box3.getSize(size);
-  box3.getCenter(center);
-  obj.position.sub(center);
-  obj.position.y = Math.max(0.52, size.y * 0.5 + 0.16);
+
+  // Plant: wheels / bbox bottom on the QR paper (y ≈ 0.02)
+  box = worldBox(obj);
+  obj.position.y -= box.min.y;
+  obj.position.y += 0.03;
+
+  // Nudge camera to a 3/4 product angle
+  box = worldBox(obj);
+  size = box.getSize(new THREE.Vector3());
+  camera.position.set(2.6, Math.max(1.35, size.y * 0.85), 3.2);
+  camera.lookAt(0, size.y * 0.35, 0);
   return s;
+}
+
+function addLogoDecal(root) {
+  const loader = new THREE.TextureLoader();
+  loader.load("./portaboom_logo_reversed.png", (tex) => {
+    tex.colorSpace = THREE.SRGBColorSpace;
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex, transparent: true, depthWrite: false, side: THREE.DoubleSide,
+    });
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(0.55, 0.2), mat);
+    // Place on side of cabinet approx — attach to root after plant
+    const box = worldBox(root);
+    const size = box.getSize(new THREE.Vector3());
+    plate.position.set(box.min.x + size.x * 0.18, box.min.y + size.y * 0.42, box.max.z + 0.01);
+    plate.name = "PortaboomLogoDecal";
+    root.add(plate);
+  });
 }
 
 function paintGlb(root) {
@@ -295,6 +373,7 @@ function mountCad(gltf, label) {
     boom.userData.restY = boom.position.y;
     scene.add(boom);
     usingGlb = true;
+    addLogoDecal(boom);
     setStatus(label);
   } catch (err) {
     console.error(err);
@@ -400,3 +479,6 @@ function tick() {
   renderer.render(scene, camera);
 }
 tick();
+
+const flattenBtn = document.getElementById("flattenBtn");
+if (flattenBtn) flattenBtn.addEventListener("click", () => setFlat(!flat));
