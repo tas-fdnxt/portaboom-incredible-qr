@@ -11,6 +11,33 @@ const STEEL = 0xc5cad3;
 const INK = 0x202020;
 const DEST = "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/";
 
+/** twin-core livery.ts palette. Do not invent hex. */
+const LIVERY = Object.freeze({
+  Y: 0xf47514, // powder orange cabinet
+  S: 0xcdd0d5, // stainless
+  K: 0x222426, // wheels / dark
+  R: 0xc41a1a,
+  A: 0xe07b12,
+});
+/** CAD RGB → tag. Same table as twin-core `ut`. */
+const LIVERY_RGB = Object.freeze({
+  "255,55,0": "Y", "255,255,226": "Y", "255,255,90": "Y", "13,79,90": "Y",
+  "0,255,0": "Y", "1,104,10": "Y", "61,104,255": "Y",
+  "183,202,222": "S", "87,111,133": "S", "123,147,179": "S", "208,20,255": "S",
+  "8,9,11": "K", "255,255,255": "K", "34,34,0": "K", "17,20,22": "K",
+  "18,21,25": "K", "13,15,17": "K", "63,37,133": "K", "18,18,17": "K",
+  "34,4,0": "K", "114,1,17": "K", "13,73,255": "K", "11,74,101": "K",
+  "8,2,4": "K", "56,0,0": "K", "78,72,67": "K", "24,10,39": "K",
+  "0,88,166": "K", "3,75,145": "K", "19,12,55": "K", "46,27,150": "K",
+  "114,10,0": "K", "32,3,5": "K",
+  "66,131,184": "B", "169,109,246": "B",
+  "255,0,0": "R", "183,14,1": "R", "117,191,23": "R", "191,101,0": "R", "10,60,4": "R",
+  "133,35,5": "A",
+  "222,255,24": "G",
+});
+/** No STOP face on this first-format bake. CAD stop clamp stays hidden. */
+let signType = null;
+
 /**
  * Overnight SHOW CONFIG — clean core defaults (twin-core setGroup).
  * KEEP: cabinet + boom + ONE traffic head.
@@ -44,8 +71,10 @@ let signalAspect = "green";
 /** Twin-core lights.ts updateLeds SoT. Face rounds + boom strip. Red+green only. */
 const FACE_GREEN = 0x3fe868;
 const FACE_GREEN_BASE = 0x062c10;
-const FACE_RED = 0xff1c10;
+const FACE_GREEN_GLOW = 0x77ff99;
+const FACE_RED = 0xff1810;
 const FACE_RED_BASE = 0x3a0000;
+const FACE_RED_GLOW = 0xff3722;
 const STRIP_GREEN = 0x2dff5a;
 const STRIP_RED = 0xff0008;
 
@@ -76,6 +105,85 @@ function makeGlowTex() {
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
+}
+
+function classifyLiveryRgb(r, g, b) {
+  const rgb = [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+  let tag = null;
+  let best = 1e9;
+  for (const key of Object.keys(LIVERY_RGB)) {
+    const t = key.split(",").map(Number);
+    const d = (rgb[0] - t[0]) ** 2 + (rgb[1] - t[1]) ** 2 + (rgb[2] - t[2]) ** 2;
+    if (d < best) {
+      best = d;
+      tag = LIVERY_RGB[key];
+    }
+  }
+  return best <= 900 ? tag : null;
+}
+
+/** twin-core `ft()` — powder-coat Physical. */
+function powderMat(hex = LIVERY.Y) {
+  return new THREE.MeshPhysicalMaterial({
+    color: hex,
+    metalness: 0,
+    roughness: 0.38,
+    clearcoat: 1,
+    clearcoatRoughness: 0.14,
+    envMapIntensity: 1.15,
+    sheen: 0.25,
+    sheenRoughness: 0.5,
+    sheenColor: new THREE.Color(0xffffff),
+  });
+}
+
+/** twin-core `pt()` / stripeMaterial — red/white chevrons, band ~0.12. */
+function stripeMaterial(geometry) {
+  if (geometry && !geometry.boundingBox) geometry.computeBoundingBox();
+  const t = new THREE.Vector3();
+  if (geometry?.boundingBox) geometry.boundingBox.getSize(t);
+  else t.set(1, 0.1, 0.1);
+  const axis = t.x >= t.y && t.x >= t.z ? "x" : t.y >= t.z ? "y" : "z";
+  const cross = axis === "x" ? "y" : "x";
+  const mat = new THREE.MeshPhysicalMaterial({
+    color: 0xffffff,
+    metalness: 0,
+    roughness: 0.14,
+    clearcoat: 1,
+    clearcoatRoughness: 0.04,
+    envMapIntensity: 2.6,
+    emissive: new THREE.Color(0xffffff),
+    emissiveIntensity: 1,
+    toneMapped: true,
+  });
+  mat.userData.stripe = true;
+  mat.onBeforeCompile = (shader) => {
+    shader.vertexShader = `varying vec3 vOPos;\n${shader.vertexShader}`.replace(
+      "#include <begin_vertex>",
+      `#include <begin_vertex>\nvOPos = position;`
+    );
+    shader.fragmentShader = `varying vec3 vOPos;\n${shader.fragmentShader}`
+      .replace(
+        "#include <color_fragment>",
+        `#include <color_fragment>
+       float band = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
+       vec3 white = vec3(0.96,0.97,0.98);
+       vec3 red   = vec3(0.686,0.192,0.165);
+       diffuseColor.rgb = mix(white, red, band);`
+      )
+      .replace(
+        "#include <emissivemap_fragment>",
+        `#include <emissivemap_fragment>
+       float band2 = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
+       totalEmissiveRadiance *= mix(vec3(0.34,0.34,0.36), vec3(0.20,0.04,0.03), band2);`
+      )
+      .replace(
+        "#include <roughnessmap_fragment>",
+        `#include <roughnessmap_fragment>
+       roughnessFactor *= mix(0.55, 0.9, band);`
+      );
+  };
+  return mat;
 }
 
 function makeLampMat(kind, on) {
@@ -347,13 +455,10 @@ grid.add(scanPlane);
 function makeHeroBoom() {
   const g = new THREE.Group();
   g.name = "portaboom-hero-standin";
-  const matCab = new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.46, metalness: 0.08 });
+  const matCab = powderMat(LIVERY.Y);
   const matNavy = new THREE.MeshStandardMaterial({ color: NAVY, roughness: 0.42, metalness: 0.14 });
-  const matOrange = new THREE.MeshStandardMaterial({
-    color: ORANGE, roughness: 0.36, metalness: 0.1, emissive: ORANGE, emissiveIntensity: 0.08,
-  });
-  const matSteel = new THREE.MeshStandardMaterial({ color: STEEL, roughness: 0.3, metalness: 0.55 });
-  const matBlack = new THREE.MeshStandardMaterial({ color: INK, roughness: 0.62, metalness: 0.18 });
+  const matSteel = new THREE.MeshStandardMaterial({ color: LIVERY.S, roughness: 0.28, metalness: 0.9, envMapIntensity: 1.2 });
+  const matBlack = new THREE.MeshStandardMaterial({ color: LIVERY.K, roughness: 0.62, metalness: 0.18 });
 
   const cab = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.42, 0.7), matCab);
   cab.name = "HeroCabinet";
@@ -379,7 +484,8 @@ function makeHeroBoom() {
   arm.name = "HeroBoomArm";
   arm.position.set(-0.55, 0.82, 0);
   const armLen = 2.05;
-  const armMain = new THREE.Mesh(new THREE.BoxGeometry(armLen, 0.09, 0.12), matOrange);
+  const armGeom = new THREE.BoxGeometry(armLen, 0.09, 0.12);
+  const armMain = new THREE.Mesh(armGeom, stripeMaterial(armGeom));
   armMain.position.x = armLen / 2;
   armMain.castShadow = true;
   arm.add(armMain);
@@ -387,7 +493,8 @@ function makeHeroBoom() {
   stripe.name = "PortaboomBoomStrip";
   stripe.position.set(armLen / 2, 0.02, 0);
   arm.add(stripe);
-  const tip = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.14), matOrange);
+  const tipGeom = new THREE.BoxGeometry(0.12, 0.12, 0.14);
+  const tip = new THREE.Mesh(tipGeom, stripeMaterial(tipGeom));
   tip.position.set(armLen - 0.02, 0, 0);
   arm.add(tip);
   g.add(arm);
@@ -410,9 +517,11 @@ function makeHeroBoom() {
   });
   g.add(head);
   g.userData.heroHead = head;
-  const faceMat = makeFaceLedMat(false);
   const bezelMat = new THREE.MeshStandardMaterial({ color: 0x101814, roughness: 0.8, metalness: 0.12 });
+  const heroFaceMats = [];
   for (const dx of [-0.09, 0.09]) {
+    const faceMat = makeFaceLedMat(true);
+    heroFaceMats.push(faceMat);
     const bezel = new THREE.Mesh(new THREE.CircleGeometry(0.055, 36), bezelMat);
     bezel.position.set(-0.85 + dx, 0.28, 0.354);
     g.add(bezel);
@@ -422,7 +531,8 @@ function makeHeroBoom() {
     g.add(lens);
   }
   g.userData.heroArm = arm;
-  g.userData.heroFaceMat = faceMat;
+  g.userData.heroFaceMat = heroFaceMats[0];
+  g.userData.heroFaceMats = heroFaceMats;
   g.position.y = 0.02;
   return g;
 }
@@ -670,7 +780,7 @@ function bindGroups(root) {
       o.visible = false;
       return;
     }
-    if (/太阳能板|太阳能板支架|固定板|管套|调节螺柱|^太阳能|solar/i.test(n)) solarHits.push(o);
+    if (/太阳能板|太阳能板支架|固定板|管套|调节螺柱|^太阳能|solar|^柱子/i.test(n)) solarHits.push(o);
     if (/灯条/.test(n)) return;
     if (/PED_|TL2_|行人|人行|pedestrian|walk[_\s-]*light|walk[_\s-]*signal/i.test(n)) {
       extraHits.push(o);
@@ -693,7 +803,52 @@ function bindGroups(root) {
     traffic: groups.traffic.map((o) => o.name),
     extra: groups.traffic2.map((o) => o.name),
   };
+  classifyGroups(root);
   return groups;
+}
+
+/**
+ * twin-core classifyGroups extras for this first-format bake:
+ * hide unused 2nd-head mast AK-XLH-D115C-03 + its spare socket;
+ * hide CAD stop clamp (快速夹具) unless a STOP face is mounted.
+ */
+function classifyGroups(root) {
+  const hidden = { mast: [], spareSocket: [], stopClamp: [] };
+  if (!root) return hidden;
+  const sockets = [];
+  const stopMounted = signType === "octagon" || signType === "STOP";
+  root.traverse((o) => {
+    const n = o.name || "";
+    if (/AK-XLH-D115C-03|^柱子/i.test(n)) {
+      o.visible = false;
+      hidden.mast.push(n);
+      return;
+    }
+    if (/AK-XLH-D115C-01-01-11/i.test(n) && o.isMesh) sockets.push(o);
+    if (/快速夹具|^夹具$/i.test(n) && !stopMounted) {
+      o.visible = false;
+      hidden.stopClamp.push(n);
+    }
+  });
+  const keep = groups.traffic[0] || null;
+  if (sockets.length >= 2 && keep) {
+    const hc = worldBox(keep).getCenter(new THREE.Vector3());
+    sockets.sort((a, b) => {
+      const da = worldBox(a).getCenter(new THREE.Vector3()).distanceToSquared(hc);
+      const db = worldBox(b).getCenter(new THREE.Vector3()).distanceToSquared(hc);
+      return da - db;
+    });
+    const spare = sockets[sockets.length - 1];
+    spare.visible = false;
+    hidden.spareSocket.push(spare.name || "AK-XLH-D115C-01-01-11");
+  } else if (sockets.length && !keep) {
+    sockets.forEach((s) => {
+      s.visible = false;
+      hidden.spareSocket.push(s.name || "AK-XLH-D115C-01-01-11");
+    });
+  }
+  root.userData.classifyHidden = hidden;
+  return hidden;
 }
 
 /** twin-core lights.ts setGroup — visibility only. */
@@ -1016,15 +1171,11 @@ function addLogoDecal(root) {
       if (!door && /AK-XLH-D115C-01-02-1|HeroCabinet/.test(o.name || "")) door = o;
     });
     let yBand = -0.3;
-    let logoW = 0.26;
+    const logoW = 0.26; // twin addDecals — FIXED local width, not faceSpan*0.72
     if (door) {
       const dc = worldBox(door).getCenter(new THREE.Vector3());
-      const ds = worldBox(door).getSize(new THREE.Vector3());
       root.worldToLocal(dc);
       yBand = dc.y;
-      const scale = Math.abs(root.scale?.x || 1) || 1;
-      const faceSpan = Math.max(ds.x, ds.y);
-      logoW = Math.max(0.26, faceSpan / scale * 0.72);
     }
     let zMin = Infinity;
     let zMax = -Infinity;
@@ -1035,7 +1186,7 @@ function addLogoDecal(root) {
       const step = Math.max(1, pos.count >> 7);
       for (let i = 0; i < pos.count; i += step) {
         v.fromBufferAttribute(pos, i).applyMatrix4(o.matrixWorld).applyMatrix4(inv);
-        if (Math.abs(v.x) > 0.22 || Math.abs(v.y - yBand) > 0.18) continue;
+        if (Math.abs(v.x) > 0.22 || Math.abs(v.y - yBand) > 0.13) continue;
         if (v.z < zMin) zMin = v.z;
         if (v.z > zMax) zMax = v.z;
       }
@@ -1069,6 +1220,7 @@ function addLogoDecal(root) {
     place("PortaboomLogoFace", 0, yBand, frontZ - 0.002, Math.PI);
     // Opposite face — the only other PORTABOOM mark (livery.ts)
     place("PortaboomLogoOpposite", 0, yBand, backZ + 0.002, 0);
+    root.userData.logoLocalW = logoW;
     root.userData.logoWorldW = logoW * (root.scale?.x || 1);
   }, undefined, () => {
     loader.load("./portaboom_logo.png", (tex) => {
@@ -1086,12 +1238,13 @@ function addLogoDecal(root) {
 }
 
 function paintGlb(root) {
-  const matOrange = new THREE.MeshStandardMaterial({
-    color: ORANGE, roughness: 0.38, metalness: 0.1, emissive: ORANGE, emissiveIntensity: 0.04,
-  });
-  const matWhite = new THREE.MeshStandardMaterial({ color: CREAM, roughness: 0.48, metalness: 0.06 });
   const matNavy = new THREE.MeshStandardMaterial({ color: NAVY, roughness: 0.44, metalness: 0.12 });
-  const matSteel = new THREE.MeshStandardMaterial({ color: STEEL, roughness: 0.3, metalness: 0.5 });
+  const matSteel = new THREE.MeshStandardMaterial({
+    color: LIVERY.S, metalness: 0.9, roughness: 0.28, envMapIntensity: 1.2,
+  });
+  const matDark = new THREE.MeshStandardMaterial({
+    color: LIVERY.K, metalness: 0.12, roughness: 0.5, envMapIntensity: 0.85,
+  });
   const skip = /垫|螺钉|螺柱|开口销|PART_244|PART_609|PART_602|GB_T|自攻|十字槽|环芯/i;
   root.traverse((o) => {
     if (!o.isMesh) return;
@@ -1110,20 +1263,39 @@ function paintGlb(root) {
     o.castShadow = true;
     o.receiveShadow = true;
     if (traffic) {
-      // Housing only. Lenses are bound in rigTrafficLamps. No ProductLed flanks.
       const r0 = firstMatRgb(o);
       if (r0 === "red" || r0 === "amber" || r0 === "green") return;
       o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
       return;
     }
-    if (/主杆|灯条|胶条|橙|orange|105-|105_|105$|PRT000|FENGKONG|^006$|^0001$/i.test(name)) o.material = matOrange;
-    else if (/车轮|wheel/i.test(name)) o.material = matSteel;
-    else if (/太阳能|solar/i.test(name)) o.material = matNavy;
-    else if (/AK-XLH|115-DOOR|小门|箱|柜|门|compound|DAO-ZHA|d115c|LOCK-NEW|电池/i.test(name)) {
-      o.material = matWhite;
-    } else {
-      o.material = r > 0.55 ? matOrange : matWhite;
+    if (/灯条/.test(name)) return; // rigTwinLeds owns the strip
+    const src = firstMat(o)?.color;
+    let tag = src ? classifyLiveryRgb(src.r, src.g, src.b) : null;
+    if (/车轮|wheel/i.test(name)) tag = "K";
+    else if (/主杆|胶条|105-|105_|105$|PRT000|FENGKONG|^006$|^0001$/i.test(name)) tag = "B";
+    else if (!tag) {
+      if (/AK-XLH|115-DOOR|小门|箱|柜|门|compound|DAO-ZHA|d115c|电池/i.test(name)) tag = "Y";
+      else if (/LOCK-NEW|不锈钢|stainless/i.test(name)) tag = "S";
     }
+    o.userData.tag = tag;
+    if (tag === "Y") o.material = powderMat(LIVERY.Y);
+    else if (tag === "S") o.material = matSteel;
+    else if (tag === "B") o.material = stripeMaterial(o.geometry);
+    else if (tag === "G") {
+      o.material = new THREE.MeshStandardMaterial({
+        color: 0xbdf7c8, emissive: 0x39e562, emissiveIntensity: 4, roughness: 0.3, toneMapped: false,
+      });
+    } else if (tag === "A") {
+      o.material = new THREE.MeshStandardMaterial({
+        color: LIVERY.A, emissive: LIVERY.A, emissiveIntensity: 0.5, roughness: 0.2,
+      });
+    } else if (tag === "R") {
+      o.material = new THREE.MeshStandardMaterial({
+        color: LIVERY.R, metalness: 0.12, roughness: 0.5, envMapIntensity: 0.85,
+      });
+    } else if (tag === "K") o.material = matDark;
+    else if (/太阳能|solar/i.test(name)) o.material = matNavy;
+    else o.material = r > 0.55 ? powderMat(LIVERY.Y) : matDark;
   });
 }
 
@@ -1272,9 +1444,10 @@ function setSignalAspect(kind) {
   setAspectHud(kind);
 }
 
-/** Twin-core lights.ts updateLeds — the only LED SoT. */
+/** Twin-core lights.ts updateLeds — the only LED SoT. Per-lens mats for L/R alternate. */
 let ledRig = {
   faceMat: null,
+  faceMats: [],
   faceGlows: [],
   stripMat: null,
   lastShownPct: 100,
@@ -1309,13 +1482,17 @@ function findDoorLedHosts(root) {
 }
 
 function rigTwinLeds(root) {
-  const faceMat = makeFaceLedMat(true);
   const bezelMat = new THREE.MeshStandardMaterial({ color: 0x101814, roughness: 0.82, metalness: 0.1 });
   const glowTex = makeGlowTex();
+  const faceMats = [];
   const glows = [];
-  const hosts = findDoorLedHosts(root);
+  const hosts = findDoorLedHosts(root).slice().sort((a, b) => {
+    return worldBox(a).getCenter(new THREE.Vector3()).x - worldBox(b).getCenter(new THREE.Vector3()).x;
+  });
   hosts.forEach((host) => {
     host.visible = false;
+    const faceMat = makeFaceLedMat(true);
+    faceMats.push(faceMat);
     const box = worldBox(host);
     const c = box.getCenter(new THREE.Vector3());
     const sz = box.getSize(new THREE.Vector3());
@@ -1334,7 +1511,7 @@ function rigTwinLeds(root) {
     root.attach(bezel);
     root.attach(lens);
     const glowMat = new THREE.SpriteMaterial({
-      map: glowTex, color: 0x77fcf9, blending: THREE.AdditiveBlending,
+      map: glowTex, color: FACE_GREEN_GLOW, blending: THREE.AdditiveBlending,
       depthWrite: false, toneMapped: false, opacity: 0.9,
     });
     const glow = new THREE.Sprite(glowMat);
@@ -1355,7 +1532,8 @@ function rigTwinLeds(root) {
     o.material = stripMat;
   });
   ledRig = {
-    faceMat,
+    faceMat: faceMats[0] || null,
+    faceMats,
     faceGlows: glows,
     stripMat,
     lastShownPct: boomRig?.shownPct ?? 100,
@@ -1363,9 +1541,10 @@ function rigTwinLeds(root) {
   };
 }
 
-/** Port of twin-core lights.ts updateLeds. No amber. */
+/** Port of twin-core lights.ts updateLeds. Face LEDs alternate L/R when advisory. */
 function updateLeds() {
-  if (!ledRig.faceMat && !ledRig.stripMat) return;
+  const faces = ledRig.faceMats?.length ? ledRig.faceMats : (ledRig.faceMat ? [ledRig.faceMat] : []);
+  if (!faces.length && !ledRig.stripMat) return;
   const now = performance.now();
   const shown = boomRig ? boomRig.shownPct : 100;
   const target = boomRig ? boomRig.targetPct : 100;
@@ -1375,27 +1554,28 @@ function updateLeds() {
   const down = target === 0;
   const advisory = moving || down;
   const flashOn = now % 640 < 340;
-  const face = ledRig.faceMat;
-  if (face) {
+  faces.forEach((face, i) => {
     if (advisory) {
       face.color.setHex(FACE_RED_BASE);
       face.emissive.setHex(FACE_RED);
-      face.emissiveIntensity = flashOn ? 16 : 3;
+      const on = faces.length > 1 ? (i === 0 ? flashOn : !flashOn) : flashOn;
+      face.emissiveIntensity = on ? 16 : 3;
     } else {
       face.color.setHex(FACE_GREEN_BASE);
       face.emissive.setHex(FACE_GREEN);
       face.emissiveIntensity = 9;
     }
-  }
-  for (const g of ledRig.faceGlows) {
+  });
+  ledRig.faceGlows.forEach((g, i) => {
     if (advisory) {
-      g.color.setHex(0xff3722);
-      g.opacity = flashOn ? 1 : 0.25;
+      g.color.setHex(FACE_RED_GLOW);
+      const on = ledRig.faceGlows.length > 1 ? (i === 0 ? flashOn : !flashOn) : flashOn;
+      g.opacity = on ? 1 : 0.25;
     } else {
-      g.color.setHex(0x77fcf9);
+      g.color.setHex(FACE_GREEN_GLOW);
       g.opacity = 0.9;
     }
-  }
+  });
   const strip = ledRig.stripMat;
   if (strip) {
     if (advisory) {
@@ -1472,7 +1652,8 @@ function removeHero() {
 
 setStatus("Idle. PORTABOOM hero on QR grid. Loading named twin.");
 boomRig = rigHeroArm(boom);
-ledRig.faceMat = boom.userData.heroFaceMat || null;
+ledRig.faceMats = boom.userData.heroFaceMats || [];
+ledRig.faceMat = ledRig.faceMats[0] || boom.userData.heroFaceMat || null;
 ledRig.stripMat = boom.getObjectByName("PortaboomBoomStrip")?.material || null;
 rigTrafficLamps(boom);
 addLogoDecal(boom);
@@ -1727,12 +1908,34 @@ window.__iqr = {
       hasFace: !!ledRig.faceMat,
       faceHex: ledRig.faceMat ? ledRig.faceMat.emissive.getHexString() : null,
       faceIntensity: ledRig.faceMat?.emissiveIntensity ?? null,
+      faceHexes: (ledRig.faceMats || []).map((m) => m.emissive.getHexString()),
+      faceIntensities: (ledRig.faceMats || []).map((m) => m.emissiveIntensity),
+      faceGlowHex: ledRig.faceGlows[0] ? ledRig.faceGlows[0].color.getHexString() : null,
       stripHex: ledRig.stripMat ? ledRig.stripMat.emissive.getHexString() : null,
+      logoLocalW: boom?.userData?.logoLocalW ?? null,
+      classifyHidden: boom?.userData?.classifyHidden || null,
+      signType,
+      livery: (() => {
+        let y = 0, k = 0, b = 0, stripe = 0;
+        let mastVis = 0, clampVis = 0, socketVis = 0;
+        boom?.traverse?.((o) => {
+          const n = o.name || "";
+          if (o.userData?.tag === "Y") y += 1;
+          if (o.userData?.tag === "K") k += 1;
+          if (o.userData?.tag === "B") b += 1;
+          if (o.material?.userData?.stripe) stripe += 1;
+          if (/AK-XLH-D115C-03/i.test(n) && isVisibleInTree(o)) mastVis += 1;
+          if (/快速夹具|^夹具$/i.test(n) && isVisibleInTree(o)) clampVis += 1;
+          if (/AK-XLH-D115C-01-01-11/i.test(n) && o.isMesh && isVisibleInTree(o)) socketVis += 1;
+        });
+        return { y, k, b, stripe, mastVis, clampVis, socketVis };
+      })(),
       logo: logo ? {
         name: logo.name,
         world: logo.getWorldPosition(new THREE.Vector3()).toArray(),
         parent: logo.parent?.name || null,
         worldW: boom?.userData?.logoWorldW ?? null,
+        localW: boom?.userData?.logoLocalW ?? null,
       } : null,
       logoOpposite: logoOpp ? {
         name: logoOpp.name,
