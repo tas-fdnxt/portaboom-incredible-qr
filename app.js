@@ -391,7 +391,6 @@ function tickBoom(dt) {
 }
 
 function addLogoDecal(root) {
-{
   const loader = new THREE.TextureLoader();
   loader.load("./portaboom_logo_reversed.png", (tex) => {
     tex.colorSpace = THREE.SRGBColorSpace;
