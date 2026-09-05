@@ -418,30 +418,19 @@ function findSignalHead(root) {
 }
 
 /**
- * GLB traffic head is authored 180° from the cabinet door.
- * Yaw the Traffic Light / HeroSignal node about its own center so lenses
- * face the same way as the door / viewer. Do not invent ProductLed flanks.
+ * twin-core instance.ts: head.group.rotation.y = yaw.
+ * Door is local −Z; lantern openings are local +Z — opposite after the
+ * Math.PI plant. Yaw the imported Traffic Light node in place (do not
+ * orbit a bbox pivot — that swings the head off the mast).
  */
 function faceSignalHead(root) {
   const signal = findSignalHead(root);
   if (!signal || signal.userData.signalFaced) return signal;
-  signal.updateMatrixWorld(true);
-  const box = worldBox(signal);
-  const center = box.getCenter(new THREE.Vector3());
-  const parent = signal.parent || root;
-  parent.updateMatrixWorld(true);
-  const local = center.clone();
-  parent.worldToLocal(local);
-  const pivot = new THREE.Group();
-  pivot.name = "SignalFacePivot";
-  pivot.position.copy(local);
-  parent.add(pivot);
-  pivot.attach(signal);
-  pivot.rotation.y = Math.PI;
+  signal.rotation.y += Math.PI;
   signal.userData.signalFaced = true;
-  root.userData.signalPivot = pivot;
+  root.userData.signalPivot = signal;
   root.updateMatrixWorld(true);
-  return pivot;
+  return signal;
 }
 
 function isDescendantOf(o, ancestor) {
@@ -627,7 +616,7 @@ function addLogoDecal(root) {
       root.worldToLocal(dc);
       yBand = dc.y;
       const scale = Math.abs(root.scale?.x || 1) || 1;
-      logoW = Math.max(0.26, Math.min(ds.x, ds.z) / scale * 0.82);
+      logoW = Math.max(0.26, Math.max(ds.x, ds.z) / scale * 0.78);
     }
     let zMin = Infinity;
     let zMax = -Infinity;
@@ -1240,6 +1229,7 @@ if (boomBtn) {
 }
 
 window.__iqr = {
+  get boom() { return boom; },
   get snap() {
     const logo = boom?.getObjectByName?.("PortaboomLogoFace")
       || boom?.getObjectByName?.("PortaboomLogoDecal");
