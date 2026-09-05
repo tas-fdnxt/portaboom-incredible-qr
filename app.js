@@ -35,8 +35,9 @@ const LIVERY_RGB = Object.freeze({
   "133,35,5": "A",
   "222,255,24": "G",
 });
-/** No STOP face on this first-format bake. CAD stop clamp stays hidden. */
-let signType = null;
+/** twin-core sign.ts — STOP face default round. Clamp visible while mounted. */
+let signType = "round";
+let signGroup = null;
 
 /**
  * Overnight SHOW CONFIG — clean core defaults (twin-core setGroup).
@@ -68,43 +69,229 @@ let lampHalos = { red: null, amber: null, green: null };
 let lampLights = { red: null, amber: null, green: null };
 let signalAspect = "green";
 
-/** Twin-core lights.ts updateLeds SoT. Face rounds + boom strip. Red+green only. */
-const FACE_GREEN = 0x3fe868;
+/** twin-core lights.ts KINDCOL — face LEDs match the 3-aspect head family. */
+const KINDCOL = Object.freeze({ red: 0xff2a1a, amber: 0xffa51e, green: 0x2aff55 });
+const FACE_GREEN = KINDCOL.green;
 const FACE_GREEN_BASE = 0x062c10;
-const FACE_GREEN_GLOW = 0x77ff99;
-const FACE_RED = 0xff1810;
+const FACE_RED = KINDCOL.red;
 const FACE_RED_BASE = 0x3a0000;
-const FACE_RED_GLOW = 0xff3722;
-const STRIP_GREEN = 0x2dff5a;
-const STRIP_RED = 0xff0008;
+const STRIP_GREEN = KINDCOL.green;
+const STRIP_RED = KINDCOL.red;
 
-/** 3-aspect signal head (Traffic Light / HeroSignal). Not face-LED SoT. */
-const LAMP_COL = { red: 0xff1d12, amber: 0xffb000, green: 0x18ff5a };
+/** 3-aspect signal head — same KINDCOL as door faces. */
+const LAMP_COL = { red: KINDCOL.red, amber: KINDCOL.amber, green: KINDCOL.green };
 
 function makeFaceLedMat(ready) {
   return new THREE.MeshStandardMaterial({
     color: ready ? FACE_GREEN_BASE : FACE_RED_BASE,
     emissive: ready ? FACE_GREEN : FACE_RED,
-    emissiveIntensity: ready ? 9 : 3,
+    emissiveIntensity: ready ? 5.5 : 2.4,
     roughness: 0.15,
     metalness: 0.04,
     toneMapped: false,
   });
 }
 
-function makeGlowTex() {
+function stainlessMat() {
+  return new THREE.MeshStandardMaterial({
+    color: LIVERY.S, metalness: 0.9, roughness: 0.28, envMapIntensity: 1.2,
+  });
+}
+
+/** twin-core sign.ts Be() — AS STOP red #c01421, white legend, round or octagon. */
+function makeStopTex(type) {
+  const size = 1024;
   const c = document.createElement("canvas");
-  c.width = c.height = 128;
+  c.width = c.height = size;
   const ctx = c.getContext("2d");
-  const g = ctx.createRadialGradient(64, 64, 4, 64, 64, 64);
-  g.addColorStop(0, "rgba(255,255,255,1)");
-  g.addColorStop(0.35, "rgba(255,255,255,0.5)");
-  g.addColorStop(1, "rgba(255,255,255,0)");
-  ctx.fillStyle = g;
-  ctx.fillRect(0, 0, 128, 128);
+  ctx.clearRect(0, 0, size, size);
+  ctx.lineJoin = "round";
+  const red = "#c01421";
+  const white = "#ffffff";
+  const cx = size / 2;
+  const cy = size / 2;
+  if (type === "octagon") {
+    const oct = (r) => {
+      ctx.beginPath();
+      for (let i = 0; i < 8; i++) {
+        const a = Math.PI / 8 + i * Math.PI / 4;
+        const x = cx + r * Math.cos(a);
+        const y = cy + r * Math.sin(a);
+        if (i) ctx.lineTo(x, y);
+        else ctx.moveTo(x, y);
+      }
+      ctx.closePath();
+    };
+    ctx.fillStyle = white;
+    oct(size / 2);
+    ctx.fill();
+    ctx.fillStyle = red;
+    oct(size * 0.44);
+    ctx.fill();
+  } else {
+    ctx.fillStyle = white;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = red;
+    ctx.beginPath();
+    ctx.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  const hl = ctx.createRadialGradient(size * 0.78, size * 0.74, size * 0.04, cx, cy, size * 0.5);
+  hl.addColorStop(0, "rgba(255,255,255,0.18)");
+  hl.addColorStop(0.4, "rgba(255,255,255,0.04)");
+  hl.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, size * 0.44, 0, Math.PI * 2);
+  ctx.clip();
+  ctx.fillStyle = hl;
+  ctx.fillRect(0, 0, size, size);
+  ctx.restore();
+  ctx.fillStyle = white;
+  ctx.font = `900 ${Math.round(size * 0.27)}px "Arial Black", Arial, sans-serif`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("STOP", cx, cy + size * 0.015);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  tex.needsUpdate = true;
   return tex;
+}
+
+/** twin-core sign.ts Ve() — mount STOP on boom pivot. */
+function buildSign() {
+  if (signGroup) {
+    signGroup.parent && signGroup.parent.remove(signGroup);
+    signGroup.traverse((o) => {
+      if (o.geometry) o.geometry.dispose();
+      if (o.material) {
+        if (o.material.map) o.material.map.dispose();
+        if (o.material.emissiveMap) o.material.emissiveMap.dispose();
+        o.material.dispose();
+      }
+    });
+    signGroup = null;
+  }
+  if (!boomRig?.pivot) return;
+  const type = signType === "octagon" ? "octagon" : "round";
+  const radius = 0.225;
+  const tex = makeStopTex(type);
+  const wrap = new THREE.Group();
+  wrap.name = "PortaboomStopSign";
+  const faceMat = new THREE.MeshStandardMaterial({
+    map: tex,
+    roughness: 0.26,
+    metalness: 0.05,
+    envMapIntensity: 2,
+    emissive: new THREE.Color(0xffffff),
+    emissiveMap: tex,
+    emissiveIntensity: 0.3,
+    side: THREE.DoubleSide,
+  });
+  const backMat = new THREE.MeshStandardMaterial({
+    color: 0x8a7b65,
+    metalness: 0.7,
+    roughness: 0.4,
+  });
+  let faceGeo;
+  let backGeo;
+  if (type === "octagon") {
+    const shape = new THREE.Shape();
+    for (let i = 0; i < 8; i++) {
+      const a = Math.PI / 8 + i * Math.PI / 4;
+      const x = Math.cos(a) * radius;
+      const y = Math.sin(a) * radius;
+      if (i) shape.lineTo(x, y);
+      else shape.moveTo(x, y);
+    }
+    shape.closePath();
+    faceGeo = new THREE.ShapeGeometry(shape);
+    const pos = faceGeo.attributes.position;
+    const uv = faceGeo.attributes.uv;
+    for (let i = 0; i < pos.count; i++) {
+      uv.setXY(i, (pos.getX(i) + radius) / (2 * radius), (pos.getY(i) + radius) / (2 * radius));
+    }
+    uv.needsUpdate = true;
+    backGeo = new THREE.CylinderGeometry(radius * 1.02, radius * 1.02, 0.012, 8);
+  } else {
+    faceGeo = new THREE.CircleGeometry(radius, 72);
+    backGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.012, 72);
+  }
+  const face = new THREE.Mesh(faceGeo, faceMat);
+  face.castShadow = true;
+  const back = new THREE.Mesh(backGeo, backMat);
+  back.rotation.x = Math.PI / 2;
+  back.position.z = -0.015;
+  const inner = new THREE.Group();
+  inner.add(back);
+  inner.add(face);
+  inner.rotation.z = -(boomRig.drop || 0);
+  const tipY = boomRig.tipY != null ? boomRig.tipY : 1.6;
+  if (boomRig.tipAxis === "x") {
+    wrap.position.set(tipY * 0.6, 0, 0.1);
+    inner.rotation.z = 0;
+  } else {
+    wrap.position.set(0, tipY * 0.6, 0.1);
+  }
+  wrap.add(inner);
+  boomRig.pivot.add(wrap);
+  signGroup = wrap;
+  if (boom) classifyGroups(boom);
+}
+
+function setSignType(type) {
+  signType = type === "octagon" ? "octagon" : "round";
+  buildSign();
+  syncDock();
+}
+
+function isDiscLikeMesh(o) {
+  if (!o?.isMesh || !o.geometry) return false;
+  if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+  const sz = o.geometry.boundingBox.getSize(new THREE.Vector3());
+  const sorted = [sz.x, sz.y, sz.z].sort((a, b) => a - b);
+  return sorted[0] < 0.08 && Math.abs(sorted[1] - sorted[2]) < 0.16 && sorted[1] > 0.06;
+}
+
+/** Kill leftover CAD lime/yellow glow discs (tag G / 灯条 orbs / sprites). */
+function killStrayGlowDiscs(root) {
+  if (!root) return [];
+  const killed = [];
+  const keep = /PortaboomFaceLed|PortaboomLedBezel|PortaboomStopSign|SignalLens_|SignalHalo_|HeroLens_|HeroSignal/;
+  const kill = [];
+  root.traverse((o) => {
+    if (keep.test(o.name || "") || keep.test(o.parent?.name || "")) return;
+    if (o.isSprite) {
+      kill.push(o);
+      return;
+    }
+    if (!o.isMesh) return;
+    const n = `${o.name || ""}|${o.parent?.name || ""}`;
+    if (o.userData?.tag === "G" || o.userData?.liveryTag === "G") {
+      kill.push(o);
+      return;
+    }
+    if (/灯条/.test(n) && isDiscLikeMesh(o)) {
+      kill.push(o);
+      return;
+    }
+    const mat = firstMat(o);
+    const em = mat?.emissive ? mat.emissive.getHex() : 0;
+    const col = mat?.color ? mat.color.getHex() : 0;
+    const bright = (mat?.emissiveIntensity || 0) > 0.4;
+    const lime = em === 0x39e562 || em === 0xbdf7c8 || col === 0xbdf7c8 || col === 0xdeff18;
+    if (isDiscLikeMesh(o) && bright && lime) kill.push(o);
+  });
+  kill.forEach((o) => {
+    o.visible = false;
+    killed.push(o.name || o.type);
+    if (o.parent) o.parent.remove(o);
+  });
+  if (root.userData) root.userData.strayGlowKilled = killed;
+  return killed;
 }
 
 function classifyLiveryRgb(r, g, b) {
@@ -123,6 +310,12 @@ function classifyLiveryRgb(r, g, b) {
 }
 
 /** twin-core `ft()` — powder-coat Physical. */
+function alumMat() {
+  return new THREE.MeshStandardMaterial({
+    color: LIVERY.S, metalness: 0.9, roughness: 0.28, envMapIntensity: 1.2,
+  });
+}
+
 function powderMat(hex = LIVERY.Y) {
   return new THREE.MeshPhysicalMaterial({
     color: hex,
@@ -153,7 +346,7 @@ function stripeMaterial(geometry) {
     clearcoatRoughness: 0.04,
     envMapIntensity: 2.6,
     emissive: new THREE.Color(0xffffff),
-    emissiveIntensity: 1,
+    emissiveIntensity: 0.18,
     toneMapped: true,
   });
   mat.userData.stripe = true;
@@ -168,14 +361,14 @@ function stripeMaterial(geometry) {
         `#include <color_fragment>
        float band = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
        vec3 white = vec3(0.96,0.97,0.98);
-       vec3 red   = vec3(0.686,0.192,0.165);
+       vec3 red   = vec3(0.753,0.078,0.129);
        diffuseColor.rgb = mix(white, red, band);`
       )
       .replace(
         "#include <emissivemap_fragment>",
         `#include <emissivemap_fragment>
        float band2 = step(0.5, fract((vOPos.${axis} + vOPos.${cross} * 1.0) / 0.12));
-       totalEmissiveRadiance *= mix(vec3(0.34,0.34,0.36), vec3(0.20,0.04,0.03), band2);`
+       totalEmissiveRadiance *= mix(vec3(0.22,0.22,0.24), vec3(0.18,0.02,0.03), band2);`
       )
       .replace(
         "#include <roughnessmap_fragment>",
@@ -517,12 +710,13 @@ function makeHeroBoom() {
   });
   g.add(head);
   g.userData.heroHead = head;
-  const bezelMat = new THREE.MeshStandardMaterial({ color: 0x101814, roughness: 0.8, metalness: 0.12 });
+  const bezelMat = alumMat();
   const heroFaceMats = [];
   for (const dx of [-0.09, 0.09]) {
     const faceMat = makeFaceLedMat(true);
     heroFaceMats.push(faceMat);
     const bezel = new THREE.Mesh(new THREE.CircleGeometry(0.055, 36), bezelMat);
+    bezel.name = "PortaboomLedBezel";
     bezel.position.set(-0.85 + dx, 0.28, 0.354);
     g.add(bezel);
     const lens = new THREE.Mesh(new THREE.CircleGeometry(0.048, 48), faceMat);
@@ -816,7 +1010,7 @@ function classifyGroups(root) {
   const hidden = { mast: [], spareSocket: [], stopClamp: [] };
   if (!root) return hidden;
   const sockets = [];
-  const stopMounted = signType === "octagon" || signType === "STOP";
+  const stopMounted = signType === "round" || signType === "octagon" || signType === "STOP";
   root.traverse((o) => {
     const n = o.name || "";
     if (/AK-XLH-D115C-03|^柱子/i.test(n)) {
@@ -825,9 +1019,9 @@ function classifyGroups(root) {
       return;
     }
     if (/AK-XLH-D115C-01-01-11/i.test(n) && o.isMesh) sockets.push(o);
-    if (/快速夹具|^夹具$/i.test(n) && !stopMounted) {
-      o.visible = false;
-      hidden.stopClamp.push(n);
+    if (/快速夹具|^夹具$/i.test(n)) {
+      o.visible = !!stopMounted;
+      if (!stopMounted) hidden.stopClamp.push(n);
     }
   });
   const keep = groups.traffic[0] || null;
@@ -877,6 +1071,7 @@ function setSolar(on) {
 function setTrafficLights(on) {
   setGroup("traffic", on);
   if (!on) groups.traffic2.forEach((o) => { o.visible = false; });
+  else if (boom) paintTrafficPolesStainless(boom);
   syncDock();
 }
 
@@ -984,6 +1179,8 @@ function syncDock() {
   const solarBtn = document.getElementById("solarBtn");
   const lightsBtn = document.getElementById("lightsBtn");
   const spinBtn = document.getElementById("spinBtn");
+  const roundBtn = document.getElementById("signRoundBtn");
+  const octBtn = document.getElementById("signOctagonBtn");
   if (solarBtn) {
     solarBtn.textContent = optsVisible.solar ? "Solar ON" : "Solar OFF";
     solarBtn.classList.toggle("on", optsVisible.solar);
@@ -1001,6 +1198,17 @@ function syncDock() {
     spinBtn.classList.toggle("on", spin);
     spinBtn.classList.toggle("off", !spin);
     spinBtn.setAttribute("aria-pressed", spin ? "true" : "false");
+  }
+  const roundOn = signType !== "octagon";
+  if (roundBtn) {
+    roundBtn.classList.toggle("on", roundOn);
+    roundBtn.classList.toggle("off", !roundOn);
+    roundBtn.setAttribute("aria-pressed", roundOn ? "true" : "false");
+  }
+  if (octBtn) {
+    octBtn.classList.toggle("on", !roundOn);
+    octBtn.classList.toggle("off", roundOn);
+    octBtn.setAttribute("aria-pressed", !roundOn ? "true" : "false");
   }
 }
 
@@ -1116,7 +1324,7 @@ function rigBoomMaster(root) {
   while (boomDrop - boomRest > Math.PI) boomDrop -= 2 * Math.PI;
   while (boomDrop - boomRest < -Math.PI) boomDrop += 2 * Math.PI;
   boomPivot.rotation.z = boomRest; // start UP
-  return { pivot: boomPivot, rest: boomRest, drop: boomDrop, shownPct: 100, targetPct: 100 };
+  return { pivot: boomPivot, rest: boomRest, drop: boomDrop, shownPct: 100, targetPct: 100, tipY: tip[1], tipAxis: "y" };
 }
 
 /** Hero stand-in arm — raise/lower works before (and if) the CAD rig mounts. */
@@ -1126,7 +1334,7 @@ function rigHeroArm(hero) {
   const drop = 0.06;
   const rest = 1.12;
   arm.rotation.z = rest;
-  return { pivot: arm, rest, drop, shownPct: 100, targetPct: 100 };
+  return { pivot: arm, rest, drop, shownPct: 100, targetPct: 100, tipY: 2.05, tipAxis: "x" };
 }
 
 function setBoomPct(pct) {
@@ -1265,10 +1473,18 @@ function paintGlb(root) {
     if (traffic) {
       const r0 = firstMatRgb(o);
       if (r0 === "red" || r0 === "amber" || r0 === "green") return;
+      if (isTrafficPoleMesh(o)) {
+        o.material = matSteel;
+        o.userData.tag = "S";
+        return;
+      }
       o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
       return;
     }
-    if (/灯条/.test(name)) return; // rigTwinLeds owns the strip
+    if (/灯条/.test(name)) {
+      if (isDiscLikeMesh(o)) o.visible = false;
+      return;
+    }
     const src = firstMat(o)?.color;
     let tag = src ? classifyLiveryRgb(src.r, src.g, src.b) : null;
     if (/车轮|wheel/i.test(name)) tag = "K";
@@ -1282,9 +1498,8 @@ function paintGlb(root) {
     else if (tag === "S") o.material = matSteel;
     else if (tag === "B") o.material = stripeMaterial(o.geometry);
     else if (tag === "G") {
-      o.material = new THREE.MeshStandardMaterial({
-        color: 0xbdf7c8, emissive: 0x39e562, emissiveIntensity: 4, roughness: 0.3, toneMapped: false,
-      });
+      // leftover CAD lime glow discs — hide, do not keep a green/yellow orb
+      o.visible = false;
     } else if (tag === "A") {
       o.material = new THREE.MeshStandardMaterial({
         color: LIVERY.A, emissive: LIVERY.A, emissiveIntensity: 0.5, roughness: 0.2,
@@ -1297,6 +1512,36 @@ function paintGlb(root) {
     else if (/太阳能|solar/i.test(name)) o.material = matNavy;
     else o.material = r > 0.55 ? powderMat(LIVERY.Y) : matDark;
   });
+}
+
+function isTrafficPoleMesh(o) {
+  if (!o?.isMesh || !o.geometry) return false;
+  const n = `${o.name || ""}|${o.parent?.name || ""}`;
+  if (/AK-XLH-D115C-03/i.test(n)) return false;
+  if (/柱子|灯杆|立柱|立杆|pole|mast/i.test(n) && isTrafficNode(o)) return true;
+  if (!o.geometry.boundingBox) o.geometry.computeBoundingBox();
+  const local = o.geometry.boundingBox.getSize(new THREE.Vector3());
+  const locSorted = [local.x, local.y, local.z].sort((a, b) => a - b);
+  const slimLocal = locSorted[2] > 0.15 && locSorted[0] < 0.09 && locSorted[1] < 0.09;
+  const box = new THREE.Box3().setFromObject(o);
+  const wsz = box.getSize(new THREE.Vector3());
+  const poleWorld = wsz.y > 0.22 && Math.max(wsz.x, wsz.z) < 0.18;
+  return slimLocal || poleWorld;
+}
+
+function paintTrafficPolesStainless(root) {
+  if (!root) return 0;
+  let n = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    if (!isTrafficNode(o) && !/柱子|灯杆|立柱|立杆|pole|mast/i.test(o.name || "")) return;
+    if (!isTrafficPoleMesh(o)) return;
+    o.material = stainlessMat();
+    o.userData.tag = "S";
+    o.visible = true;
+    n += 1;
+  });
+  return n;
 }
 
 function firstMat(o) {
@@ -1405,6 +1650,11 @@ function rigTrafficLamps(root) {
 
   byColor.housing.forEach((o) => {
     if (Object.values(lampMats).includes(o.material)) return;
+    if (isTrafficPoleMesh(o)) {
+      o.material = stainlessMat();
+      o.userData.tag = "S";
+      return;
+    }
     o.material = new THREE.MeshStandardMaterial({ color: 0x070707, roughness: 0.48, metalness: 0.14 });
   });
 
@@ -1482,10 +1732,8 @@ function findDoorLedHosts(root) {
 }
 
 function rigTwinLeds(root) {
-  const bezelMat = new THREE.MeshStandardMaterial({ color: 0x101814, roughness: 0.82, metalness: 0.1 });
-  const glowTex = makeGlowTex();
+  const bezelMat = alumMat();
   const faceMats = [];
-  const glows = [];
   const hosts = findDoorLedHosts(root).slice().sort((a, b) => {
     return worldBox(a).getCenter(new THREE.Vector3()).x - worldBox(b).getCenter(new THREE.Vector3()).x;
   });
@@ -1498,7 +1746,8 @@ function rigTwinLeds(root) {
     const sz = box.getSize(new THREE.Vector3());
     const r = Math.max(0.028, Math.min(sz.x, sz.y) * 0.48);
     const toCam = new THREE.Vector3(camera.position.x - c.x, 0, camera.position.z - c.z).normalize();
-    const bezel = new THREE.Mesh(new THREE.CircleGeometry(r + 0.004, 40), bezelMat);
+    const bezel = new THREE.Mesh(new THREE.CircleGeometry(r + 0.006, 40), bezelMat);
+    bezel.name = "PortaboomLedBezel";
     const lens = new THREE.Mesh(new THREE.CircleGeometry(r, 48), faceMat);
     lens.name = "PortaboomFaceLed";
     const pos = c.clone().addScaledVector(toCam, Math.max(0.006, Math.min(sz.x, sz.z) * 0.5 + 0.004));
@@ -1510,23 +1759,20 @@ function rigTwinLeds(root) {
     scene.add(lens);
     root.attach(bezel);
     root.attach(lens);
-    const glowMat = new THREE.SpriteMaterial({
-      map: glowTex, color: FACE_GREEN_GLOW, blending: THREE.AdditiveBlending,
-      depthWrite: false, toneMapped: false, opacity: 0.9,
-    });
-    const glow = new THREE.Sprite(glowMat);
-    glow.scale.set(r * 2.4, r * 2.4, 1);
-    glow.position.copy(pos).addScaledVector(toCam, 0.012);
-    scene.add(glow);
-    root.attach(glow);
-    glows.push(glowMat);
   });
   let stripMat = null;
   root.traverse((o) => {
     if (!o.isMesh) return;
     if (!/灯条/.test(`${o.name || ""}|${o.parent?.name || ""}`)) return;
+    const sz = worldBox(o).getSize(new THREE.Vector3());
+    const sorted = [sz.x, sz.y, sz.z].sort((a, b) => a - b);
+    const disc = sorted[0] < 0.05 && Math.abs(sorted[1] - sorted[2]) < 0.1;
+    if (disc) {
+      o.visible = false;
+      return;
+    }
     stripMat = new THREE.MeshStandardMaterial({
-      color: FACE_GREEN_BASE, emissive: STRIP_GREEN, emissiveIntensity: 6,
+      color: FACE_GREEN_BASE, emissive: STRIP_GREEN, emissiveIntensity: 4,
       roughness: 0.28, metalness: 0.08, toneMapped: false,
     });
     o.material = stripMat;
@@ -1534,7 +1780,7 @@ function rigTwinLeds(root) {
   ledRig = {
     faceMat: faceMats[0] || null,
     faceMats,
-    faceGlows: glows,
+    faceGlows: [],
     stripMat,
     lastShownPct: boomRig?.shownPct ?? 100,
     movingHoldUntil: 0,
@@ -1559,21 +1805,11 @@ function updateLeds() {
       face.color.setHex(FACE_RED_BASE);
       face.emissive.setHex(FACE_RED);
       const on = faces.length > 1 ? (i === 0 ? flashOn : !flashOn) : flashOn;
-      face.emissiveIntensity = on ? 16 : 3;
+      face.emissiveIntensity = on ? 8 : 1.6;
     } else {
       face.color.setHex(FACE_GREEN_BASE);
       face.emissive.setHex(FACE_GREEN);
-      face.emissiveIntensity = 9;
-    }
-  });
-  ledRig.faceGlows.forEach((g, i) => {
-    if (advisory) {
-      g.color.setHex(FACE_RED_GLOW);
-      const on = ledRig.faceGlows.length > 1 ? (i === 0 ? flashOn : !flashOn) : flashOn;
-      g.opacity = on ? 1 : 0.25;
-    } else {
-      g.color.setHex(FACE_GREEN_GLOW);
-      g.opacity = 0.9;
+      face.emissiveIntensity = 5.5;
     }
   });
   const strip = ledRig.stripMat;
@@ -1581,11 +1817,11 @@ function updateLeds() {
     if (advisory) {
       strip.color.setHex(0x300000);
       strip.emissive.setHex(STRIP_RED);
-      strip.emissiveIntensity = flashOn ? 26 : 1.2;
+      strip.emissiveIntensity = flashOn ? 10 : 1.2;
     } else {
       strip.color.setHex(FACE_GREEN_BASE);
       strip.emissive.setHex(STRIP_GREEN);
-      strip.emissiveIntensity = 12;
+      strip.emissiveIntensity = 5;
     }
   }
 }
@@ -1656,6 +1892,7 @@ ledRig.faceMats = boom.userData.heroFaceMats || [];
 ledRig.faceMat = ledRig.faceMats[0] || boom.userData.heroFaceMat || null;
 ledRig.stripMat = boom.getObjectByName("PortaboomBoomStrip")?.material || null;
 rigTrafficLamps(boom);
+setSignType("round");
 addLogoDecal(boom);
 setSignalAspect("green");
 
@@ -1685,6 +1922,9 @@ function mountCad(gltf, label) {
     if (boomRig) boomRig.speed = 38;
     rigTwinLeds(boom);
     rigTrafficLamps(boom);
+    paintTrafficPolesStainless(boom);
+    killStrayGlowDiscs(boom);
+    setSignType(signType || "round");
     addLogoDecal(boom);
     applyCoreShowConfig(boom);
     showMode = "up";
@@ -1844,6 +2084,11 @@ if (boomBtn) {
   });
 }
 
+const signRoundBtn = document.getElementById("signRoundBtn");
+if (signRoundBtn) signRoundBtn.addEventListener("click", () => setSignType("round"));
+const signOctagonBtn = document.getElementById("signOctagonBtn");
+if (signOctagonBtn) signOctagonBtn.addEventListener("click", () => setSignType("octagon"));
+
 syncDock();
 
 window.__iqr = {
@@ -1915,20 +2160,49 @@ window.__iqr = {
       logoLocalW: boom?.userData?.logoLocalW ?? null,
       classifyHidden: boom?.userData?.classifyHidden || null,
       signType,
+      signMounted: !!(signGroup && signGroup.parent),
+      strayGlow: (() => {
+        let n = 0;
+        boom?.traverse?.((o) => {
+          if (!isVisibleInTree(o)) return;
+          if (o.userData?.tag === "G" || o.isSprite) n += 1;
+        });
+        return n;
+      })(),
+      strayGlowKilled: boom?.userData?.strayGlowKilled || [],
+      bezelHex: (() => {
+        let hex = null;
+        boom?.traverse?.((o) => {
+          if (o.name === "PortaboomLedBezel" && firstMat(o)?.color) {
+            hex = firstMat(o).color.getHexString();
+          }
+        });
+        return hex;
+      })(),
+      poleStainless: (() => {
+        let n = 0;
+        boom?.traverse?.((o) => {
+          if (!o.isMesh || !isTrafficPoleMesh(o) || !isVisibleInTree(o)) return;
+          const c = firstMat(o)?.color?.getHex?.();
+          if (c === LIVERY.S) n += 1;
+        });
+        return n;
+      })(),
       livery: (() => {
-        let y = 0, k = 0, b = 0, stripe = 0;
+        let y = 0, k = 0, b = 0, stripe = 0, gVis = 0;
         let mastVis = 0, clampVis = 0, socketVis = 0;
         boom?.traverse?.((o) => {
           const n = o.name || "";
           if (o.userData?.tag === "Y") y += 1;
           if (o.userData?.tag === "K") k += 1;
           if (o.userData?.tag === "B") b += 1;
+          if (o.userData?.tag === "G" && isVisibleInTree(o)) gVis += 1;
           if (o.material?.userData?.stripe) stripe += 1;
           if (/AK-XLH-D115C-03/i.test(n) && isVisibleInTree(o)) mastVis += 1;
           if (/快速夹具|^夹具$/i.test(n) && isVisibleInTree(o)) clampVis += 1;
           if (/AK-XLH-D115C-01-01-11/i.test(n) && o.isMesh && isVisibleInTree(o)) socketVis += 1;
         });
-        return { y, k, b, stripe, mastVis, clampVis, socketVis };
+        return { y, k, b, stripe, gVis, mastVis, clampVis, socketVis };
       })(),
       logo: logo ? {
         name: logo.name,
