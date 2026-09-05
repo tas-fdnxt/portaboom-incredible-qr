@@ -38,24 +38,38 @@ const LIVERY_RGB = Object.freeze({
 /** twin-core sign.ts — STOP face default round. Clamp visible while mounted. */
 let signType = "round";
 let signGroup = null;
-/** Fabian: 400 mm diameter (not twin AS 450 mm / R=0.225). */
-const SIGN_DIAMETER = 0.40;
-const SIGN_RADIUS = SIGN_DIAMETER / 2;
+/** PB4000 manual + Fabian: cabinet 1153×415 mm, boom 4 m class, STOP Ø 400 mm. */
+const REAL = Object.freeze({
+  boomM: 4.0,
+  cabinetHM: 1.153,
+  cabinetWM: 0.415,
+  signDM: 0.40,
+  /**
+   * Hero studio tape (TAS pb4000.jpg / WZS Porta_Boom_Large_LP):
+   * period ≈ 330–345 mm (~12 repeats on a 4 m arm); red≈gap (duty ≈ 0.48);
+   * lean-forward chevrons. tidy4 0.22 local / duty 0.33 was too tight + too thin.
+   */
+  stripePeriodM: 0.34,
+  stripeRedDuty: 0.48,
+});
 /** Fraction of boom tip length. Hero: not at tip — ~1/6 of arm past the face. */
 const SIGN_ALONG_DEFAULT = 0.72;
 const SIGN_ALONG_MIN = 0.32;
 const SIGN_ALONG_MAX = 0.90;
 const SIGN_NUDGE = 0.04;
 let signAlong = SIGN_ALONG_DEFAULT;
+let signRadiusLocal = REAL.signDM / 2;
+let stripePeriodLocal = 0.22;
+let plantedProof = null;
 
-/** Hero SoT boom tape — forensic from real PB4000 photo, not 50/50 coral bands. */
-const STRIPE = Object.freeze({
-  period: 0.22,
-  redDuty: 0.33,
+/** Hero SoT boom tape — retuned pass 2 vs photo (not tidy4 0.22/0.33 local). */
+const STRIPE = {
+  get period() { return stripePeriodLocal; },
+  redDuty: REAL.stripeRedDuty,
   slant: 1.0,
   red: [0.753, 0.078, 0.129],
-  white: [0.93, 0.94, 0.96],
-});
+  white: [0.94, 0.945, 0.95],
+};
 
 /**
  * Overnight SHOW CONFIG — clean core defaults (twin-core setGroup).
@@ -171,7 +185,11 @@ function makeStopTex(type) {
   ctx.font = `900 ${Math.round(size * 0.27)}px "Arial Black", Arial, sans-serif`;
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.fillText("STOP", cx, cy + size * 0.015);
+  ctx.save();
+  ctx.translate(cx, cy);
+  ctx.rotate(Math.PI);
+  ctx.fillText("STOP", 0, -size * 0.015);
+  ctx.restore();
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.anisotropy = 8;
@@ -195,7 +213,7 @@ function buildSign() {
   }
   if (!boomRig?.pivot) return;
   const type = signType === "octagon" ? "octagon" : "round";
-  const radius = SIGN_RADIUS;
+  const radius = signRadiusLocal;
   const tex = makeStopTex(type);
   const wrap = new THREE.Group();
   wrap.name = "PortaboomStopSign";
@@ -239,6 +257,7 @@ function buildSign() {
     backGeo = new THREE.CylinderGeometry(radius * 0.92, radius * 0.92, 0.012, 72);
   }
   const face = new THREE.Mesh(faceGeo, faceMat);
+  face.name = "PortaboomStopFace";
   face.castShadow = true;
   const back = new THREE.Mesh(backGeo, backMat);
   back.rotation.x = Math.PI / 2;
@@ -273,7 +292,12 @@ function nudgeSign(dir) {
   setSignAlong(signAlong + dir * SIGN_NUDGE);
 }
 
-/** Keep STOP legend world-upright as the boom drops (hero: readable when arm is down). */
+/**
+ * 180° canvas legend + full pivot cancel. Boom-up rest is ≈π; holding
+ * that rest (only cancelling the drop delta) left STOP inverted against
+ * CanvasTexture flipY. Counter the whole pivot.z so wording stays
+ * world-upright in the default boom-up view and as the arm lowers.
+ */
 function tickSignUpright() {
   if (!signGroup || !boomRig?.pivot) return;
   const inner = signGroup.getObjectByName("PortaboomStopInner") || signGroup.children[0];
@@ -285,6 +309,113 @@ function setSignType(type) {
   signType = type === "octagon" ? "octagon" : "round";
   buildSign();
   syncDock();
+}
+
+function worldSizeOf(o) {
+  if (!o) return new THREE.Vector3();
+  return worldBox(o).getSize(new THREE.Vector3());
+}
+
+/** Uniform-ish world scale of an object (column length of matrixWorld). */
+function worldScaleAbs(o) {
+  if (!o) return 1;
+  o.updateWorldMatrix(true, false);
+  const sc = new THREE.Vector3();
+  o.getWorldScale(sc);
+  return Math.max(Math.abs(sc.x), 1e-6);
+}
+
+/**
+ * Measured STOP face diameter in planted world units.
+ * Do not use root.scale alone: BoomPivot.attach() compensates plant scale
+ * so new children of the pivot sit at world scale ≈ 1, not plant 0.50.
+ */
+function measureSignWorldDiameter() {
+  const face = signGroup?.getObjectByName("PortaboomStopFace");
+  if (!face) return plantedProof?.signDiameterWorld ?? null;
+  // Vertex/circle diameter: 2 × localR × face world scale (not AABB —
+  // an octagon AABB is flat-to-flat, ~8% short of Ø400 mm).
+  return +(2 * signRadiusLocal * worldScaleAbs(face)).toFixed(4);
+}
+
+/**
+ * Prove Ø400 mm on the planted twin. GLB is not 1 unit = 1 m after
+ * plantTwin (hero box → 1.28). Ruler is cabinet height (manual 1.153 m).
+ * STOP is parented to BoomPivot; stripe meshes keep plant world scale.
+ */
+function measurePlantedScale(root) {
+  const scaleFactor = root?.scale?.x || 1;
+  const tipY = boomRig?.tipY != null ? Math.abs(boomRig.tipY) : 0;
+  const boomLengthCad = tipY;
+  const pivot = boomRig?.pivot;
+  const pivotWorldScale = pivot ? worldScaleAbs(pivot) : scaleFactor;
+  let meshWorldScale = scaleFactor;
+  root?.traverse((o) => {
+    if (!o.isMesh) return;
+    if (o.userData?.tag !== "B" && !o.material?.userData?.stripe) return;
+    meshWorldScale = worldScaleAbs(o);
+  });
+  const boomLengthWorld = tipY * pivotWorldScale;
+  let door = null;
+  root?.traverse((o) => {
+    if (!door && /^115-DOOR$|^115_DOOR$|HeroCabinet/i.test(o.name || "")) door = o;
+  });
+  const doorSz = door ? worldSizeOf(door) : new THREE.Vector3();
+  const doorHeightWorld = doorSz.y || 0;
+  const doorWidthWorld = Math.max(doorSz.x || 0, doorSz.z || 0);
+  const doorHeightCad = scaleFactor ? doorHeightWorld / scaleFactor : 0;
+  const doorWidthCad = scaleFactor ? doorWidthWorld / scaleFactor : 0;
+
+  const doorOk = doorHeightWorld > 0.15;
+  const metresPerWorld = doorOk
+    ? REAL.cabinetHM / doorHeightWorld
+    : (boomLengthWorld > 0.05 ? REAL.boomM / boomLengthWorld : 1 / Math.max(pivotWorldScale, 1e-6));
+
+  const signDiameterWorld = REAL.signDM / metresPerWorld;
+  signRadiusLocal = signDiameterWorld / (2 * pivotWorldScale);
+  stripePeriodLocal = metresPerWorld > 0 && meshWorldScale > 1e-6
+    ? REAL.stripePeriodM / metresPerWorld / meshWorldScale
+    : REAL.stripePeriodM;
+
+  const how = doorOk
+    ? `Ø400mm world=${signDiameterWorld.toFixed(4)}=0.40/(1.153/doorH ${doorHeightWorld.toFixed(3)}); localR=${signRadiusLocal.toFixed(4)}=worldD/(2×pivotWorldScale ${pivotWorldScale.toFixed(4)}); plant ${scaleFactor.toFixed(4)} · m/world ${metresPerWorld.toFixed(3)} · meshScale ${meshWorldScale.toFixed(4)}`
+    : `Ø400mm world = 0.40 × boomWorld / 4.0 (door fallback)`;
+
+  plantedProof = {
+    scaleFactor,
+    pivotWorldScale,
+    meshWorldScale,
+    boomLengthWorld,
+    boomLengthCad,
+    boomLengthM: REAL.boomM,
+    impliedBoomM: boomLengthWorld * metresPerWorld,
+    doorHeightWorld,
+    doorWidthWorld,
+    doorHeightCad,
+    doorWidthCad,
+    metresPerWorld,
+    signDiameterM: REAL.signDM,
+    signDiameterWorld,
+    signRadiusLocal,
+    stripePeriodLocal,
+    stripePeriodM: REAL.stripePeriodM,
+    stripeRedDuty: REAL.stripeRedDuty,
+    derived: how,
+  };
+  if (root?.userData) root.userData.plantedProof = plantedProof;
+  return plantedProof;
+}
+
+function repaintBoomStripes(root) {
+  if (!root) return 0;
+  let n = 0;
+  root.traverse((o) => {
+    if (!o.isMesh) return;
+    if (o.userData?.tag !== "B" && !o.material?.userData?.stripe) return;
+    o.material = stripeMaterial(o.geometry);
+    n += 1;
+  });
+  return n;
 }
 
 function isDiscLikeMesh(o) {
@@ -407,7 +538,7 @@ function stripeMaterial(geometry) {
       .replace(
         "#include <color_fragment>",
         `#include <color_fragment>
-       float u = fract((vOPos.${axis} - vOPos.${cross} * ${slant.toFixed(2)}) / ${period.toFixed(3)});
+       float u = fract((vOPos.${axis} + vOPos.${cross} * ${slant.toFixed(2)}) / ${period.toFixed(3)});
        float band = step(u, ${redDuty.toFixed(3)});
        vec3 white = vec3(${STRIPE.white[0]},${STRIPE.white[1]},${STRIPE.white[2]});
        vec3 red   = vec3(${STRIPE.red[0]},${STRIPE.red[1]},${STRIPE.red[2]});
@@ -1978,6 +2109,8 @@ function mountCad(gltf, label) {
     usingGlb = true;
     boomRig = rigBoomMaster(boom);
     if (boomRig) boomRig.speed = 38;
+    measurePlantedScale(boom);
+    repaintBoomStripes(boom);
     rigTwinLeds(boom);
     rigTrafficLamps(boom);
     paintTrafficPolesStainless(boom);
@@ -2228,10 +2361,30 @@ window.__iqr = {
       classifyHidden: boom?.userData?.classifyHidden || null,
       signType,
       signMounted: !!(signGroup && signGroup.parent),
-      signRadius: SIGN_RADIUS,
-      signDiameterM: SIGN_DIAMETER,
+      signRadius: signRadiusLocal,
+      signDiameterM: plantedProof?.signDiameterM ?? REAL.signDM,
+      signDiameterWorld: plantedProof?.signDiameterWorld ?? null,
+      boomLengthM: plantedProof?.boomLengthM ?? REAL.boomM,
+      boomLengthWorld: plantedProof?.boomLengthWorld ?? null,
+      boomLengthCad: plantedProof?.boomLengthCad ?? null,
+      scaleFactor: plantedProof?.scaleFactor ?? (boom?.scale?.x ?? null),
+      metresPerWorld: plantedProof?.metresPerWorld ?? null,
+      doorHeightWorld: plantedProof?.doorHeightWorld ?? null,
+      doorWidthWorld: plantedProof?.doorWidthWorld ?? null,
+      signDerived: plantedProof?.derived ?? null,
+      signWorldDiameter: measureSignWorldDiameter(),
+      signImpliedM: (() => {
+        const d = measureSignWorldDiameter();
+        const m = plantedProof?.metresPerWorld;
+        return d != null && m ? +(d * m).toFixed(4) : null;
+      })(),
+      pivotWorldScale: plantedProof?.pivotWorldScale ?? null,
+      meshWorldScale: plantedProof?.meshWorldScale ?? null,
+      impliedBoomM: plantedProof?.impliedBoomM ?? null,
+      plantedProof,
       signAlong,
-      stripePeriod: STRIPE.period,
+      stripePeriod: stripePeriodLocal,
+      stripePeriodM: REAL.stripePeriodM,
       stripeRedDuty: STRIPE.redDuty,
       strayGlow: (() => {
         let n = 0;
