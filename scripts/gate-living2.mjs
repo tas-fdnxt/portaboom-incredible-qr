@@ -1,8 +1,8 @@
 /**
  * GATE living2 proof.
- * Default living world (PORTABOOM twin + 3D plaza) must decode DEST
- * from canvas.toDataURL — not qr.png. Default 390×844 must not look
- * like a flat black/white QR.
+ * Default = ICQR-style 3D brand world (PB4000 on a living plaza).
+ * That default MUST fail the "looks like a normal QR" test.
+ * Scan DEST is proven from the tap-to-scan pose (canvas.toDataURL), not qr.png.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -144,8 +144,35 @@ function brandVision(buf) {
     chromaRatio: +chromaRatio.toFixed(4),
     bwish: +bwish.toFixed(4),
     looksLikeFlatBWQR: orangeRatio < 0.012 && chromaRatio < 0.05,
-    portaboomVisible: orange > 4000,
+    looksLikeNormalQR: looksLikeNormalQRCard(data, W, H),
+    portaboomVisible: orange > 8000,
   };
+}
+
+function looksLikeNormalQRCard(data, W, H) {
+  const x0 = Math.round(W * 0.12);
+  const x1 = Math.round(W * 0.88);
+  const y0 = Math.round(H * 0.16);
+  const y1 = Math.round(H * 0.7);
+  let white = 0;
+  let dark = 0;
+  let orange = 0;
+  let n = 0;
+  for (let y = y0; y < y1; y += 1) {
+    for (let x = x0; x < x1; x += 1) {
+      const i = (y * W + x) * 4;
+      n += 1;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+      if (lum > 220 && Math.abs(r - g) < 18 && Math.abs(g - b) < 18) white += 1;
+      if (lum < 45) dark += 1;
+      if (r > 160 && g > 55 && g < 170 && b < 90 && r > g + 30) orange += 1;
+    }
+  }
+  if (!n) return false;
+  return (white / n) > 0.28 && (dark / n) > 0.12 && (orange / n) < 0.02;
 }
 
 function dataUrlToBuf(url) {
@@ -189,16 +216,22 @@ async function run() {
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForTimeout(900);
 
+  await page.evaluate(() => window.__iqr.exitScan());
+  await page.waitForTimeout(500);
+
   const snap0 = await page.evaluate(() => window.__iqr?.snap);
   const living = await page.evaluate(() => window.__iqr?.living);
+  const defaultShot = await page.screenshot({ path: join(OUT, "living2-default.png"), type: "png" });
+  const vision = brandVision(defaultShot);
+  const viewportDec = decodePngBuffer(defaultShot);
+
+  await page.evaluate(() => window.__iqr.enterScan());
+  await page.waitForTimeout(350);
   const smokeUrl = await page.evaluate(() => window.__iqr.captureScan());
   const smokeBuf = dataUrlToBuf(smokeUrl);
   await writeFile(join(OUT, "smoke-live-webgl.png"), smokeBuf);
   const smoke = decodePngBuffer(smokeBuf);
-
-  const defaultShot = await page.screenshot({ path: join(OUT, "living2-default.png"), type: "png" });
-  const vision = brandVision(defaultShot);
-  const viewportDec = decodePngBuffer(defaultShot);
+  await page.screenshot({ path: join(OUT, "living2-scan.png"), type: "png" });
 
   await page.evaluate(() => window.__iqr.nudgeScan(0.28, 0.18));
   await page.waitForTimeout(200);
@@ -236,7 +269,7 @@ async function run() {
     flattenBtnPresent: snap0?.flattenBtnPresent === true,
     unitDockPresent: snap0?.unitDockPresent === true,
     moreOpenDefault: snap0?.moreOpen === true,
-    visiblePrimaryOk: (snap0?.primaryControls || 99) <= 2 && snap0?.moreOpen === false,
+    visiblePrimaryOk: (snap0?.primaryControls || 99) <= 2 && snap0?.moreOpen !== true,
   };
 
   const pressure = {
@@ -256,7 +289,9 @@ async function run() {
     defaultShowsTwin: snap0?.defaultShowsTwin === true,
     flattenGone: snap0?.flattenBtnPresent === false,
     notFlatBW: vision.looksLikeFlatBWQR === false,
+    notANormalQR: vision.looksLikeNormalQR === false,
     portaboomVisible: vision.portaboomVisible === true,
+    defaultIsWorld: snap0?.viewMode === "world" && snap0?.cameraIsPerspective === true,
   };
 
   const report = {
@@ -266,13 +301,13 @@ async function run() {
       decoded: smoke?.data || null,
       match: smoke?.data === DEST,
       how: smoke?.how || null,
-      from: "canvas.toDataURL default live WebGL (not qr.png)",
+      from: "tap-to-scan ortho canvas.toDataURL (not qr.png, not the default world)",
     },
     viewport: {
       decoded: viewportDec?.data || null,
       match: viewportDec?.data === DEST,
       how: viewportDec?.how || null,
-      from: "full 390×844 screenshot including HUD",
+      from: "default 390×844 world screenshot including HUD — must fail looksLikeNormalQR",
     },
     vision,
     stress: {
@@ -316,6 +351,9 @@ async function run() {
   try {
     await copyFile(join(OUT, "living2-default.png"), join(ART, "living2-default.png"));
     await copyFile(join(OUT, "smoke-live-webgl.png"), join(ART, "living2-smoke-webgl.png"));
+    if (existsSync(join(OUT, "living2-scan.png"))) {
+      await copyFile(join(OUT, "living2-scan.png"), join(ART, "living2-scan.png"));
+    }
     await writeFile(join(ART, "gate-living2.json"), JSON.stringify(report, null, 2));
   } catch (err) {
     console.warn("artifact copy skipped", err.message);
@@ -327,11 +365,13 @@ async function run() {
   const ok = report.smoke.match
     && pressure.notASingleQuad
     && pressure.texturedQuad
-    && (pressure.cameraIsOrtho || pressure.cameraIsPerspective)
+    && pressure.defaultIsWorld
     && pressure.defaultShowsTwin
     && pressure.flattenGone
     && pressure.printClaimReady === false
     && pressure.notFlatBW
+    && pressure.notANormalQR
+    && pressure.portaboomVisible
     && hud.visiblePrimaryOk;
   process.exit(ok ? 0 : 1);
 }

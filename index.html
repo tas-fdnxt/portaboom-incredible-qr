@@ -36,8 +36,9 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
 .btn.ghost{background:rgba(238,242,250,.92);color:var(--navy);border:1px solid var(--line)}
 .btn.on{background:var(--orange);color:#fff}
 .btn.off{background:rgba(13,21,40,.88);color:#eef2fa;border:1px solid var(--line)}
-#status{position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#ffb84d;background:rgba(13,21,40,.88);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-#aspect{position:fixed;right:12px;top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:800 11px/1 var(--sans);letter-spacing:.12em;border-radius:999px;padding:8px 10px;color:#081018;background:#18ff5a}
+#status{display:none;position:fixed;left:50%;transform:translateX(-50%);top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:700 11px/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:#ffb84d;background:rgba(13,21,40,.88);backdrop-filter:blur(10px);border:1px solid var(--line);border-radius:999px;padding:8px 12px;max-width:90vw;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+body.scan-open #status{display:block}
+#aspect{display:none !important;position:fixed;right:12px;top:calc(var(--sat)+56px);z-index:4;pointer-events:none;font:800 11px/1 var(--sans);letter-spacing:.12em;border-radius:999px;padding:8px 10px;color:#081018;background:#18ff5a}
 #aspect[data-aspect="amber"]{background:#ffb000}
 #aspect[data-aspect="red"]{background:#ff1d12;color:#fff}
 #aspect[data-aspect="green"]{background:#18ff5a}
@@ -55,7 +56,7 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
 <body class="live-scan">
 <canvas id="stage" aria-label="PORTABOOM PB4000 living Incredible QR"></canvas>
 <div class="vig" aria-hidden="true"></div>
-<div id="status">Living QR · scan the mural · PB4000 in frame</div>
+<div id="status">Living QR · tap to scan the field</div>
 <div id="aspect" data-aspect="green">GREEN</div>
 <div id="hud">
   <div class="row">
@@ -66,7 +67,7 @@ canvas#stage{position:fixed;inset:0;width:100%;height:100dvh;display:block;touch
   </div>
   <div class="dock" id="liveDock">
     <button class="btn on" id="lifeBtn" type="button" aria-pressed="true">Life ON</button>
-    <button class="btn ghost" id="moreBtn" type="button" aria-expanded="false">More</button>
+    <button class="btn primary" id="scanBtn" type="button">Tap to scan</button>
   </div>
   <div class="dock" id="moreDock" hidden>
     <button class="btn primary" id="boomBtn" type="button">Raise / lower boom</button>

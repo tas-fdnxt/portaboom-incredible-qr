@@ -578,8 +578,8 @@ const aspectEl = document.getElementById("aspect");
 
 const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let viewMode = "live"; // living2 = mural + twin in one scannable frame
-let moreOpen = false;
+let viewMode = "world"; // world = ICQR default 3D · scan = tap-to-scan pose
+let scanOpen = false;
 let lifeOn = !reduced;
 
 let renderer;
@@ -604,9 +604,10 @@ if (!renderer.getContext()) {
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.setClearColor(0x0d0d12, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.NoToneMapping;
-renderer.toneMappingExposure = 1.12;
-renderer.shadowMap.enabled = false;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.05;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 
 const scene = new THREE.Scene();
 // twin-core Ye() studio: background 0x0d0d12, RoomEnvironment, no fog
@@ -623,16 +624,16 @@ try {
 const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
-const liveCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
-/** jsQR envelope on this H-matrix: ortho peek ≤ ~0.24/0.15. Perspective never locked. */
-const LIVE_POSE = {
-  pos: new THREE.Vector3(0.24, 0.15, 8),
+const scanCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
+/** Top-down scan of the XZ plaza. Peek stays inside the known jsQR envelope. */
+const SCAN_POSE = {
+  pos: new THREE.Vector3(0.18, 8, 0.12),
   tgt: new THREE.Vector3(0, 0, 0),
 };
-liveCam.position.copy(LIVE_POSE.pos);
-liveCam.up.set(0, 1, 0);
-liveCam.lookAt(LIVE_POSE.tgt);
-let camera = liveCam;
+scanCam.position.copy(SCAN_POSE.pos);
+scanCam.up.set(0, 0, -1);
+scanCam.lookAt(SCAN_POSE.tgt);
+let camera = unitCam;
 
 scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -866,7 +867,7 @@ bindGroups(boom);
 applyCoreShowConfig(boom);
 placeTwinInLivingWorld();
 initOrbit(boom);
-applyLiveScanPose();
+applyWorldPose();
 if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
@@ -969,7 +970,6 @@ function plantTwin(obj) {
   let box = worldBox(obj);
   let center = box.getCenter(new THREE.Vector3());
   obj.position.sub(center);
-  if (viewMode === "unit") camera.position.set(0, 0.9, 2.2);
   // twin-core instance.ts: model.rotation.y = Math.PI
   obj.rotation.y = Math.PI;
   const hero0 = gatherHeroBox(obj);
@@ -986,7 +986,6 @@ function plantTwin(obj) {
   obj.userData.plantedYaw = Math.PI;
   // twin-core instance.ts: head.group.rotation.y = yaw (180° so lenses match cabinet front)
   faceSignalHead(obj);
-  if (viewMode === "unit") lockHeroCamera(obj);
   return s;
 }
 
@@ -1246,75 +1245,144 @@ function initOrbit(root) {
     ONE: THREE.TOUCH.ROTATE,
     TWO: THREE.TOUCH.DOLLY_PAN,
   };
-  controls.target.copy(LIVE_POSE.tgt);
+  controls.target.set(0, 0.7, 0);
   controls.update();
   framed = true;
   return controls;
 }
 
-function fitLiveOrtho() {
+function fitScanOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
   const padSize = living.padSize;
-  // Leave a lower band for the PB4000 hero; QR stays framed for jsQR.
-  const fracW = 0.86;
-  const fracH = 0.56;
-  const worldH = Math.max(padSize / fracH, (padSize / fracW) / aspect);
-  const worldW = worldH * aspect;
-  liveCam.left = -worldW / 2;
-  liveCam.right = worldW / 2;
-  // Shift the window down so the mural sits high and the PB4000 owns the lower band.
-  const shift = -worldH * 0.16;
-  liveCam.top = worldH / 2 + shift;
-  liveCam.bottom = -worldH / 2 + shift;
-  liveCam.near = 0.05;
-  liveCam.far = 80;
-  liveCam.updateProjectionMatrix();
+  const fracW = 0.82;
+  const worldW = padSize / fracW;
+  const worldH = worldW / aspect;
+  scanCam.left = -worldW / 2;
+  scanCam.right = worldW / 2;
+  scanCam.top = worldH / 2;
+  scanCam.bottom = -worldH / 2;
+  scanCam.near = 0.05;
+  scanCam.far = 80;
+  scanCam.updateProjectionMatrix();
 }
 
 function placeTwinInLivingWorld() {
   if (!boom) return;
-  boom.visible = true;
-  if (boom.userData.livingPlanted) return;
-  fitLiveOrtho();
-  const pad = living.padSize;
-  const viewH = (liveCam.top - liveCam.bottom) || 8;
-  const room = Math.max(1.6, -pad * 0.5 - liveCam.bottom - 0.2);
-  const box0 = worldBox(boom);
-  const s0 = box0.getSize(new THREE.Vector3());
-  const grow = THREE.MathUtils.clamp(room / Math.max(0.4, s0.y), 1.15, 2.4);
-  boom.scale.multiplyScalar(grow);
-  const box2 = worldBox(boom);
-  const c2 = box2.getCenter(new THREE.Vector3());
-  const s2 = box2.getSize(new THREE.Vector3());
-  boom.position.x += -c2.x;
-  boom.position.z += 1.05 - c2.z;
-  const wantTop = -pad * 0.5 - 0.05;
-  boom.position.y += wantTop - box2.max.y;
+  // Center of the branded field. Wheels on the plaza; boom reaches over the towers.
+  boom.position.x = 0;
+  boom.position.z = 0.12;
+  boom.visible = !scanOpen;
   boom.userData.livingPlanted = true;
-  boom.userData.livingGrow = grow;
-  boom.userData.livingSize = [s2.x, s2.y, s2.z];
-  boom.userData.viewH = viewH;
 }
 
-function applyLiveScanPose() {
-  camera = liveCam;
-  if (controls) controls.object = liveCam;
-  fitLiveOrtho();
-  liveCam.up.set(0, 1, 0);
-  liveCam.position.copy(LIVE_POSE.pos);
-  liveCam.lookAt(LIVE_POSE.tgt);
-  liveCam.updateProjectionMatrix();
+/** Default share pose: 3/4 hero of the PB4000 living on the plaza — not a top-down QR. */
+function lockWorldCamera() {
+  if (!boom) return;
+  camera = unitCam;
+  const hero = gatherHeroBox(boom);
+  const full = worldBox(boom);
+  const size = hero.getSize(new THREE.Vector3());
+  const fullSize = full.getSize(new THREE.Vector3());
+  const center = hero.getCenter(new THREE.Vector3());
+  unitCam.fov = 34;
+  unitCam.near = 0.05;
+  unitCam.far = 80;
+  unitCam.updateProjectionMatrix();
+  const fov = THREE.MathUtils.degToRad(unitCam.fov);
+  const aspect = Math.max(0.42, unitCam.aspect || 0.46);
+  const distH = (size.y * 2.15) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 2.55) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 3.05);
+  unitCam.position.set(
+    center.x + dist * 0.62 + fullSize.x * 0.08,
+    center.y + size.y * 0.46,
+    center.z + dist * 0.88
+  );
+  const look = new THREE.Vector3(center.x + fullSize.x * 0.18, center.y * 0.22, center.z);
+  unitCam.lookAt(look);
+  unitCam.updateProjectionMatrix();
+  unitCam.userData.worldLook = look;
+}
+
+function applyWorldPose() {
+  scanOpen = false;
+  viewMode = "world";
+  camera = unitCam;
+  if (boom) boom.visible = true;
+  studioGroup.visible = true;
+  grid.visible = true;
+  if (living.scanPad) living.scanPad.visible = false;
+  if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.05;
+  scene.background.setHex(0x0d0d12);
+  renderer.setClearColor(0x0d0d12, 1);
+  if (controls) controls.object = unitCam;
+  unitCam.near = 0.05;
+  unitCam.far = 80;
+  placeTwinInLivingWorld();
+  if (boom) {
+    lockWorldCamera();
+    const look = unitCam.userData.worldLook || new THREE.Vector3(0, 0.7, 0);
+    if (controls) {
+      const offset = unitCam.position.clone().sub(look);
+      const polar = Math.atan2(Math.hypot(offset.x, offset.z), Math.max(0.05, offset.y));
+      controls.target.copy(look);
+      controls.enableRotate = true;
+      controls.enablePan = true;
+      controls.enableZoom = true;
+      controls.minPolarAngle = Math.max(0.55, polar - 0.28);
+      controls.maxPolarAngle = Math.min(Math.PI * 0.49, polar + 0.22);
+      controls.minDistance = 2.4;
+      controls.maxDistance = 14;
+      controls.update();
+    }
+    captureHome();
+  } else if (HOME.pos.lengthSq() > 0.01) {
+    unitCam.position.copy(HOME.pos);
+    unitCam.fov = HOME.fov || 34;
+    unitCam.updateProjectionMatrix();
+    unitCam.lookAt(HOME.tgt);
+  }
+  setStatus("Living QR · tap to scan the field");
+  syncModeHud();
+}
+
+function applyScanPose() {
+  scanOpen = true;
+  viewMode = "scan";
+  if (boom) boom.visible = false;
+  studioGroup.visible = false;
+  grid.visible = true;
+  if (living.scanPad) living.scanPad.visible = true;
+  if (paperMat?.color) paperMat.color.setHex(0xffffff);
+  renderer.toneMapping = THREE.NoToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  scene.background.setHex(0xffffff);
+  renderer.setClearColor(0xffffff, 1);
+  camera = scanCam;
+  if (controls) controls.object = scanCam;
+  fitScanOrtho();
+  scanCam.up.set(0, 0, -1);
+  scanCam.position.copy(SCAN_POSE.pos);
+  scanCam.lookAt(SCAN_POSE.tgt);
+  scanCam.updateProjectionMatrix();
   if (controls) {
-    controls.target.copy(LIVE_POSE.tgt);
+    controls.target.copy(SCAN_POSE.tgt);
     controls.enableRotate = false;
     controls.enablePan = false;
     controls.enableZoom = true;
-    controls.minDistance = 4;
-    controls.maxDistance = 16;
     controls.update();
   }
+  setStatus("Scan pose · point a phone at the field");
+  syncModeHud();
+}
+
+function toggleScan() {
+  if (scanOpen) applyWorldPose();
+  else applyScanPose();
 }
 
 function applyUnitPose() {
@@ -1342,8 +1410,8 @@ function applyUnitPose() {
 }
 
 function captureHome() {
-  HOME.pos.copy(camera.position);
-  HOME.fov = camera.fov;
+  HOME.pos.copy(unitCam.position);
+  HOME.fov = unitCam.fov;
   if (controls) HOME.tgt.copy(controls.target);
   else HOME.tgt.set(0, 0.7, 0);
 }
@@ -2110,7 +2178,7 @@ function removeHero() {
   if (boom && boom.parent) boom.parent.remove(boom);
 }
 
-setStatus("Living QR · scan the mural · PB4000 in frame");
+setStatus("Living QR · tap to scan the field");
 boomRig = rigHeroArm(boom);
 ledRig.faceMats = boom.userData.heroFaceMats || [];
 ledRig.faceMat = ledRig.faceMats[0] || boom.userData.heroFaceMat || null;
@@ -2158,8 +2226,8 @@ function mountCad(gltf, label) {
     setSignalAspect("green");
     boom.visible = true;
     placeTwinInLivingWorld();
-    applyLiveScanPose();
-    if (boomRig) setStatus("Living QR · scan the mural · PB4000 in frame");
+    applyWorldPose();
+    if (boomRig) setStatus("Living QR · tap to scan the field");
     else setStatus(label);
   } catch (err) {
     console.error(err);
@@ -2182,7 +2250,7 @@ function loadNamed(reason) {
     },
     (err2) => {
       console.error(err2);
-      setStatus("CAD blocked. Hero stand-in still live in Unit dock.");
+      setStatus("CAD blocked. Hero stand-in still live.");
     }
   );
 }
@@ -2217,16 +2285,17 @@ function exportPrintPng() {
 }
 
 function syncModeHud() {
-  document.body.classList.add("live-scan");
+  document.body.classList.toggle("scan-open", scanOpen);
   document.body.classList.remove("unit-dock");
   const badge = document.getElementById("modeBadge");
-  if (badge) badge.textContent = "Living QR";
+  if (badge) badge.textContent = scanOpen ? "Scan" : "Living QR";
   const moreDock = document.getElementById("moreDock");
-  if (moreDock) moreDock.hidden = !moreOpen;
-  const moreBtn = document.getElementById("moreBtn");
-  if (moreBtn) {
-    moreBtn.setAttribute("aria-expanded", moreOpen ? "true" : "false");
-    moreBtn.textContent = moreOpen ? "Less" : "More";
+  if (moreDock) moreDock.hidden = !scanOpen;
+  const scanBtn = document.getElementById("scanBtn");
+  if (scanBtn) {
+    scanBtn.textContent = scanOpen ? "World" : "Tap to scan";
+    scanBtn.classList.toggle("primary", !scanOpen);
+    scanBtn.classList.toggle("ghost", scanOpen);
   }
   const lifeBtn = document.getElementById("lifeBtn");
   if (lifeBtn) {
@@ -2238,18 +2307,8 @@ function syncModeHud() {
 }
 
 function setViewMode(next) {
-  viewMode = "live";
-  flat = false;
-  studioGroup.visible = true;
-  grid.visible = true;
-  if (boom) boom.visible = true;
-  renderer.toneMapping = THREE.NoToneMapping;
-  scene.background.setHex(0x0d0d12);
-  renderer.setClearColor(0x0d0d12, 1);
-  applyLiveScanPose();
-  setStatus("Living QR · scan the mural · PB4000 in frame");
-  if (hintEl) hintEl.textContent = "Point your phone camera at the living 3D scene.";
-  syncModeHud();
+  if (next === "scan") applyScanPose();
+  else applyWorldPose();
 }
 
 function resize() {
@@ -2258,7 +2317,7 @@ function resize() {
   renderer.setSize(w, h, false);
   unitCam.aspect = w / h;
   unitCam.updateProjectionMatrix();
-  if (viewMode === "live") fitLiveOrtho();
+  if (scanOpen) fitScanOrtho();
   else camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
@@ -2272,38 +2331,53 @@ function tick() {
   const t = clock.elapsedTime;
   tickCamGlide(dt);
   grid.visible = true;
-  studioGroup.visible = true;
-  if (boom) boom.visible = true;
-  if (lifeOn && !reduced) {
-    const amp = living.cell * 0.012;
+  studioGroup.visible = !scanOpen;
+  if (boom) boom.visible = !scanOpen;
+  if (lifeOn && !reduced && !scanOpen) {
+    const amp = living.cell * 0.01;
     for (const m of mods) {
-      m.position.z = (m.userData.baseZ || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
+      m.position.y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
     }
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
   } else {
-    for (const m of mods) m.position.z = m.userData.baseZ || 0;
+    for (const m of mods) m.position.y = m.userData.baseY || 0;
   }
-  tickBoom(dt);
-  tickSignUpright();
-  tickShow(dt);
-  updateLeds();
+  if (!scanOpen) {
+    tickBoom(dt);
+    tickSignUpright();
+    tickShow(dt);
+    updateLeds();
+  }
   if (controls) {
-    if (!spin) controls.autoRotate = false;
+    if (!spin || scanOpen) controls.autoRotate = false;
     controls.update();
   }
   renderer.autoClear = true;
   renderer.setScissorTest(false);
-  renderer.render(scene, liveCam);
+  renderer.render(scene, camera);
 }
 tick();
 
-const moreBtn = document.getElementById("moreBtn");
-if (moreBtn) {
-  moreBtn.addEventListener("click", () => {
-    moreOpen = !moreOpen;
-    syncModeHud();
+const scanBtn = document.getElementById("scanBtn");
+if (scanBtn) scanBtn.addEventListener("click", () => toggleScan());
+if (canvas) {
+  canvas.addEventListener("click", (ev) => {
+    if (ev.target !== canvas) return;
+  });
+  let tapStart = 0;
+  let tapX = 0;
+  let tapY = 0;
+  canvas.addEventListener("pointerdown", (ev) => {
+    tapStart = performance.now();
+    tapX = ev.clientX;
+    tapY = ev.clientY;
+  });
+  canvas.addEventListener("pointerup", (ev) => {
+    if (performance.now() - tapStart > 280) return;
+    if (Math.hypot(ev.clientX - tapX, ev.clientY - tapY) > 10) return;
+    toggleScan();
   });
 }
 const printBtn = document.getElementById("printBtn");
@@ -2388,6 +2462,7 @@ window.__iqr = {
       signalAspect,
       showConfig: SHOW_CONFIG,
       viewMode,
+      scanOpen,
       living: true,
       dest: DEST,
       ecc: ECC,
@@ -2400,13 +2475,12 @@ window.__iqr = {
       product: "living2-brand-world",
       cameraIsPerspective: camera.isPerspectiveCamera === true,
       cameraIsOrtho: camera.isOrthographicCamera === true,
-      scanEnvelope: "ortho-peek<=0.24,0.15 — perspective of this H-matrix never locked jsQR",
-      livingPeek: [LIVE_POSE.pos.x, LIVE_POSE.pos.y],
-      defaultShowsTwin: !!(boom && boom.visible),
+      scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
+      defaultShowsTwin: !!(boom && !scanOpen),
       flattenBtnPresent: !!document.getElementById("flattenBtn"),
       unitDockPresent: !!document.getElementById("unitDock"),
       primaryControls: document.querySelectorAll("#liveDock .btn").length,
-      moreOpen,
+      moreOpen: false,
       printClaimReady: false,
       lifeOn,
       kinds: living.kinds,
@@ -2526,18 +2600,25 @@ window.__iqr = {
       } : null,
     };
   },
-  captureScan() {
-    renderer.render(scene, liveCam);
+  captureWorld() {
+    if (scanOpen) applyWorldPose();
+    renderer.render(scene, unitCam);
     return canvas.toDataURL("image/png");
   },
-  captureScanPeek(x = 0.24, y = 0.15) {
-    fitLiveOrtho();
-    liveCam.position.set(x, y + grid.position.y, 8);
-    liveCam.lookAt(0, grid.position.y, 0);
-    liveCam.updateProjectionMatrix();
-    camera = liveCam;
-    renderer.render(scene, liveCam);
+  captureScan() {
+    if (!scanOpen) applyScanPose();
+    renderer.render(scene, scanCam);
     return canvas.toDataURL("image/png");
+  },
+  enterScan() {
+    applyScanPose();
+    renderer.render(scene, scanCam);
+    return true;
+  },
+  exitScan() {
+    applyWorldPose();
+    renderer.render(scene, unitCam);
+    return true;
   },
   get living() {
     return {
@@ -2549,40 +2630,19 @@ window.__iqr = {
       vocabs: living.vocabs,
       texturedQuad: false,
       viewMode,
+      scanOpen,
     };
   },
   nudgeScan(x = 0, y = 0) {
-    liveCam.position.set(LIVE_POSE.pos.x + x * 0.12, LIVE_POSE.pos.y + y * 0.08, LIVE_POSE.pos.z);
-    liveCam.lookAt(LIVE_POSE.tgt);
-    liveCam.updateProjectionMatrix();
-    if (controls) {
-      controls.target.copy(LIVE_POSE.tgt);
-      controls.update();
-    }
-    renderer.render(scene, liveCam);
+    if (!scanOpen) applyScanPose();
+    scanCam.position.set(SCAN_POSE.pos.x + x * 0.12, SCAN_POSE.pos.y, SCAN_POSE.pos.z + y * 0.12);
+    scanCam.lookAt(SCAN_POSE.tgt);
+    scanCam.updateProjectionMatrix();
+    renderer.render(scene, scanCam);
     return true;
   },
-  setLivePose(px, py, pz, tx = 0, ty = 0, tz = 0) {
-    liveCam.position.set(px, py, pz);
-    liveCam.lookAt(tx, ty, tz);
-    liveCam.updateProjectionMatrix();
-    renderer.render(scene, liveCam);
-    return liveCam.position.toArray();
-  },
-  debugScan(opts = {}) {
-    if (opts.hideTwin && boom) boom.visible = false;
-    if (opts.showTwin && boom) boom.visible = true;
-    if (opts.gridY != null) grid.position.y = opts.gridY;
-    renderer.render(scene, liveCam);
-    return {
-      twin: !!(boom && boom.visible),
-      gridY: grid.position.y,
-      tone: renderer.toneMapping,
-      cam: camera.isOrthographicCamera ? "ortho" : "persp",
-    };
-  },
   resetScan() {
-    applyLiveScanPose();
-    renderer.render(scene, liveCam);
+    applyScanPose();
+    renderer.render(scene, scanCam);
   },
 };

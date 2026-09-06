@@ -2,10 +2,9 @@
 
 Living2 Incredible QR for PORTABOOM PB4000 (ICQR Magic Tree *pattern*: a 3D brand world that is itself scannable).
 
-- Default frame: living 3D module mural (scan this) + twin-tidy5 PB4000 in the same view
-- Dark modules are sculptures (cabinet / boom stripe / head / LED) with real depth
-- jsQR on this H-matrix only locks an **ortho scan-H peek** — perspective never decoded here
-- Print PNG is a demoted export under More — never the READY claim
+- **Default** = living 3D PORTABOOM world (powder orange plaza, twin-tidy5 PB4000). A stranger should not say “that’s just a QR.”
+- The scannable matrix lives in the terrain (raised dark-module sculptures). Tap / **Tap to scan** for a clearer scan pose.
+- Print PNG is a demoted export under the scan dock — never the READY claim
 - DEST: https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
 
 Cache-bust: `app.js?v=living2`
@@ -14,9 +13,9 @@ Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
 ## How to scan
 
-1. Open the page on a laptop or phone.
-2. Point the phone camera at the **3D scene** (the PB4000 + living plaza). Do not flatten.
-3. Optional: drag to orbit. More → Print PNG for a paper export.
+1. Open the page — the shareable view is the 3D PB4000 on the branded field.
+2. Tap the scene or **Tap to scan**, then point a phone camera at the field.
+3. Drag to orbit in the world. Print PNG is a paper export only.
 
 Not WordPress. Not Command Hub. NEVER SEND until Chief merges after GATE.
 
