@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>Chief × Fabian - last month audit (Aug-Sep 2026)</title>
+<style>
+  :root {
+    --ink: #1a1a1a;
+    --ink-soft: #333333;
+    --muted: #555555;
+    --paper: #f7f4ef;
+    --card: #fffef9;
+    --line: #d9d2c5;
+    --accent: #1f4d3a;
+    --accent-soft: #e8f0eb;
+    --warn: #7a3b00;
+    --warn-bg: #fff3e6;
+    --good: #1f4d3a;
+    --good-bg: #e8f0eb;
+    --bad: #6b1f1f;
+    --bad-bg: #f8eaea;
+    --tap: #0b57d0;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    padding: 0;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-size: 18px;
+    line-height: 1.55;
+    color: var(--ink);
+    background: var(--paper);
+  }
+  .wrap {
+    max-width: 42rem;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 3rem;
+  }
+  header {
+    margin-bottom: 1.5rem;
+    padding-bottom: 1rem;
+    border-bottom: 2px solid var(--line);
+  }
+  h1 {
+    font-size: 1.45rem;
+    line-height: 1.3;
+    margin: 0 0 0.6rem;
+    color: var(--ink);
+    font-weight: 700;
+  }
+  .meta {
+    color: var(--muted);
+    font-size: 1rem;
+    margin: 0;
+  }
+  .badge-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 0.85rem;
+  }
+  .badge {
+    display: inline-block;
+    padding: 0.35rem 0.65rem;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 0.95rem;
+    font-weight: 600;
+  }
+  .badge.warn {
+    background: var(--warn-bg);
+    color: var(--warn);
+  }
+  .badge.bad {
+    background: var(--bad-bg);
+    color: var(--bad);
+  }
+  details.card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    margin: 0.85rem 0;
+    overflow: hidden;
+  }
+  details.card > summary {
+    list-style: none;
+    cursor: pointer;
+    padding: 1rem 1.1rem;
+    font-weight: 700;
+    font-size: 1.08rem;
+    color: var(--ink);
+    background: linear-gradient(180deg, #fffef9 0%, #f3efe6 100%);
+    border-bottom: 1px solid transparent;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    min-height: 48px;
+    -webkit-tap-highlight-color: transparent;
+  }
+  details.card > summary::-webkit-details-marker { display: none; }
+  details.card > summary::before {
+    content: "▸";
+    flex: 0 0 auto;
+    color: var(--accent);
+    font-size: 1.1rem;
+    line-height: 1.4;
+  }
+  details.card[open] > summary {
+    border-bottom-color: var(--line);
+  }
+  details.card[open] > summary::before {
+    content: "▾";
+  }
+  .body {
+    padding: 0.95rem 1.1rem 1.2rem;
+  }
+  h2 {
+    font-size: 1.05rem;
+    margin: 1rem 0 0.45rem;
+    color: var(--ink-soft);
+  }
+  h2:first-child { margin-top: 0; }
+  p { margin: 0.55rem 0; }
+  ul, ol {
+    margin: 0.45rem 0 0.7rem;
+    padding-left: 1.25rem;
+  }
+  li {
+    margin: 0.4rem 0;
+    padding-left: 0.15rem;
+  }
+  .role {
+    margin: 0.7rem 0;
+    padding: 0.75rem 0.85rem;
+    border-left: 4px solid var(--accent);
+    background: var(--accent-soft);
+    border-radius: 0 8px 8px 0;
+  }
+  .role strong { display: block; margin-bottom: 0.2rem; }
+  .receipt {
+    margin: 0.65rem 0;
+    padding: 0.75rem 0.85rem;
+    background: var(--good-bg);
+    border-radius: 8px;
+    border: 1px solid #c7d9ce;
+  }
+  .waste {
+    margin: 0.65rem 0;
+    padding: 0.75rem 0.85rem;
+    background: var(--bad-bg);
+    border-radius: 8px;
+    border: 1px solid #e0c4c4;
+  }
+  .gap {
+    margin: 0.65rem 0;
+    padding: 0.75rem 0.85rem;
+    background: var(--warn-bg);
+    border-radius: 8px;
+    border: 1px solid #ebd2b0;
+  }
+  .check {
+    list-style: none;
+    padding-left: 0;
+  }
+  .check li {
+    position: relative;
+    padding: 0.65rem 0.75rem 0.65rem 2.4rem;
+    margin: 0.45rem 0;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+  }
+  .check li::before {
+    content: "☐";
+    position: absolute;
+    left: 0.75rem;
+    top: 0.65rem;
+    color: var(--accent);
+    font-size: 1.15rem;
+  }
+  a {
+    color: var(--tap);
+    text-decoration: underline;
+    text-underline-offset: 3px;
+    word-break: break-word;
+  }
+  a:active { opacity: 0.75; }
+  code, .mono {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.92em;
+    background: #efeae0;
+    padding: 0.1em 0.35em;
+    border-radius: 4px;
+  }
+  .callout {
+    margin: 1rem 0 0;
+    padding: 0.85rem 1rem;
+    border-radius: 10px;
+    background: #eef2f7;
+    border: 1px solid #c9d4e3;
+    color: var(--ink-soft);
+  }
+  footer {
+    margin-top: 1.75rem;
+    padding-top: 1rem;
+    border-top: 2px solid var(--line);
+    color: var(--muted);
+    font-size: 1rem;
+  }
+  footer strong {
+    color: var(--bad);
+    letter-spacing: 0.02em;
+  }
+  .toc {
+    margin: 1rem 0 0;
+    padding: 0.85rem 1rem;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+  }
+  .toc ol {
+    margin: 0.4rem 0 0;
+    padding-left: 1.3rem;
+  }
+  .toc a {
+    font-weight: 600;
+    text-decoration: none;
+    border-bottom: 1px solid #9db7e8;
+  }
+  @media (min-width: 640px) {
+    body { font-size: 18px; }
+    h1 { font-size: 1.6rem; }
+    .wrap { padding: 1.75rem 1.25rem 3.5rem; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Chief × Fabian - last month audit (Aug-Sep 2026)</h1>
+      <p class="meta">Traffic &amp; Access Solutions · phone-first night audit · AU English · ink on paper</p>
+      <div class="badge-row">
+        <span class="badge">phone-readable</span>
+        <span class="badge">expand cards</span>
+        <span class="badge warn">NEVER SEND</span>
+        <span class="badge bad">sleeping Fabian</span>
+      </div>
+      <nav class="toc" aria-label="Section jump">
+        <strong>Jump</strong>
+        <ol>
+          <li><a href="#roles">How we work (roles)</a></li>
+          <li><a href="#memory">Memory / skills / locks</a></li>
+          <li><a href="#working">What’s working well</a></li>
+          <li><a href="#waste">What’s not working</a></li>
+          <li><a href="#gaps">Gaps → fill</a></li>
+          <li><a href="#bar">Top 1% efficiency bar</a></li>
+        </ol>
+      </nav>
+    </header>
+
+    <details class="card" id="roles" open>
+      <summary>1) How we work (roles)</summary>
+      <div class="body">
+        <p>Clear lanes stop overnight pile-ons. Each name below owns one job. Cross-lane only after Fabian GO.</p>
+
+        <div class="role">
+          <strong>Fabian</strong>
+          GO / SEND / final eyes. Only human who marks live. Sleeping now: no SEND from any agent, no “ready for client” without his tap.
+        </div>
+        <div class="role">
+          <strong>Chief (this Grok Bot)</strong>
+          Front door, route, destination list, overnight forge, merge only after GO. Runs on the shared cloud box. Fabian phone/Mac is chat client only. No per-message device flag exists yet, so default is phone-first HTML and https links.
+        </div>
+        <div class="role">
+          <strong>PlanBot</strong>
+          Clock only. Owns the Monday plan cadence. Chief must not ship a skinny duplicate Monday board that pretends to be the plan.
+        </div>
+        <div class="role">
+          <strong>Skills_Bot</strong>
+          Stamp skills and GATE before anything sendable leaves the forge. Dual GATE path is the missing brick (see Gaps).
+        </div>
+        <div class="role">
+          <strong>Ai_UPSKILL</strong>
+          Eval and synthesis. Not a dispatcher. Does not own SEND queues or live Command doors.
+        </div>
+        <div class="role">
+          <strong>Vault</strong>
+          Logins, MCP, secrets. Stay out of board HTML. Never paste credentials into audits or phone pages.
+        </div>
+        <div class="role">
+          <strong>Master Builder</strong>
+          Honesty lane. Claude paste when named. Use when a stream needs a straight read, not a rewrite circus.
+        </div>
+        <div class="role">
+          <strong>Cursor Cloud Agent</strong>
+          Repo code + PR under MAKE_THEN_CURSOR. Overnight forge arms PRs; Fabian GO unlocks merge. PR#4 is the current honest hold pattern.
+        </div>
+
+        <div class="callout">
+          <strong>Device rule:</strong> Chief runs on the shared cloud box. Fabian’s phone or Mac is chat client only. Because there is no per-message device flag, every overnight board defaults phone-first: system-ui, ≥18px, soft paper, tap targets, Pages URL when published.
+        </div>
+      </div>
+    </details>
+
+    <details class="card" id="memory">
+      <summary>2) Memory / skills / locks</summary>
+      <div class="body">
+        <h2>Active locks and stamps</h2>
+        <ul>
+          <li><span class="mono">Profile + log memory</span> - re-read before forge; do not invent state from a thin summary.</li>
+          <li><span class="mono">QR_FORGE_LOCK</span> - ownership fence for QR streams; re-read SoT every forge.</li>
+          <li><span class="mono">research-skills-forge-ownership</span> - who may forge research vs who stamps skills.</li>
+          <li><span class="mono">phone-readable-html</span> - board must render as a page, not a code wall attachment.</li>
+          <li><span class="mono">incredible-portaboom-qr</span> - product stream lock; no living rewrite beyond named ask.</li>
+          <li><span class="mono">Friday COMPLETE bar lock</span> - tonight’s bar: COMPLETE only at Friday parity (expand / Save / full options), not a thin morning stub.</li>
+        </ul>
+
+        <h2>What works</h2>
+        <ul>
+          <li><strong>HARD LOCKs when re-read.</strong> When Chief actually opens the lock file, behaviour stays in lane. Failures start when summary thinning replaces the re-read.</li>
+          <li><strong>Skills GATE on QR Magic Tree.</strong> Send-still path stayed GREEN and deliverable because GATE ran before sendable claim.</li>
+          <li><strong>Overnight Cursor PR#4 parked correctly.</strong> PENDING_FABIAN_GO is an honest hold. No silent merge. Pattern to keep.</li>
+        </ul>
+
+        <h2>What fails</h2>
+        <ul>
+          <li><strong>Summary thinning.</strong> Compression drops locks, receipts, and full option trees. Thin memory becomes false COMPLETE.</li>
+          <li><strong>Claiming COMPLETE on thin boards.</strong> Example: Monday AM board ~7KB labelled complete vs Friday ~45KB with expand/Save/full options. Chief fault.</li>
+          <li><strong>Rewriting beyond ask (QR living8/9).</strong> Flatten and rewrite circus burned time and broke SoT trust.</li>
+          <li><strong>HTML attachment on phone = code wall.</strong> Phone downloads of raw <span class="mono">.html</span> open as unreadable source. Publish https Pages (or equivalent) and link; do not rely on attachment open.</li>
+        </ul>
+
+        <div class="callout">
+          Rule of thumb: if the board cannot survive a cold phone open at 18px with expandable depth, it is not COMPLETE. Re-read SoT. Re-run GATE. Then ask GO.
+        </div>
+      </div>
+    </details>
+
+    <details class="card" id="working">
+      <summary>3) What’s working well (receipts)</summary>
+      <div class="body">
+        <p>Keep these patterns. They earned receipts this month.</p>
+
+        <div class="receipt">
+          <strong>Sales Hub M6 :8891 live Waves</strong><br>
+          Hub stayed live with Waves visible. Real surface, not a stub. Proof that Option-2 style catalogues can ship without inventing a new hub every wave.
+        </div>
+        <div class="receipt">
+          <strong>Command #hubs door lock</strong><br>
+          Door discipline held. PREVIEW stayed preview. Live Command stayed gated. Agents did not SEND.
+        </div>
+        <div class="receipt">
+          <strong>MAKE_THEN_CURSOR view doors</strong><br>
+          Clear handoff: make the ask, then Cursor owns repo code + PR. Reduces Chief rewriting code in chat.
+        </div>
+        <div class="receipt">
+          <strong>Overnight forge arm (PR#4 PENDING_FABIAN_GO)</strong><br>
+          Honest hold. Forge armed overnight; merge waits for Fabian GO. Correct overnight posture while he sleeps.
+        </div>
+        <div class="receipt">
+          <strong>Schema Option 2 FINALIZE + audit</strong><br>
+          Finalise path plus audit trail. Prefer extending Option 2 (Wave 4 / factories catalogue) over spawning another hub.
+        </div>
+        <div class="receipt">
+          <strong>Magic Tree send-still Skills GATE GREEN + deliver</strong><br>
+          GATE ran; stamp green; deliver path clean. Template for dual GATE once readable + Friday-parity land.
+        </div>
+        <div class="receipt">
+          <strong>phone-readable-html stamp + device phone-first lock</strong><br>
+          Stamp exists. Default is phone-first because chat has no device flag. This audit itself must obey: system-ui, ≥18px, soft paper, tap links, no CDN fonts.
+        </div>
+      </div>
+    </details>
+
+    <details class="card" id="waste">
+      <summary>4) What’s not working / time waste</summary>
+      <div class="body">
+        <p>Call these out so we stop paying the same tax.</p>
+
+        <div class="waste">
+          <strong>QR living8-10 flatten/rewrite circus</strong><br>
+          Multiple living rewrites beyond the named ask. Burned forge time, thinned SoT, and forced re-locks. Touch only named ask next time.
+        </div>
+        <div class="waste">
+          <strong>Thin Mon AM board labelled complete</strong><br>
+          Chief fault. ~7KB stub marked COMPLETE against Friday ~45KB bar (expand / Save / full options). False COMPLETE trains bad SEND pressure.
+        </div>
+        <div class="waste">
+          <strong>Phone .html downloads unreadable</strong><br>
+          Attachment opens as a code wall on phone. Success path is published https Pages URL (or in-chat preview that paints), not “download the file and squint”.
+        </div>
+        <div class="waste">
+          <strong>Multi-stream pile-on risk</strong><br>
+          Several bricks moving without one owner each. Chief must route, not clone PlanBot or Skills_Bot mid-stream.
+        </div>
+        <div class="waste">
+          <strong>False COMPLETE / READY without dual GATE</strong><br>
+          Readable GATE and Friday-parity GATE both required. One green stamp is not enough. No dual GATE → no COMPLETE → no SEND ask.
+        </div>
+      </div>
+    </details>
+
+    <details class="card" id="gaps">
+      <summary>5) Gaps → fill (concrete)</summary>
+      <div class="body">
+        <p>Concrete fills, not vibes. Each gap has an owner shape.</p>
+
+        <div class="gap">
+          <strong>Dual GATE skill</strong><br>
+          Build and enforce: (1) readable phone GATE, (2) Friday-parity GATE (expand / Save / full options) before any COMPLETE label. Skills_Bot stamps; Chief refuses COMPLETE until both green.
+        </div>
+        <div class="gap">
+          <strong>Decision board SoT</strong><br>
+          Source of truth = fork Friday template, then phone paint. Always publish a Pages URL. Attachment-only is failure mode.
+        </div>
+        <div class="gap">
+          <strong>One owner per brick</strong><br>
+          Named owner on every stream. Chief does not ship a skinny duplicate of PlanBot’s Monday clock. Route, don’t clone.
+        </div>
+        <div class="gap">
+          <strong>Re-read SoT every forge</strong><br>
+          Lift <span class="mono">QR_FORGE_LOCK</span> pattern to all streams: open the lock / SoT before forge, not a thinned summary. HARD LOCK only works when re-read.
+        </div>
+        <div class="gap">
+          <strong>Product ask optional: client ios|desktop flag</strong><br>
+          Optional product ask so chat can pass device hint. Until then, phone-first default stays mandatory.
+        </div>
+        <div class="gap">
+          <strong>Wave 4 / factories catalogue under Option 2</strong><br>
+          Extend Schema Option 2. Do not invent a new hub. Catalogue factories under the finalised option; audit as you go.
+        </div>
+
+        <h2>Fill order (suggested)</h2>
+        <ol>
+          <li>Dual GATE skill wired into COMPLETE checks.</li>
+          <li>Friday-fork decision boards + Pages URL always.</li>
+          <li>SoT re-read habit on every overnight forge.</li>
+          <li>Owner tag on each brick before multi-stream work.</li>
+          <li>Optional client flag product ask (after the above).</li>
+          <li>Wave 4 catalogue under Option 2.</li>
+        </ol>
+      </div>
+    </details>
+
+    <details class="card" id="bar">
+      <summary>6) Top 1% efficiency bar (checklist)</summary>
+      <div class="body">
+        <p>Fabian can hold Chief and the lane bots to this bar. Tick only when true.</p>
+        <ul class="check">
+          <li><strong>Smoke stress pressure before link.</strong> Open the page cold on phone width. Expand every card. Confirm Save / full options if claimed. Then share the https link.</li>
+          <li><strong>Never SEND from agents.</strong> Agents forge, stamp, preview, park PR. Only Fabian SEND / GO / final eyes.</li>
+          <li><strong>PREVIEW ≠ live Command.</strong> Preview doors stay preview. Command #hubs and live Waves stay locked until GO.</li>
+          <li><strong>Touch only named ask.</strong> No living8-10 rewrite circus. No “while we’re here” scope creep on QR or boards.</li>
+          <li><strong>Phone-first https.</strong> system-ui, ≥18px, ink on soft paper, no CDN fonts, viewport, tap links, published URL. No code-wall attachments as the delivery.</li>
+          <li><strong>COMPLETE only after dual GATE.</strong> Readable + Friday-parity (expand / Save / full options). Thin KB stubs are not complete.</li>
+        </ul>
+
+        <div class="callout">
+          <strong>Tonight’s lock:</strong> Friday COMPLETE bar. If a board cannot match Friday depth, label it DRAFT or PENDING_FABIAN_GO. Never COMPLETE. Never SEND.
+        </div>
+      </div>
+    </details>
+
+    <footer>
+      <p>Chief · 6 Sep 2026 night · <strong>NEVER SEND</strong></p>
+      <p>Audience: Fabian Diaz, Traffic &amp; Access Solutions · sleeping · phone-first default · merge only after GO</p>
+      <p>File: <span class="mono">/workspace/boards/chief-month-audit-2026-09.html</span> · self-contained · no CDN fonts · AU English · no em dashes in body copy</p>
+    </footer>
+  </div>
+</body>
+</html>
