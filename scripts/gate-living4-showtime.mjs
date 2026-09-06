@@ -1,5 +1,5 @@
 /**
- * GATE living4 showtime — ICQR door first, then transform, then DEST.
+ * GATE living5 showtime — ICQR door first (close twin), then transform, then DEST.
  * First paint must be the QR-matrix aesthetic with PORTABOOM in the field
  * (not the living2/3d plaza twin-as-website). Tap or door-beat starts
  * amber → red, boom 100→0 (~7s), then leave to configured DEST.
@@ -95,6 +95,10 @@ function doorVision(buf) {
   let orange = 0;
   let chroma = 0;
   let navy = 0;
+  let orangeMinX = W;
+  let orangeMinY = H;
+  let orangeMaxX = 0;
+  let orangeMaxY = 0;
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
@@ -109,7 +113,13 @@ function doorVision(buf) {
     const edge = x < W * 0.08 || x > W * 0.92 || y < H * 0.08 || y > H * 0.92;
     if (edge && lum < 22 && max < 30) studioBlack += 1;
     if (lum < 80) dark += 1;
-    if (r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18) orange += 1;
+    if (r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18) {
+      orange += 1;
+      if (x < orangeMinX) orangeMinX = x;
+      if (x > orangeMaxX) orangeMaxX = x;
+      if (y < orangeMinY) orangeMinY = y;
+      if (y > orangeMaxY) orangeMaxY = y;
+    }
     if (b > r + 20 && b > g && r < 90 && b > 70 && lum < 90) navy += 1;
   }
   const creamRatio = cream / n;
@@ -117,11 +127,17 @@ function doorVision(buf) {
   const darkRatio = dark / n;
   const orangeRatio = orange / n;
   const chromaRatio = chroma / n;
-  const looksLikeQrField = creamRatio > 0.18
+  const orangeBBoxW = orangeMaxX > orangeMinX ? (orangeMaxX - orangeMinX + 1) : 0;
+  const orangeBBoxH = orangeMaxY > orangeMinY ? (orangeMaxY - orangeMinY + 1) : 0;
+  const orangeBBoxFrac = (orangeBBoxW * orangeBBoxH) / n;
+  const looksLikeQrField = creamRatio > 0.12
     && darkRatio > 0.03
     && darkRatio < 0.62
     && chromaRatio > 0.05;
-  const portaboomInField = orange > 2500;
+  const portaboomInField = orange > 8000;
+  const portaboomLargeEnough = orangeRatio >= 0.018
+    && orangeBBoxFrac >= 0.055
+    && orangeBBoxH / H >= 0.16;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -137,8 +153,13 @@ function doorVision(buf) {
     darkRatio: +darkRatio.toFixed(4),
     orangeRatio: +orangeRatio.toFixed(4),
     chromaRatio: +chromaRatio.toFixed(4),
+    orangeBBoxW,
+    orangeBBoxH,
+    orangeBBoxFrac: +orangeBBoxFrac.toFixed(4),
+    orangeHeightFrac: +(orangeBBoxH / H).toFixed(4),
     looksLikeQrField,
     portaboomInField,
+    portaboomLargeEnough,
     looksLikeWebsiteTwin,
     looksLikeFlatBWQR,
     looksLikeNormalQR: looksLikeQrField && looksLikeFlatBWQR,
@@ -252,7 +273,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living4&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living5&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -288,11 +309,14 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living4-icqr-door"
+    && doorSnap?.product === "living5-icqr-door"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
+    && vision.portaboomLargeEnough === true
+    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.20
+    && (doorSnap?.doorHeroFrame?.areaFrac ?? 0) >= 0.04
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -402,7 +426,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living4&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living5&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -437,7 +461,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living4`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living5`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -461,7 +485,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living4/.test(qrProof.clean.decoded || "");
+    && /v=living5/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -481,6 +505,9 @@ async function run() {
         websiteChrome: doorSnap?.websiteChrome ?? null,
         cameraIsOrtho: doorSnap?.cameraIsOrtho ?? null,
         usingGlb: doorSnap?.usingGlb ?? null,
+        doorOrthoWorldW: doorSnap?.doorOrthoWorldW ?? null,
+        doorOrthoWorldH: doorSnap?.doorOrthoWorldH ?? null,
+        doorHeroFrame: doorSnap?.doorHeroFrame ?? null,
       },
       chrome: doorChrome,
       vision,

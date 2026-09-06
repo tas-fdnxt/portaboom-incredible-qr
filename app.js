@@ -1314,15 +1314,26 @@ function fitScanOrtho() {
   scanCam.updateProjectionMatrix();
 }
 
-/** QR field fills phone width. Quiet cream above/below — not a 3/4 product frame. */
+/**
+ * Living4 framed the whole pad in width. On a 390×844 phone that made
+ * worldH ≈ pad / 0.39 — PORTABOOM a speck in cream paper (Fabian).
+ * Cover-fit a tighter crop so the cabinet fills the QR field, not the quiet zone.
+ */
+const DOOR_PAD_SPAN = 0.70;
 function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
-  const padSize = living.padSize;
-  const fracW = 0.84;
-  const worldW = padSize / fracW;
-  const worldH = worldW / aspect;
+  const span = living.padSize * DOOR_PAD_SPAN;
+  let worldW;
+  let worldH;
+  if (aspect < 1) {
+    worldH = span;
+    worldW = worldH * aspect;
+  } else {
+    worldW = span;
+    worldH = worldW / aspect;
+  }
   doorCam.left = -worldW / 2;
   doorCam.right = worldW / 2;
   doorCam.top = worldH / 2;
@@ -1332,18 +1343,70 @@ function fitDoorOrtho() {
   doorCam.updateProjectionMatrix();
 }
 
+function projectBoxViewportFrac(box, cam) {
+  if (!box || box.isEmpty()) return null;
+  const corners = [
+    new THREE.Vector3(box.min.x, box.min.y, box.min.z),
+    new THREE.Vector3(box.min.x, box.min.y, box.max.z),
+    new THREE.Vector3(box.min.x, box.max.y, box.min.z),
+    new THREE.Vector3(box.min.x, box.max.y, box.max.z),
+    new THREE.Vector3(box.max.x, box.min.y, box.min.z),
+    new THREE.Vector3(box.max.x, box.min.y, box.max.z),
+    new THREE.Vector3(box.max.x, box.max.y, box.min.z),
+    new THREE.Vector3(box.max.x, box.max.y, box.max.z),
+  ];
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -Infinity;
+  let maxY = -Infinity;
+  for (const p of corners) {
+    p.project(cam);
+    if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+    minX = Math.min(minX, p.x);
+    minY = Math.min(minY, p.y);
+    maxX = Math.max(maxX, p.x);
+    maxY = Math.max(maxY, p.y);
+  }
+  if (!Number.isFinite(minX) || maxX <= minX) return null;
+  const x0 = Math.max(-1, Math.min(1, minX));
+  const x1 = Math.max(-1, Math.min(1, maxX));
+  const y0 = Math.max(-1, Math.min(1, minY));
+  const y1 = Math.max(-1, Math.min(1, maxY));
+  const widthFrac = Math.max(0, (x1 - x0) / 2);
+  const heightFrac = Math.max(0, (y1 - y0) / 2);
+  return {
+    widthFrac: +widthFrac.toFixed(4),
+    heightFrac: +heightFrac.toFixed(4),
+    areaFrac: +(widthFrac * heightFrac).toFixed(4),
+  };
+}
+
+function measureDoorHeroFrame() {
+  if (!boom || viewMode !== "door") return null;
+  return projectBoxViewportFrac(gatherHeroBox(boom), doorCam);
+}
+
 /**
- * Steep look-down so the 49×49 towers read as a QR matrix.
- * Slight +Z tilt (cabinet face) so PORTABOOM has volume in the field.
+ * Steep look-down so the 49×49 towers still read as a QR matrix.
+ * Closer ortho + cabinet look-at so PORTABOOM fills the field.
  * Not lockWorldCamera's 3/4 plaza hero.
  */
 function lockDoorCamera() {
   fitDoorOrtho();
   const pad = living.padSize;
   doorCam.up.set(0, 1, 0);
-  // ~38° from vertical: QR finders still lock the read; cabinet orange + boom read as PORTABOOM.
-  doorCam.position.set(pad * 0.14, 4.15, pad * 0.88);
-  doorCam.lookAt(0, 0.28, 0);
+  let lookY = 0.52;
+  let lookZ = 0.12;
+  if (boom) {
+    const hero = gatherHeroBox(boom);
+    const c = hero.getCenter(new THREE.Vector3());
+    if (Number.isFinite(c.y)) lookY = c.y;
+    if (Number.isFinite(c.z)) lookZ = c.z;
+  }
+  // ~48° from vertical: face is readable, still a QR field — not a plaza hero.
+  // Y stays above the raised 4 m-class boom so the pole is not clipped by near.
+  doorCam.position.set(pad * 0.10, 4.10, lookZ + pad * 1.02);
+  doorCam.lookAt(0, lookY, lookZ);
   doorCam.updateProjectionMatrix();
 }
 
@@ -2775,7 +2838,7 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living4-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living5-icqr-door" : "living2-brand-world",
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
@@ -2799,6 +2862,9 @@ window.__iqr = {
       },
       cameraIsPerspective: camera.isPerspectiveCamera === true,
       cameraIsOrtho: camera.isOrthographicCamera === true,
+      doorOrthoWorldW: viewMode === "door" ? +(doorCam.right - doorCam.left).toFixed(4) : null,
+      doorOrthoWorldH: viewMode === "door" ? +(doorCam.top - doorCam.bottom).toFixed(4) : null,
+      doorHeroFrame: measureDoorHeroFrame(),
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
       twinInQrField: !!(boom && boom.visible && viewMode === "door"),
