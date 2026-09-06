@@ -1277,7 +1277,7 @@ function placeTwinInLivingWorld() {
   boom.userData.livingPlanted = true;
 }
 
-/** Default share pose: 3/4 hero of the PB4000 living on the plaza — not a top-down QR. */
+/** Default share pose: 3/4 product hero on the plaza — not an aerial of the QR field. */
 function lockWorldCamera() {
   if (!boom) return;
   camera = unitCam;
@@ -1286,21 +1286,28 @@ function lockWorldCamera() {
   const size = hero.getSize(new THREE.Vector3());
   const fullSize = full.getSize(new THREE.Vector3());
   const center = hero.getCenter(new THREE.Vector3());
-  unitCam.fov = 34;
+  const yaw = boom.rotation.y || Math.PI;
+  const face = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const side = new THREE.Vector3(face.z, 0, -face.x);
+  unitCam.fov = 32;
   unitCam.near = 0.05;
   unitCam.far = 80;
   unitCam.updateProjectionMatrix();
   const fov = THREE.MathUtils.degToRad(unitCam.fov);
   const aspect = Math.max(0.42, unitCam.aspect || 0.46);
-  const distH = (size.y * 1.72) / (2 * Math.tan(fov / 2));
-  const distW = (Math.max(size.x, size.z) * 2.05) / (2 * Math.tan(fov / 2) * aspect);
-  const dist = Math.max(distH, distW, 2.35);
+  const distH = (size.y * 1.62) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 1.85) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 2.15);
   unitCam.position.set(
-    center.x + dist * 0.52 + fullSize.x * 0.04,
-    center.y + size.y * 0.28,
-    center.z + dist * 0.74
+    center.x + face.x * dist * 0.82 + side.x * dist * 0.48 + fullSize.x * 0.06,
+    center.y + size.y * 0.14,
+    center.z + face.z * dist * 0.82 + side.z * dist * 0.48
   );
-  const look = new THREE.Vector3(center.x + fullSize.x * 0.22, center.y * 0.18, center.z);
+  const look = new THREE.Vector3(
+    center.x + fullSize.x * 0.16,
+    center.y - size.y * 0.02,
+    center.z
+  );
   unitCam.lookAt(look);
   unitCam.updateProjectionMatrix();
   unitCam.userData.worldLook = look;
