@@ -1,9 +1,10 @@
-# GATE — living3 showtime (amber → red, boom down)
+# GATE — living3d showtime then configurable DEST
 
-Phone-width (390×844). `app.js?v=living3b`.
-DEST (unchanged): `https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/`
-Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1`
-ECC **H** send QR. World still uses DEST H-matrix (version **8**, **49×49**, **1258** dark modules).
+Phone-width (390×844). `app.js?v=living3d`.
+DEST **default**: `https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/`
+DEST **override**: living door `?dest=<URL-encoded http(s) URL>` (any website). Config: `dest-config.mjs`.
+Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3d&showtime=1`
+ECC **H** send QR. World still uses the baked default-product H-matrix (version **8**, **49×49**, **1258** dark modules).
 SoT: living2 brand world + existing twin boom / KINDCOL 3-aspect. **Not** a second twin. **Not** WordPress.
 
 Proof runner: `node scripts/gate-living3-showtime.mjs` (Playwright + jsQR).
@@ -12,33 +13,36 @@ Living2 regression: `node scripts/gate-living2.mjs` (no `showtime=` → boom up 
 
 Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
-## SMOKE — showtime
+## SMOKE — showtime → DEST
 
 | Check | Result |
 | --- | --- |
 | `?showtime=1` opens world with twin | GREEN — `viewMode=world`, `usingGlb=true`, `defaultShowsTwin=true` |
-| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.21s** (`longerThanTeaser=true`, in 6–8.5). Amber held **2.00s** before first red. `boomPct` 100 → 0 |
+| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.168s**. Amber held **1.97s**. `boomPct` 100 → 0. Then **0.4s** beat and `location.assign(leaveDest)` |
 | During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
-| After down = red held | GREEN — `showtimePhase=settled`, `signalAspect=red`, `boomPct=0`. No auto-raise |
-| Minimal HUD during showtime | GREEN — `#liveDock` hidden while `playing` / `pending` |
-| After showtime, living controls | GREEN — Life ON + Tap to scan restored |
-| Tap to scan → DEST | GREEN — `captureScan()` native jsQR → DEST |
-| Stationary send QR | GREEN — jsQR decodes living URL from `fabian-showtime-qr.png` |
+| After down = leave configured DEST (default) | GREEN — omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL (`leaveDestSource=default`) |
+| After down = leave configured DEST (override) | GREEN — `?dest=` URL-encoded test site → leave that URL (`leaveDestSource=query`), not the default |
+| Minimal HUD during showtime | GREEN — `#liveDock` hidden while `playing` / `pending` / until leave |
+| Stationary send QR | GREEN — jsQR decodes living showtime URL from `fabian-showtime-qr.png` (not DEST) |
+| Tap to scan → baked product matrix | GREEN — default living page `captureScan()` native jsQR → default product URL |
 
 ## STRESS
 
 | Step | Result |
 | --- | --- |
-| living2 default (no showtime) | Unchanged world rest: boom up, green, dock visible |
-| `?v=living2&showtime=1` | Same as `?v=living3&showtime=1` — query `showtime=1` is the switch |
-| Canvas tap during showtime | Ignored until settle |
+| living2 default (no showtime) | Unchanged world rest: boom up, green, dock visible. No auto DEST |
+| `?v=living3d&showtime=1` | Showtime then default DEST. Query `showtime=1` is the switch |
+| `?showtime=1&dest=` | Any http(s) website. Invalid / non-http falls back to default |
+| Canvas tap during showtime | Ignored until leave |
 
 ## PRESSURE (must refute)
 
 | Claim | Refute |
 | --- | --- |
 | Second invented twin | One `pb4000_named.glb`. `beginCloseSequence` / `setSignalAspect` / `setBoomPct` only |
-| QR opens DEST only | Send PNG encodes the living Pages URL with `showtime=1` |
+| QR opens DEST only | Send PNG encodes the living Pages URL with `showtime=1`. Animation runs first |
+| DEST is a single hard-coded dead end | `dest-config.mjs` default + `?dest=` override. GATE proves both |
+| Showtime page is the destination | After boom 100→0 + hold, `location.assign(leaveDest)` |
 | Flatten / print is the product | Flatten gone. Print still demoted. `printClaimReady=false` |
 | Default living2 broken | No query → `showtimePhase=off`, existing idle |
 
@@ -46,7 +50,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 1. Point a phone at **`fabian-showtime-qr.png`** (stationary).
 2. Camera opens the living Incredible QR page with showtime.
-3. Watch amber → red and the boom come down (~3 seconds).
-4. Then Life / Tap to scan as today. Tap to scan still goes to the DEST product page.
+3. Watch amber → red and the boom come down (~7s).
+4. After the boom is fully down, the page goes to DEST (default product link, or `?dest=` if the living URL includes one).
 
 Do not merge. Chief delivers the PNG after merge.

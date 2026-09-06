@@ -1,8 +1,9 @@
 /**
- * GATE living3 showtime proof.
+ * GATE living3d showtime → configurable DEST proof.
  * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s.
- * Must beat Fabian’s living2 teaser GIF loop (~3.58–3.6s, 43 frames @ ~12fps).
- * Target 6–8s. Then Life / Tap to scan return.
+ * After settle/hold, the page leaves to configured DEST (default or ?dest=).
+ * Stationary send QR encodes the living showtime URL, never DEST.
+ * Tap-to-scan still decodes the baked default product matrix.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -11,7 +12,8 @@ import { extname, join, resolve } from "node:path";
 import { PNG } from "pngjs";
 import jsQR from "jsqr";
 import { makeShowtimeQr } from "./make-showtime-qr.mjs";
-import { DEST, LIVING_SHOWTIME_URL } from "./showtime-url.mjs";
+import { DEST, GATE_TEST_DEST, LIVING_SHOWTIME_URL } from "./showtime-url.mjs";
+import { resolveLeaveDest, SHOWTIME_DEST_DEFAULT } from "../dest-config.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const OUT = resolve(ROOT, "gate-artifacts");
@@ -19,6 +21,7 @@ const ART = "/opt/cursor/artifacts";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".png": "image/png",
   ".glb": "model/gltf-binary",
@@ -170,8 +173,22 @@ async function run() {
     deviceScaleFactor: 2,
   });
   const errors = [];
+  const navigations = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`http://127.0.0.1:${port}/?v=living3&showtime=1`, { waitUntil: "networkidle" });
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) navigations.push(frame.url());
+  });
+  await page.addInitScript(() => {
+    window.__iqrDestLeaves = [];
+    window.__iqrOnLeaveToDest = (info) => {
+      window.__iqrDestLeaves.push({
+        dest: info?.dest || null,
+        reason: info?.reason || null,
+        at: info?.at || Date.now(),
+      });
+    };
+  });
+  await page.goto(`http://127.0.0.1:${port}/?v=living3d&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
 
   const samples = [];
@@ -206,6 +223,11 @@ async function run() {
       showtimeHudHidden: snap?.showtimeHudHidden ?? null,
       liveDockHidden: snap?.liveDockHidden ?? null,
       cameraIsPerspective: snap?.cameraIsPerspective ?? null,
+      destLeft: snap?.destLeft ?? null,
+      destLeaveUrl: snap?.destLeaveUrl ?? null,
+      destLeaveReason: snap?.destLeaveReason ?? null,
+      leaveDest: snap?.leaveDest ?? null,
+      leaveDestSource: snap?.leaveDestSource ?? null,
     };
     samples.push(row);
     if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
@@ -226,8 +248,10 @@ async function run() {
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(250);
+  await page.waitForFunction(() => window.__iqr?.snap?.destLeft === true, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(80);
   const snapEnd = await page.evaluate(() => window.__iqr?.snap);
+  const destLeaves = await page.evaluate(() => window.__iqrDestLeaves || []);
   if (!snappedDown) {
     await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
   }
@@ -238,20 +262,86 @@ async function run() {
     const life = document.getElementById("lifeBtn");
     const scan = document.getElementById("scanBtn");
     return {
-      hidden: dock?.hidden === true,
+      hidden: dock?.hidden === true || dock?.offsetParent === null,
       bodyShowtime: document.body.classList.contains("showtime"),
       life: life?.textContent || null,
       scan: scan?.textContent || null,
     };
   });
 
-  await page.locator("#scanBtn").click();
-  await page.waitForTimeout(400);
-  const smokeUrl = await page.evaluate(() => window.__iqr.captureScan());
+  const destLeave = destLeaves[0] || (snapEnd?.destLeave ?? null);
+  const destLeaveOk = !!destLeave
+    && destLeave.dest === DEST
+    && destLeave.dest === SHOWTIME_DEST_DEFAULT
+    && destLeave.reason === "showtime-complete"
+    && snapEnd?.leaveDest === DEST
+    && snapEnd?.leaveDestSource === "default"
+    && !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+
+  const destHook = () => {
+    window.__iqrDestLeaves = [];
+    window.__iqrOnLeaveToDest = (info) => {
+      window.__iqrDestLeaves.push({
+        dest: info?.dest || null,
+        reason: info?.reason || null,
+        source: info?.source || null,
+        at: info?.at || Date.now(),
+      });
+    };
+  };
+
+  const overridePage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+  overridePage.on("pageerror", (e) => errors.push(String(e)));
+  await overridePage.addInitScript(destHook);
+  const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
+  await overridePage.goto(
+    `http://127.0.0.1:${port}/?v=living3d&showtime=1&${overrideQuery}`,
+    { waitUntil: "networkidle" },
+  );
+  await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
+  const overrideCfg = await overridePage.evaluate(() => ({
+    leaveDest: window.__iqr.snap.leaveDest,
+    leaveDestSource: window.__iqr.snap.leaveDestSource,
+    leaveDestDefault: window.__iqr.snap.leaveDestDefault,
+  }));
+  await overridePage.evaluate(() => window.__iqr.settleShowtime());
+  await overridePage.waitForFunction(() => window.__iqr?.snap?.destLeft === true, { timeout: 4000 }).catch(() => {});
+  const overrideLeave = (await overridePage.evaluate(() => window.__iqrDestLeaves || []))[0]
+    || (await overridePage.evaluate(() => window.__iqr?.snap?.destLeave));
+  const overrideOk = overrideCfg.leaveDest === GATE_TEST_DEST
+    && overrideCfg.leaveDestSource === "query"
+    && overrideCfg.leaveDestDefault === SHOWTIME_DEST_DEFAULT
+    && overrideLeave?.dest === GATE_TEST_DEST
+    && overrideLeave?.dest !== DEST;
+  await overridePage.close();
+
+  const parseProof = {
+    omitted: resolveLeaveDest(null) === SHOWTIME_DEST_DEFAULT,
+    empty: resolveLeaveDest("") === SHOWTIME_DEST_DEFAULT,
+    query: resolveLeaveDest(GATE_TEST_DEST) === GATE_TEST_DEST,
+    encoded: resolveLeaveDest(decodeURIComponent(encodeURIComponent(GATE_TEST_DEST))) === GATE_TEST_DEST,
+    rejectJs: resolveLeaveDest("javascript:alert(1)") === SHOWTIME_DEST_DEFAULT,
+  };
+  const parseOk = Object.values(parseProof).every(Boolean);
+
+  const scanPage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+  scanPage.on("pageerror", (e) => errors.push(String(e)));
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living3d`, { waitUntil: "networkidle" });
+  await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
+  await scanPage.locator("#scanBtn").click();
+  await scanPage.waitForTimeout(400);
+  const smokeUrl = await scanPage.evaluate(() => window.__iqr.captureScan());
   const smokeBuf = dataUrlToBuf(smokeUrl);
   await writeFile(join(OUT, "showtime-scan-webgl.png"), smokeBuf);
   const smoke = decodePngBuffer(smokeBuf);
-  await page.screenshot({ path: join(OUT, "showtime-scan.png"), type: "png" });
+  await scanPage.screenshot({ path: join(OUT, "showtime-scan.png"), type: "png" });
+  await scanPage.close();
 
   const timeline = summarizeTimeline(samples);
   const settleElapsed = snapEnd?.showtimeElapsed ?? 0;
@@ -262,12 +352,25 @@ async function run() {
     && settleElapsed > 3.6
     && settleElapsed >= 6
     && settleElapsed <= 8.5;
-  const hudRestored = dockAfter.hidden === false && dockAfter.scan === "Tap to scan";
+  const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+  const qrIsLiving = qrProof.clean.match === true
+    && qrProof.clean.decoded === LIVING_SHOWTIME_URL
+    && qrProof.clean.decoded !== DEST;
 
   const report = {
     dest: DEST,
+    destDefault: SHOWTIME_DEST_DEFAULT,
+    destConfigurable: true,
     livingUrl: LIVING_SHOWTIME_URL,
     errors,
+    parseProof,
+    parseOk,
+    destOverride: {
+      dest: GATE_TEST_DEST,
+      config: overrideCfg,
+      leave: overrideLeave || null,
+      ok: overrideOk,
+    },
     qr: qrProof,
     timeline,
     samples,
@@ -281,26 +384,42 @@ async function run() {
       budget: snapEnd?.showtimeBudget ?? null,
       ok: settleOk,
     },
+    destLeave: {
+      calls: destLeaves,
+      dest: destLeave?.dest || null,
+      reason: destLeave?.reason || null,
+      ok: destLeaveOk,
+      stayedOnLivingForProof: stayedOnLiving,
+      navigations,
+    },
     hud: {
       duringPlayHidden: timeline.hudHiddenWhilePlaying,
       after: dockAfter,
-      restored: hudRestored,
+      restored: false,
+      leftHidden: dockAfter.bodyShowtime === true,
     },
     smoke: {
       decoded: smoke?.data || null,
       match: smoke?.data === DEST,
       how: smoke?.how || null,
-      from: "Tap to scan after showtime settle",
+      from: "Tap to scan on default living page (no showtime)",
     },
     snapEnd: {
       viewMode: snapEnd?.viewMode,
       showtimePhase: snapEnd?.showtimePhase,
       boomPct: snapEnd?.boomPct,
       signalAspect: snapEnd?.signalAspect,
+      destLeft: snapEnd?.destLeft ?? null,
+      destLeaveUrl: snapEnd?.destLeaveUrl ?? null,
+      destLeaveReason: snapEnd?.destLeaveReason ?? null,
+      leaveDest: snapEnd?.leaveDest ?? null,
+      leaveDestSource: snapEnd?.leaveDestSource ?? null,
+      leaveDestDefault: snapEnd?.leaveDestDefault ?? null,
       defaultShowsTwin: snapEnd?.defaultShowsTwin,
       product: snapEnd?.product,
       showtimeBudget: snapEnd?.showtimeBudget,
       showtimeTeaserS: snapEnd?.showtimeTeaserS,
+      showtimeLeaveS: snapEnd?.showtimeLeaveS,
       longerThanTeaser: snapEnd?.longerThanTeaser,
     },
   };
@@ -330,7 +449,10 @@ async function run() {
   await browser.close();
   server.close();
 
-  const ok = qrProof.clean.match
+  const ok = qrIsLiving
+    && destLeaveOk
+    && parseOk
+    && overrideOk
     && timeline.sawAmber
     && timeline.sawRed
     && timeline.amberLampOn
@@ -343,7 +465,7 @@ async function run() {
     && (snapEnd?.showtimeBudget || 0) > (snapEnd?.showtimeTeaserS || 3.6)
     && timeline.hudHiddenWhilePlaying
     && settleOk
-    && hudRestored
+    && report.hud.leftHidden
     && report.smoke.match
     && !errors.length;
   process.exit(ok ? 0 : 1);

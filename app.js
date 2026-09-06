@@ -4,6 +4,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
 import { buildLivingQr } from "./living-qr.js";
+import {
+  SHOWTIME_DEST_DEFAULT,
+  parseHttpUrl,
+  resolveLeaveDest,
+} from "./dest-config.mjs";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -580,6 +585,10 @@ const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const showtimeWanted = pageParams.get("showtime") === "1";
+const destParam = pageParams.get("dest");
+const destParsed = parseHttpUrl(destParam);
+const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAULT);
+const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
  * Showtime must be longer than that loop — do not lock to ~3s.
@@ -589,6 +598,8 @@ const TEASER_LOOP_S = 3.6;
 const SHOWTIME_AMBER_S = 1.5;
 const SHOWTIME_LOWER_S = 5.2;
 const SHOWTIME_HOLD_S = 0.4;
+/** Short beat after boom fully down, then leave to DEST. */
+const SHOWTIME_LEAVE_S = 0.4;
 const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
@@ -596,6 +607,8 @@ if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
 let showtimePhase = showtimeWanted ? "pending" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
+let destLeave = null;
+let destLeaveTimer = 0;
 if (showtimeWanted) document.body.classList.add("showtime");
 let viewMode = "world"; // world = ICQR default 3D · scan = tap-to-scan pose
 let scanOpen = false;
@@ -1333,7 +1346,7 @@ function lockWorldCamera() {
 }
 
 function showtimeHudHidden() {
-  return showtimePhase === "pending" || showtimePhase === "playing";
+  return !!showtimeWanted;
 }
 
 function startShowtime() {
@@ -1354,6 +1367,25 @@ function startShowtime() {
   return true;
 }
 
+function leaveToDest(reason = "showtime-complete") {
+  if (destLeave) return destLeave;
+  destLeave = {
+    dest: leaveDest,
+    reason,
+    at: performance.now(),
+    source: leaveDestSource,
+  };
+  const hook = typeof window.__iqrOnLeaveToDest === "function"
+    ? window.__iqrOnLeaveToDest
+    : null;
+  if (hook) {
+    hook(destLeave);
+    return destLeave;
+  }
+  location.assign(leaveDest);
+  return destLeave;
+}
+
 function settleShowtime() {
   if (!boomRig) return;
   showtimePhase = "settled";
@@ -1361,10 +1393,17 @@ function settleShowtime() {
   showClock = 0;
   applyBoomShown(0);
   setSignalAspect("red");
-  document.body.classList.remove("showtime");
-  if (controls && !scanOpen) controls.enabled = true;
-  setStatus("Living QR · tap to scan the field");
+  // Stay in showtime HUD — this page is not the destination. DEST is.
+  document.body.classList.add("showtime");
+  if (controls) controls.enabled = false;
+  setStatus("Showtime");
   syncModeHud();
+  if (!destLeave && !destLeaveTimer) {
+    destLeaveTimer = window.setTimeout(() => {
+      destLeaveTimer = 0;
+      leaveToDest("showtime-complete");
+    }, Math.round(SHOWTIME_LEAVE_S * 1000));
+  }
 }
 
 function applyWorldPose() {
@@ -2547,6 +2586,7 @@ syncModeHud();
 window.__iqr = {
   startShowtime,
   settleShowtime,
+  leaveToDest,
   get boom() { return boom; },
   get camera() {
     return {
@@ -2586,6 +2626,10 @@ window.__iqr = {
       scanOpen,
       living: true,
       dest: DEST,
+      leaveDest,
+      leaveDestDefault: SHOWTIME_DEST_DEFAULT,
+      leaveDestSource,
+      destParam,
       ecc: ECC,
       matrixN: destQr.size,
       qrVersion: destQr.version,
@@ -2603,6 +2647,11 @@ window.__iqr = {
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
       showtimeHudHidden: showtimeHudHidden(),
+      showtimeLeaveS: SHOWTIME_LEAVE_S,
+      destLeave,
+      destLeft: !!destLeave,
+      destLeaveUrl: destLeave?.dest ?? null,
+      destLeaveReason: destLeave?.reason ?? null,
       boomAngle: boomRig?.pivot?.rotation?.z ?? null,
       lampIntensity: {
         red: lampMats.red?.emissiveIntensity ?? null,
