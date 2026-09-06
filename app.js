@@ -3136,6 +3136,7 @@ window.__iqr = {
   settleShowtime,
   leaveToDest,
   get showtimeTick() {
+    const ghosts = countUprightBoomGhosts();
     return {
       showtimePhase,
       showtimeElapsed: +showtimeElapsed.toFixed(3),
@@ -3158,8 +3159,8 @@ window.__iqr = {
       destLeaveReason: destLeave?.reason ?? null,
       leaveDest,
       leaveDestSource,
-      ghostBoomCount: countUprightBoomGhosts(),
-      singleBoom: countUprightBoomGhosts() === 0,
+      ghostBoomCount: ghosts,
+      singleBoom: ghosts === 0,
     };
   },
   get boom() { return boom; },
