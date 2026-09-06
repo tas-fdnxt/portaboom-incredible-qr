@@ -18,7 +18,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, pixel modules, **not** living2 `lockWorldCamera` 3/4 plaza |
-| PORTABOOM in the field, readable | GREEN — cabinet fills a substantial share of the viewport. `doorCabinetFrame.heightFrac ≥ 0.18`, `doorHeroFrame.heightFrac ≥ 0.22`, largest orange blob height ≥ 16% of phone. Living4 width-fit of the whole pad is rejected (Fabian: too far / can’t see it) |
+| PORTABOOM in the field, readable | GREEN — cabinet `heightFrac=0.270`, hero `0.887`, largest orange blob `heightFrac=0.312` / `areaFrac=0.125`. Living4 width-fit of the whole pad is rejected (Fabian: too far / can’t see it) |
 | Not another website | GREEN — studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false`. No Life / Tap to scan / PB4000 chrome |
 | Not a flat B&W QR card | GREEN — `looksLikeFlatBWQR=false`. Colored living modules + unit volume |
 
