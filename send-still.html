@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>living11 send still</title>
+<style>
+html,body{margin:0;background:#f4efe6;overflow:hidden}
+canvas#stage{display:block;width:1400px;height:1400px}
+</style>
+<script type="importmap">
+{"imports":{
+  "three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.js",
+  "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<canvas id="stage" width="1400" height="1400"></canvas>
+<script type="module">
+import * as THREE from "three";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { buildLivingQr } from "./living-qr.js";
+
+const LIVERY = Object.freeze({
+  Y: 0xf47514,
+  S: 0xcdd0d5,
+  K: 0x222426,
+  R: 0xc41a1a,
+  A: 0xe07b12,
+});
+const KINDCOL = Object.freeze({ red: 0xff2a1a, amber: 0xffa51e, green: 0x2aff55 });
+
+const canvas = document.getElementById("stage");
+const renderer = new THREE.WebGLRenderer({
+  canvas,
+  antialias: true,
+  alpha: false,
+  preserveDrawingBuffer: true,
+});
+renderer.setPixelRatio(1);
+renderer.setSize(1400, 1400, false);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.08;
+renderer.shadowMap.enabled = true;
+renderer.setClearColor(0xf4efe6, 1);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0xf4efe6);
+try {
+  const pmrem = new THREE.PMREMGenerator(renderer);
+  scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+} catch { /* env optional */ }
+
+scene.add(new THREE.HemisphereLight(0xfff4e8, 0x1b2a4a, 0.55));
+const key = new THREE.DirectionalLight(0xffffff, 1.15);
+key.position.set(2.2, 6.4, 3.4);
+key.castShadow = true;
+scene.add(key);
+const fill = new THREE.DirectionalLight(0xffd8a8, 0.38);
+fill.position.set(-2.4, 3.2, 2.2);
+scene.add(fill);
+
+function waitMatrix() {
+  return new Promise((resolve) => {
+    const tick = () => {
+      if (Array.isArray(window.__SEND_MATRIX) && window.__SEND_MATRIX.length) {
+        resolve(window.__SEND_MATRIX);
+        return;
+      }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  });
+}
+
+const matrix = await waitMatrix();
+const living = buildLivingQr(THREE, {
+  matrix,
+  dest: window.__SEND_URL || "",
+  livery: LIVERY,
+  kindcol: KINDCOL,
+});
+if (living.apron) living.apron.visible = false;
+if (living.ring) living.ring.visible = false;
+if (living.scanPad) living.scanPad.visible = false;
+for (const m of living.mods) {
+  const cap = m.getObjectByName("QrModTop");
+  if (cap) cap.visible = false;
+}
+scene.add(living.group);
+
+const cam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
+const pad = living.padSize;
+
+function applyPose(name) {
+  const poses = {
+    /**
+     * Elevated look into the cuboid field — same family as the living door.
+     * Slightly steeper than the phone door so the H-matrix stays scannable.
+     */
+    elevated: {
+      pos: new THREE.Vector3(pad * 0.06, pad * 0.92, pad * 0.78),
+      look: new THREE.Vector3(0, pad * 0.04, 0),
+      span: pad * 1.12,
+    },
+    mid: {
+      pos: new THREE.Vector3(pad * 0.04, pad * 1.15, pad * 0.52),
+      look: new THREE.Vector3(0, pad * 0.03, 0),
+      span: pad * 1.10,
+    },
+    steep: {
+      pos: new THREE.Vector3(pad * 0.02, pad * 1.55, pad * 0.28),
+      look: new THREE.Vector3(0, pad * 0.02, 0),
+      span: pad * 1.08,
+    },
+    top: {
+      pos: new THREE.Vector3(0.0001, pad * 2.2, 0.0001),
+      look: new THREE.Vector3(0, 0, 0),
+      span: pad * 1.06,
+    },
+  };
+  const pose = poses[name] || poses.elevated;
+  const span = pose.span;
+  cam.left = -span / 2;
+  cam.right = span / 2;
+  cam.top = span / 2;
+  cam.bottom = -span / 2;
+  cam.position.copy(pose.pos);
+  cam.up.set(0, 1, 0);
+  if (name === "top") cam.up.set(0, 0, -1);
+  cam.lookAt(pose.look);
+  cam.updateProjectionMatrix();
+  renderer.render(scene, cam);
+  const dir = new THREE.Vector3();
+  cam.getWorldDirection(dir);
+  const elev = THREE.MathUtils.radToDeg(Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1)));
+  return {
+    pose: name,
+    elev: +elev.toFixed(2),
+    padSize: pad,
+    n: living.n,
+    miniCabinetCount: living.miniCabinetCount,
+    finderModules: living.finderModules,
+    stripeModules: living.stripeModules,
+    modulePalette: living.modulePalette,
+  };
+}
+
+window.__sendStill = {
+  ready: true,
+  n: living.n,
+  padSize: pad,
+  miniCabinetCount: living.miniCabinetCount,
+  finderModules: living.finderModules,
+  stripeModules: living.stripeModules,
+  modulePalette: living.modulePalette,
+  pose: applyPose("elevated"),
+  applyPose,
+  capture() {
+    renderer.render(scene, cam);
+    return canvas.toDataURL("image/png");
+  },
+};
+document.title = "living11-send-ready";
+</script>
+</body>
+</html>

@@ -1,10 +1,9 @@
 /**
- * GATE living10 showtime — ICQR door first (elevated 3D QR field,
- * one boom, cuboid minis). Restore the last GOOD dense field.
- * Reject living8/9 flatten (logo header + orange footer strip).
- * Tap or door-beat starts green 0.5s → amber 1s → red 0.5s → boom down,
- * then leave to configured DEST.
- * Stationary send QR encodes the living showtime URL, never DEST.
+ * GATE living11 showtime — living10 dense 3D ICQR door + twin-tidy5 REAL.
+ * STOP Ø400 (signImpliedM≈0.40, stopOverDoor≈0.347), boom 4 m class,
+ * cancel-to-down STOP readable for oncoming traffic, all-orange minis,
+ * living-scene send PNG (not paintClean / not paintLivingMatrix).
+ * Reject living8/9 flatten. Timing unchanged: 0.5+1+0.5+boom then DEST.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -210,16 +209,19 @@ function doorVision(buf) {
   const blob = largestOrangeBlob(data, W, H);
   const orangeTopFrac = orangeMinY < Infinity ? orangeMinY / H : 1;
   const orangeHeightSpan = orangeBBoxH / H;
-  const looksLikeQrField = darkRatio > 0.05
-    && darkRatio < 0.72
+  const looksLikeQrField = (
+      (darkRatio > 0.04 && darkRatio < 0.72)
+      || (orangeRatio > 0.08 && darkRatio > 0.015 && darkRatio < 0.72)
+    )
     && chromaRatio > 0.06
-    && orangeHeightSpan > 0.28;
+    && orangeHeightSpan > 0.32;
   const portaboomInField = orange > 6000 && blob.pixels > 3000;
-  const portaboomLargeEnough = blob.heightFrac >= 0.10
-    && blob.heightFrac < 0.55
-    && blob.areaFrac >= 0.012
-    && blob.pixels > 4000;
-  const cabinetNotDominating = blob.heightFrac < 0.55;
+  // living11: data modules are all orange, so the largest blob is the field.
+  // Hero size is proven by doorCabinetFrame in snap, not this blob.
+  const portaboomLargeEnough = blob.heightFrac >= 0.18
+    && blob.areaFrac >= 0.04
+    && blob.pixels > 8000;
+  const cabinetNotDominating = blob.heightFrac < 0.88;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   const looksLikeFlattenedPoster = creamRatio > 0.42 && orangeHeightSpan < 0.38 && orangeTopFrac > 0.28;
@@ -393,14 +395,15 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living10&showtime=1`, { waitUntil: "domcontentloaded" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living11&showtime=1`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
     window.__iqr?.snap?.usingGlb === true
     && window.__iqr?.snap?.viewMode === "door"
     && window.__iqr?.snap?.miniHasTrafficLight === false
-    && (window.__iqr?.snap?.stripeModules ?? 0) >= 0
+    && (window.__iqr?.snap?.miniCabinetCount ?? 0) > 80
+    && window.__iqr?.snap?.signImpliedM != null
   ), { timeout: 25000 });
 
   const doorSnap = await page.evaluate(() => window.__iqr?.snap);
@@ -443,10 +446,13 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living10-icqr-door"
+    && doorSnap?.product === "living11-icqr-door"
     && doorSnap?.miniHasTrafficLight === false
     && doorSnap?.miniCabinetSource === "cuboid-field"
     && doorSnap?.miniFieldKind === "dense-cuboid-qr"
+    && /data-orange-portaboom/.test(doorSnap?.modulePalette || "")
+    && (doorSnap?.stripeModules ?? 99) === 0
+    && (doorSnap?.miniCabinetCount ?? 0) > 80
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
@@ -457,7 +463,7 @@ async function run() {
     && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.09
     && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.55
     && vision.orangeBlob.heightFrac >= 0.09
-    && vision.orangeBlob.heightFrac < 0.55
+    && vision.orangeBlob.heightFrac < 0.88
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
     && doorSnap?.doorSignalInFrame === true
@@ -471,7 +477,6 @@ async function run() {
     && (doorSnap?.ghostBoomCount ?? 99) === 0
     && doorSnap?.miniHasTrafficLight === false
     && (doorSnap?.miniTrafficLights ?? 99) === 0
-    && (doorSnap?.stripeModules ?? 0) > 0
     && doorSnap?.backLogoVisible === false
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
@@ -522,6 +527,12 @@ async function run() {
   await page.waitForTimeout(80);
   const snapEnd = await page.evaluate(() => window.__iqr?.snap);
   const destLeaves = await page.evaluate(() => window.__iqrDestLeaves || []);
+  const stopDownUrl = await page.evaluate(() => window.__iqr.captureStopDown());
+  if (stopDownUrl) {
+    await writeFile(join(OUT, "showtime-stop-down.png"), dataUrlToBuf(stopDownUrl));
+  }
+  const stopDownSnap = await page.evaluate(() => window.__iqr?.snap);
+  await page.evaluate(() => window.__iqr.captureDoor());
   await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
   await page.screenshot({ path: join(OUT, "showtime-settled.png"), type: "png" });
 
@@ -569,7 +580,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living10&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living11&showtime=1&${overrideQuery}`,
     { waitUntil: "domcontentloaded" },
   );
   await overridePage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
@@ -605,7 +616,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living10`, { waitUntil: "domcontentloaded" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living11`, { waitUntil: "domcontentloaded" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -625,10 +636,45 @@ async function run() {
     && settleElapsed >= 2.4
     && settleElapsed <= 4.2;
   const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+  const scaleProof = {
+    signImpliedM: doorSnap?.signImpliedM ?? null,
+    stopOverDoor: doorSnap?.stopOverDoor ?? null,
+    impliedBoomM: doorSnap?.impliedBoomM ?? null,
+    stripePeriodM: doorSnap?.stripePeriodM ?? null,
+    stripeRedDuty: doorSnap?.stripeRedDuty ?? null,
+    signAlong: doorSnap?.signAlong ?? null,
+    signCancelMode: doorSnap?.signCancelMode ?? null,
+    metresPerWorld: doorSnap?.metresPerWorld ?? null,
+    doorHeightWorld: doorSnap?.doorHeightWorld ?? null,
+    signDiameterWorld: doorSnap?.signDiameterWorld ?? null,
+    signWorldDiameter: doorSnap?.signWorldDiameter ?? null,
+    boomLengthWorld: doorSnap?.boomLengthWorld ?? null,
+    derived: doorSnap?.signDerived ?? null,
+  };
+  const scaleOk = scaleProof.signImpliedM != null
+    && Math.abs(scaleProof.signImpliedM - 0.40) <= 0.012
+    && scaleProof.stopOverDoor != null
+    && Math.abs(scaleProof.stopOverDoor - 0.347) <= 0.015
+    && scaleProof.impliedBoomM != null
+    && scaleProof.impliedBoomM >= 4.0
+    && scaleProof.impliedBoomM <= 4.2
+    && scaleProof.stripePeriodM === 0.34
+    && scaleProof.stripeRedDuty === 0.48
+    && Math.abs((scaleProof.signAlong ?? 0) - 0.72) < 0.001
+    && scaleProof.signCancelMode === "cancel-to-down";
+  const stopDownOk = stopDownSnap?.signCancelMode === "cancel-to-down"
+    && stopDownSnap?.stopReadableForTraffic === true
+    && (stopDownSnap?.boomPct ?? 99) <= 8
+    && stopDownSnap?.signWorldRotZ != null
+    && Math.abs(stopDownSnap.signWorldRotZ) < 0.28
+    && !!stopDownUrl;
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living10/.test(qrProof.clean.decoded || "");
+    && /v=living11/.test(qrProof.clean.decoded || "")
+    && qrProof.livingScene?.match === true
+    && qrProof.livingScene?.look?.looksLivingField === true
+    && qrProof.livingScene?.look?.looksPlainBW === false;
 
   const report = {
     dest: DEST,
@@ -665,6 +711,13 @@ async function run() {
         singleBoom: doorSnap?.singleBoom ?? null,
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
         stripeModules: doorSnap?.stripeModules ?? null,
+        miniCabinetCount: doorSnap?.miniCabinetCount ?? null,
+        orangeModules: doorSnap?.orangeModules ?? null,
+        finderModules: doorSnap?.finderModules ?? null,
+        signImpliedM: doorSnap?.signImpliedM ?? null,
+        stopOverDoor: doorSnap?.stopOverDoor ?? null,
+        impliedBoomM: doorSnap?.impliedBoomM ?? null,
+        signCancelMode: doorSnap?.signCancelMode ?? null,
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
         miniCabinetSource: doorSnap?.miniCabinetSource ?? null,
         miniClonedFromTwin: doorSnap?.miniClonedFromTwin ?? null,
@@ -684,6 +737,18 @@ async function run() {
       config: overrideCfg,
       leave: overrideLeave || null,
       ok: overrideOk,
+    },
+    scaleProof,
+    scaleOk,
+    stopDown: {
+      boomPct: stopDownSnap?.boomPct ?? null,
+      signWorldRotZ: stopDownSnap?.signWorldRotZ ?? null,
+      signCancelMode: stopDownSnap?.signCancelMode ?? null,
+      stopReadableForTraffic: stopDownSnap?.stopReadableForTraffic ?? null,
+      signImpliedM: stopDownSnap?.signImpliedM ?? null,
+      stopOverDoor: stopDownSnap?.stopOverDoor ?? null,
+      captured: !!stopDownUrl,
+      ok: stopDownOk,
     },
     qr: qrProof,
     timeline,
@@ -755,6 +820,7 @@ async function run() {
       "showtime-settled.png",
       "showtime-scan.png",
       "showtime-scan-webgl.png",
+      "showtime-stop-down.png",
       "gate-living4-showtime.json",
       "fabian-showtime-qr.png",
     ]) {
@@ -771,6 +837,8 @@ async function run() {
 
   const ok = firstPaintOk
     && qrIsLiving
+    && scaleOk
+    && stopDownOk
     && destLeaveOk
     && parseOk
     && overrideOk

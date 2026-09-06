@@ -2,32 +2,16 @@
  * Living QR field — dense 3D cuboid crowd (living5/6 GOOD door).
  *
  * Dark modules are raised sculptures on the XZ plaza so an elevated camera
- * reads a QR field around the hero. Finder / alignment stay dark clusters.
- * Cabinet-vocab modules get a light miniature PORTABOOM dress (orange body,
- * wordmark, face LEDs). Tiny ones do NOT grow traffic lights or boom arms.
- * living8/9 instanced-orange footer strips are rejected.
+ * reads a QR field around the hero. Finder clusters stay dark for scan
+ * contrast. Every data / timing / alignment module is an orange miniature
+ * PORTABOOM cabinet (wordmark + face LEDs). Tiny ones do NOT grow traffic
+ * lights or boom arms. living8/9 instanced-orange footer strips are rejected.
+ * living10 stripe / navy / peach mix is rejected — field is all-orange.
  */
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
 
 export const CELL = 0.068;
 export const MODULE_FILL = 0.96;
-
-function makeStripeTex(THREE) {
-  const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 16;
-  const ctx = c.getContext("2d");
-  for (let i = 0; i < 8; i += 1) {
-    ctx.fillStyle = i % 2 ? "#c01421" : "#f0f1f3";
-    ctx.fillRect(i * 8, 0, 8, 16);
-  }
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(2, 1);
-  tex.anisotropy = 4;
-  return tex;
-}
 
 function makeMiniLogoTex(THREE) {
   const c = document.createElement("canvas");
@@ -72,22 +56,12 @@ function powder(THREE, hex) {
   });
 }
 
-function heightFor(vocab) {
+function heightFor(vocab, kind, r, c) {
   if (vocab === "finder") return 0.34;
-  if (vocab === "head") return 0.24;
-  if (vocab === "cabinet") return 0.2;
-  if (vocab === "boom") return 0.22;
-  if (vocab === "led") return 0.16;
-  if (vocab === "timing") return 0.1;
-  return 0.17;
-}
-
-function pickBodyMat(vocab, mats) {
-  if (vocab === "boom" || vocab === "timing") return mats.stripeMat;
-  if (vocab === "head") return mats.darkMat;
-  if (vocab === "led") return mats.navyMat;
-  if (vocab === "finder") return mats.darkMat;
-  return mats.cabMat;
+  if (kind === "alignment") return 0.22;
+  if (kind === "timing") return 0.12;
+  const bump = ((r * 3 + c * 5) % 4) * 0.018;
+  return 0.17 + bump;
 }
 
 /**
@@ -133,29 +107,10 @@ export function buildLivingQr(THREE, spec) {
     roughness: 0.28,
     envMapIntensity: 1.15,
   });
-  const navyMat = new THREE.MeshStandardMaterial({
-    color: 0x1b2a4a,
-    metalness: 0.12,
-    roughness: 0.44,
-  });
-  const stripeMat = new THREE.MeshStandardMaterial({
-    map: makeStripeTex(THREE),
-    roughness: 0.32,
-    metalness: 0.12,
-    toneMapped: false,
-  });
   const ledFaceMat = new THREE.MeshStandardMaterial({
     color: 0x062c10,
     emissive: kindcol.green,
     emissiveIntensity: 1.15,
-    roughness: 0.2,
-    metalness: 0.04,
-    toneMapped: false,
-  });
-  const ledRedMat = new THREE.MeshStandardMaterial({
-    color: 0x3a0000,
-    emissive: kindcol.red,
-    emissiveIntensity: 0.55,
     roughness: 0.2,
     metalness: 0.04,
     toneMapped: false,
@@ -170,9 +125,7 @@ export function buildLivingQr(THREE, spec) {
   const fill = cell * MODULE_FILL;
   const capGeo = new THREE.BoxGeometry(fill, cell * 0.07, fill);
   const bodyGeo = new THREE.BoxGeometry(fill * 0.9, 1, fill * 0.9);
-  const bandGeo = new THREE.BoxGeometry(fill * 0.92, fill * 0.16, fill * 0.92);
   const rimGeo = new THREE.BoxGeometry(fill * 0.98, cell * 0.04, fill * 0.98);
-  const lensGeo = new THREE.CircleGeometry(cell * 0.16, 20);
   const faceLedGeo = new THREE.CircleGeometry(cell * 0.09, 16);
   const logoGeo = new THREE.PlaneGeometry(fill * 0.62, fill * 0.42);
   const lightGeo = new THREE.BoxGeometry(fill, cell * 0.02, fill);
@@ -184,6 +137,8 @@ export function buildLivingQr(THREE, spec) {
   const ledMats = [];
   let stripeModules = 0;
   let miniCabinetCount = 0;
+  let orangeModules = 0;
+  let finderModules = 0;
 
   for (let r = 0; r < n; r += 1) {
     for (let c = 0; c < n; c += 1) {
@@ -203,13 +158,11 @@ export function buildLivingQr(THREE, spec) {
 
       const g = new THREE.Group();
       g.name = `QrMod_${r}_${c}`;
-      const bodyH = heightFor(vocab);
-      const striped = vocab === "boom" || vocab === "timing";
-      if (striped) stripeModules += 1;
+      const bodyH = heightFor(vocab, kind, r, c);
+      const finder = vocab === "finder";
+      if (finder) finderModules += 1;
 
-      const body = new THREE.Mesh(bodyGeo, pickBodyMat(vocab, {
-        cabMat, darkMat, navyMat, stripeMat,
-      }));
+      const body = new THREE.Mesh(bodyGeo, finder ? darkMat : cabMat);
       body.name = "QrModBody";
       body.scale.y = bodyH;
       body.position.y = bodyH * 0.5;
@@ -217,13 +170,7 @@ export function buildLivingQr(THREE, spec) {
       body.receiveShadow = true;
       g.add(body);
 
-      if (vocab === "cabinet" || vocab === "finder") {
-        const band = new THREE.Mesh(bandGeo, navyMat);
-        band.name = "QrModBand";
-        band.position.y = bodyH * 0.62;
-        g.add(band);
-      }
-      if (vocab === "finder") {
+      if (finder) {
         const rim = new THREE.Mesh(rimGeo, steelMat);
         rim.name = "QrModRim";
         rim.position.y = bodyH + cell * 0.01;
@@ -235,10 +182,10 @@ export function buildLivingQr(THREE, spec) {
       cap.position.y = bodyH + cell * 0.03;
       g.add(cap);
 
-      // Light mini-PORTABOOM dress on cabinet-vocab only — keep finders dark.
-      const miniCabinet = vocab === "cabinet";
+      const miniCabinet = !finder;
       if (miniCabinet) {
         miniCabinetCount += 1;
+        orangeModules += 1;
         const logo = new THREE.Mesh(logoGeo, logoMat);
         logo.name = "MiniLogo";
         logo.position.set(0, bodyH * 0.38, fill * 0.46);
@@ -250,13 +197,6 @@ export function buildLivingQr(THREE, spec) {
           g.add(lens);
         }
         ledMats.push(ledFaceMat);
-      } else if (vocab === "finder" || vocab === "led" || vocab === "head") {
-        const ledMat = vocab === "head" ? ledFaceMat : ((r + c) % 5 === 0 ? ledRedMat : ledFaceMat);
-        const lens = new THREE.Mesh(lensGeo, ledMat);
-        lens.name = "QrModDot";
-        lens.position.set(0, bodyH * 0.55, fill * 0.46);
-        g.add(lens);
-        if (vocab === "finder" || vocab === "led") ledMats.push(ledMat);
       }
 
       g.position.set(x, 0, z);
@@ -288,7 +228,7 @@ export function buildLivingQr(THREE, spec) {
 
   const ring = new THREE.Mesh(
     new THREE.BoxGeometry(padSize * 1.18, cell * 0.05, padSize * 1.18),
-    navyMat
+    darkMat
   );
   ring.name = "LivingQrRing";
   ring.position.y = -cell * 0.05;
@@ -314,6 +254,7 @@ export function buildLivingQr(THREE, spec) {
   scanPad.visible = false;
   group.add(scanPad);
 
+  const modulePalette = "finder-dark / data-orange-portaboom";
   group.userData = {
     n,
     cell,
@@ -324,15 +265,17 @@ export function buildLivingQr(THREE, spec) {
     kinds,
     vocabs,
     texturedQuad: false,
-    product: "living10-3d-field",
+    product: "living11-3d-field",
     plane: "xz",
     cameraHint: "elevated-ortho-field / ortho-scan",
     miniHasTrafficLight: false,
     stripeModules,
     miniCabinetCount,
+    orangeModules,
+    finderModules,
     miniCabinetSource: "cuboid-field",
     miniFieldKind: "dense-cuboid-qr",
-    modulePalette: "finder-dark / cabinet-orange / boom-stripe / led-navy",
+    modulePalette,
   };
 
   return {
@@ -355,9 +298,11 @@ export function buildLivingQr(THREE, spec) {
     miniHasTrafficLight: false,
     stripeModules,
     miniCabinetCount,
+    orangeModules,
+    finderModules,
     miniCabinetSource: "cuboid-field",
     miniFieldKind: "dense-cuboid-qr",
-    modulePalette: "finder-dark / cabinet-orange / boom-stripe / led-navy",
+    modulePalette,
     miniClonedFromTwin: false,
     miniField: null,
     miniInstances: [],

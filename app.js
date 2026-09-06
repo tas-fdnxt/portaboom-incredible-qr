@@ -298,17 +298,33 @@ function nudgeSign(dir) {
   setSignAlong(signAlong + dir * SIGN_NUDGE);
 }
 
+function wrapPi(a) {
+  let x = a;
+  while (x > Math.PI) x -= Math.PI * 2;
+  while (x < -Math.PI) x += Math.PI * 2;
+  return x;
+}
+
 /**
- * 180° canvas legend + full pivot cancel. Boom-up rest is ≈π; holding
- * that rest (only cancelling the drop delta) left STOP inverted against
- * CanvasTexture flipY. Counter the whole pivot.z so wording stays
- * world-upright in the default boom-up view and as the arm lowers.
+ * Cancel-to-down (live-twin): STOP is world-upright when the boom is
+ * across / held (DOWN) so oncoming traffic can read it.
+ * tidy5 full cancel (`inner.z = −pivot.z`) kept the legend upright in the
+ * boom-up product view and fights traffic-readable DOWN — do not use it.
+ * 180° canvas legend stays (CanvasTexture flipY). Boom-down world Z = 0
+ * matches tidy5's boom-up readable state.
  */
 function tickSignUpright() {
   if (!signGroup || !boomRig?.pivot) return;
   const inner = signGroup.getObjectByName("PortaboomStopInner") || signGroup.children[0];
   if (!inner) return;
-  inner.rotation.z = -boomRig.pivot.rotation.z;
+  const drop = boomRig.drop ?? 0;
+  inner.rotation.z = -drop;
+}
+
+function measureSignWorldRotZ() {
+  if (!signGroup || !boomRig?.pivot) return null;
+  const inner = signGroup.getObjectByName("PortaboomStopInner") || signGroup.children[0];
+  return +wrapPi(boomRig.pivot.rotation.z + (inner?.rotation.z ?? 0)).toFixed(4);
 }
 
 function setSignType(type) {
@@ -406,6 +422,9 @@ function measurePlantedScale(root) {
     stripePeriodLocal,
     stripePeriodM: REAL.stripePeriodM,
     stripeRedDuty: REAL.stripeRedDuty,
+    stopOverDoor: doorHeightWorld > 1e-6
+      ? +(signDiameterWorld / doorHeightWorld).toFixed(4)
+      : null,
     derived: how,
   };
   if (root?.userData) root.userData.plantedProof = plantedProof;
@@ -609,16 +628,16 @@ const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
 const SHOWTIME_DOOR_S = 2.6;
-/** Minimum pad fraction so the QR crowd stays a field, not a footer. */
-const DOOR_PAD_SPAN = 0.30;
+/** Field fills the phone — living10 0.30 left a cream void above the crowd. */
+const DOOR_PAD_SPAN = 0.82;
 /**
  * Elevated field crop: cabinet + lantern sit IN the crowd.
  * Do not let the 4 m boom drive the span (that recreates living4 speck).
  * living7/8/9 subject-fill 0.72 flattened the door.
  */
-const DOOR_SUBJECT_FILL = 0.44;
+const DOOR_SUBJECT_FILL = 0.36;
 /** Extra ortho so the lantern housing clears the crop. */
-const DOOR_SIGNAL_PAD = 1.10;
+const DOOR_SIGNAL_PAD = 1.06;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.62;
 // Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
@@ -1623,8 +1642,8 @@ function lockDoorCamera() {
     if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.28);
     if (Number.isFinite(sc.y)) cy = THREE.MathUtils.lerp(cy, sc.y, 0.22);
   }
-  doorCam.position.set(cx + sy * 0.20, cy + sy * 0.54, cz + sy * 1.48);
-  doorCam.lookAt(cx, cy - sy * 0.08, cz);
+  doorCam.position.set(cx + sy * 0.14, cy + sy * 0.72, cz + sy * 1.62);
+  doorCam.lookAt(cx, Math.max(0.06, cy - sy * 0.36), cz);
   doorCam.updateProjectionMatrix();
 }
 
@@ -3180,7 +3199,7 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living10-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living11-icqr-door" : "living2-brand-world",
       miniCabinetSource: living.miniCabinetSource ?? null,
       miniClonedFromTwin: living.miniClonedFromTwin === true,
       miniFieldKind: living.miniFieldKind ?? living.group?.userData?.miniFieldKind ?? null,
@@ -3248,6 +3267,8 @@ window.__iqr = {
       miniHasTrafficLight: countMiniTrafficLights() > 0 || living.miniHasTrafficLight === true,
       stripeModules: living.stripeModules ?? 0,
       miniCabinetCount: living.miniCabinetCount ?? 0,
+      orangeModules: living.orangeModules ?? living.miniCabinetCount ?? 0,
+      finderModules: living.finderModules ?? living.vocabs?.finder ?? 0,
       fieldPadInView: viewMode === "door"
         ? +((living.padSize / Math.max(0.01, (doorCam.top - doorCam.bottom))).toFixed(3))
         : null,
@@ -3330,6 +3351,26 @@ window.__iqr = {
         const m = plantedProof?.metresPerWorld;
         return d != null && m ? +(d * m).toFixed(4) : null;
       })(),
+      stopOverDoor: (() => {
+        const d = measureSignWorldDiameter();
+        const doorH = plantedProof?.doorHeightWorld;
+        if (d == null || !doorH) return plantedProof?.stopOverDoor ?? null;
+        return +(d / doorH).toFixed(4);
+      })(),
+      signCancelMode: "cancel-to-down",
+      signLegendRot: Math.PI,
+      signInnerZ: (() => {
+        const inner = signGroup?.getObjectByName?.("PortaboomStopInner");
+        return inner ? +inner.rotation.z.toFixed(4) : null;
+      })(),
+      signPivotZ: boomRig?.pivot ? +boomRig.pivot.rotation.z.toFixed(4) : null,
+      signDropZ: boomRig?.drop != null ? +boomRig.drop.toFixed(4) : null,
+      signWorldRotZ: measureSignWorldRotZ(),
+      stopReadableForTraffic: (() => {
+        const down = (boomRig?.shownPct ?? 100) <= 8;
+        const rot = measureSignWorldRotZ();
+        return down && rot != null && Math.abs(rot) < 0.28;
+      })(),
       pivotWorldScale: plantedProof?.pivotWorldScale ?? null,
       meshWorldScale: plantedProof?.meshWorldScale ?? null,
       impliedBoomM: plantedProof?.impliedBoomM ?? null,
@@ -3407,6 +3448,37 @@ window.__iqr = {
   captureDoor() {
     applyDoorPose();
     renderer.render(scene, doorCam);
+    return canvas.toDataURL("image/png");
+  },
+  frameStopCloseup() {
+    applyDoorPose();
+    const face = signGroup?.getObjectByName?.("PortaboomStopFace");
+    if (!face) return false;
+    const p = face.getWorldPosition(new THREE.Vector3());
+    const d = measureSignWorldDiameter() || 0.16;
+    const span = Math.max(d * 3.4, 0.42);
+    const aspect = Math.max(0.4, (canvas.clientWidth || 390) / (canvas.clientHeight || 844));
+    let worldH = span;
+    let worldW = worldH * aspect;
+    if (aspect >= 1) {
+      worldW = span;
+      worldH = worldW / aspect;
+    }
+    doorCam.left = -worldW / 2;
+    doorCam.right = worldW / 2;
+    doorCam.top = worldH / 2;
+    doorCam.bottom = -worldH / 2;
+    doorCam.updateProjectionMatrix();
+    doorCam.position.set(p.x, p.y + d * 0.35, p.z + d * 2.4);
+    doorCam.lookAt(p.x, p.y, p.z);
+    renderer.render(scene, doorCam);
+    return true;
+  },
+  captureStopDown() {
+    if (boomRig) applyBoomShown(0);
+    tickSignUpright();
+    const framed = this.frameStopCloseup();
+    if (!framed) return null;
     return canvas.toDataURL("image/png");
   },
   frameMiniCloseup() {
