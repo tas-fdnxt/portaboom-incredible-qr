@@ -6,7 +6,7 @@
  *   ?showtime=1&dest=<URL-encoded https URL>
  *
  * The stationary send QR still encodes the living showtime page
- * (`?v=living8&showtime=1`) so the ICQR door + transform can run.
+ * (`?v=living9&showtime=1`) so the ICQR door + transform can run.
  * This value is only the post-showtime leave URL.
  * The in-world tap-to-scan H-matrix stays the baked default product bits.
  */

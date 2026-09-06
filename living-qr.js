@@ -1,19 +1,19 @@
 /**
- * Living QR field — a heap of miniature PORTABOOM cabinets.
+ * Living QR field — a dense crowd of miniature PORTABOOM cabinets.
  *
- * Dark modules are scaled-down twins of the planted cabinet (powder orange,
- * door_decal wordmark, wheels, face LEDs). Tiny ones do NOT grow traffic
- * lights or boom arms — those belong only to the planted unit.
- * Finder / timing / alignment keep a dark scan cap so tap-to-scan still
- * reads as a QR. Not a cherry tree. Not stripe towers. Not orange boxes
- * with a navy band and canvas junk.
+ * Each dark module is a scaled-down hero cabinet (powder orange, door
+ * wordmark, wheels, face LEDs). Tiny ones do NOT grow traffic lights or
+ * boom arms — those belong only to the planted unit.
+ *
+ * living8 lookalike BoxGeometry pixels are rejected: clone the planted
+ * cabinet meshes (strip TL + boom), instance them, restore crowd height.
  */
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
 
 export const CELL = 0.068;
-export const MODULE_FILL = 0.86;
+export const MODULE_FILL = 0.94;
 
-/** Manual PB4000 cabinet — used until the planted twin can be measured. */
+/** Manual PB4000 cabinet — used until the planted twin can be cloned. */
 const CAB_W = 0.415;
 const CAB_H = 1.153;
 const CAB_D = 0.72;
@@ -21,13 +21,32 @@ const CAB_D = 0.72;
 const SKIP_TWIN =
   /Traffic[_\s-]*Light|信号灯|HeroSignal|HeroLens|HeroBoom|BoomPivot|主杆|105-|105_|灯条|FENGKONG|^006$|太阳能|solar|柱子|PED_|TL2_|PortaboomBoom|HeroBoomArm|快速夹具|^夹具$|PortaboomStop|STOP|灯罩|灯壳/i;
 
+const KEEP_CAB =
+  /AK-XLH-D115C-01-01|115-DOOR|HeroCabinet|车轮|PortaboomLogo|PortaboomFaceLed|PortaboomLedBezel/i;
+
 function powder(THREE, hex) {
-  return new THREE.MeshStandardMaterial({
+  return new THREE.MeshPhysicalMaterial({
     color: hex,
     metalness: 0.04,
-    roughness: 0.4,
-    envMapIntensity: 1.05,
+    roughness: 0.36,
+    clearcoat: 0.85,
+    clearcoatRoughness: 0.16,
+    envMapIntensity: 1.1,
+    sheen: 0.18,
+    sheenRoughness: 0.45,
+    sheenColor: new THREE.Color(0xffffff),
   });
+}
+
+/** Crowd heights — restore the last-good-door 3D minion field (not living8 stubs). */
+function heightFor(vocab) {
+  if (vocab === "finder") return 0.28;
+  if (vocab === "boom") return 0.24;
+  if (vocab === "cabinet") return 0.22;
+  if (vocab === "head") return 0.20;
+  if (vocab === "led") return 0.18;
+  if (vocab === "timing") return 0.16;
+  return 0.20;
 }
 
 /**
@@ -80,9 +99,7 @@ function knockoutBlack(THREE, tex) {
     const g = id.data[i + 1];
     const b = id.data[i + 2];
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
-    if (lum < 32) {
-      id.data[i + 3] = 0;
-    }
+    if (lum < 32) id.data[i + 3] = 0;
   }
   ctx.putImageData(id, 0, 0);
   const out = new THREE.CanvasTexture(c);
@@ -146,72 +163,204 @@ function ancestorBlob(o) {
   return parts.join("|");
 }
 
-/**
- * Measure the planted cabinet only (no boom, no traffic head).
- * Returns world-space size / wheel layout so minis match the hero unit.
- */
-export function measureTwinCabinet(THREE, root) {
-  if (!root) return null;
-  root.updateMatrixWorld(true);
-  const box = new THREE.Box3();
-  let any = false;
-  const wheels = [];
-  let doorBox = null;
-  root.traverse((o) => {
-    if (!o.isMesh || !o.geometry) return;
-    if (!isVisibleInTree(o)) return;
-    const blob = ancestorBlob(o);
-    const name = o.name || "";
-    if (SKIP_TWIN.test(blob) || SKIP_TWIN.test(name)) return;
-    if (o.userData?.tag === "B" || o.material?.userData?.stripe) return;
-    const mb = new THREE.Box3().setFromObject(o);
-    if (mb.isEmpty()) return;
-    const isCab =
-      /115-DOOR|HeroCabinet|小门|箱|柜|AK-XLH-D115C-01-01|AK-XLH-D115C-01-02|DAO-ZHA|d115c|车轮|wheel|PortaboomLogo|PortaboomFaceLed|PortaboomLedBezel/i.test(blob)
-      || o.userData?.tag === "Y"
-      || o.userData?.tag === "K";
-    if (!isCab) return;
-    box.union(mb);
-    any = true;
-    if (/115-DOOR|HeroCabinet/i.test(name) || /115-DOOR|HeroCabinet/i.test(blob)) {
-      doorBox = doorBox ? doorBox.union(mb) : mb.clone();
+function stampProtoBounds(THREE, proto) {
+  proto.updateMatrixWorld(true);
+  const box = new THREE.Box3().setFromObject(proto);
+  const size = box.getSize(new THREE.Vector3());
+  proto.userData.bodyH = size.y;
+  proto.userData.cabW = size.x;
+  proto.userData.cabD = size.z;
+  proto.userData.hasTrafficLight = false;
+  return size;
+}
+
+function isCabinetKeeper(o) {
+  if (!o.isMesh || !o.geometry) return false;
+  if (!isVisibleInTree(o)) return false;
+  const blob = ancestorBlob(o);
+  const name = o.name || "";
+  if (SKIP_TWIN.test(blob) || SKIP_TWIN.test(name)) return false;
+  if (o.userData?.tag === "B" || o.material?.userData?.stripe) return false;
+  if (KEEP_CAB.test(blob) || KEEP_CAB.test(name)) return true;
+  if (o.userData?.tag === "Y" && /AK-XLH-D115C-01-01|115-DOOR|HeroCabinet/i.test(blob)) return true;
+  return false;
+}
+
+/** Add wordmark + face LEDs if the cloned CAD door has not grown them yet. */
+function ensureCabinetFace(THREE, proto, livery, logoMap) {
+  const w = proto.userData.cabW || CAB_W;
+  const h = proto.userData.bodyH || CAB_H;
+  const d = proto.userData.cabD || CAB_D;
+  const faceZ = d * 0.52;
+  if (!proto.getObjectByName("MiniLogo") && logoMap) {
+    const logoMat = new THREE.MeshBasicMaterial({
+      map: logoMap,
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    });
+    const logoW = w * 0.58;
+    const logoH = logoW * 0.698;
+    const logo = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), logoMat);
+    logo.name = "MiniLogo";
+    logo.position.set(0, h * 0.42, faceZ);
+    proto.add(logo);
+  }
+  if (!proto.getObjectByName("MiniFaceLed")) {
+    const bezelMat = new THREE.MeshStandardMaterial({
+      color: 0xb8bec6,
+      metalness: 0.72,
+      roughness: 0.32,
+    });
+    const ledMat = new THREE.MeshStandardMaterial({
+      color: 0x062c10,
+      emissive: 0x2aff55,
+      emissiveIntensity: 2.2,
+      roughness: 0.18,
+      metalness: 0.04,
+      toneMapped: false,
+    });
+    const ledY = h * 0.72;
+    for (const dx of [-w * 0.16, w * 0.16]) {
+      const bezel = new THREE.Mesh(new THREE.CircleGeometry(w * 0.07, 18), bezelMat);
+      bezel.name = "MiniLedBezel";
+      bezel.position.set(dx, ledY, faceZ);
+      proto.add(bezel);
+      const lens = new THREE.Mesh(new THREE.CircleGeometry(w * 0.052, 18), ledMat);
+      lens.name = "MiniFaceLed";
+      lens.position.set(dx, ledY, faceZ + 0.002);
+      proto.add(lens);
     }
+  }
+  stampProtoBounds(THREE, proto);
+}
+
+/**
+ * Clone the planted hero cabinet only (no boom, no traffic head).
+ * Merge body / door / wheels so the field is a few InstancedMeshes,
+ * not 1258 CAD trees (that froze living8).
+ */
+export function extractCabinetPrototype(THREE, twin, livery, logoMap) {
+  if (!twin) return null;
+  const cad = !!twin.getObjectByName("115-DOOR")
+    || /Pb4000Twin|d115c/i.test(twin.name || "");
+  if (!cad) return null;
+
+  twin.updateMatrixWorld(true);
+  const picked = [];
+  twin.traverse((o) => {
+    if (isCabinetKeeper(o)) picked.push(o);
+  });
+  if (picked.length < 3) return null;
+
+  const box = new THREE.Box3();
+  const wheels = [];
+  for (const o of picked) {
+    const mb = new THREE.Box3().setFromObject(o);
+    if (mb.isEmpty()) continue;
+    box.union(mb);
+    const name = o.name || "";
+    const blob = ancestorBlob(o);
     if (/车轮|wheel/i.test(name) || /车轮|wheel/i.test(blob)) {
       const sz = mb.getSize(new THREE.Vector3());
       wheels.push({
         x: mb.getCenter(new THREE.Vector3()).x,
-        z: mb.getCenter(new THREE.Vector3()).z,
         y: mb.getCenter(new THREE.Vector3()).y,
+        z: mb.getCenter(new THREE.Vector3()).z,
         r: Math.max(sz.y, Math.min(sz.x, sz.z)) * 0.5,
         t: Math.min(sz.x, sz.z, sz.y),
       });
     }
-  });
-  if (!any || box.isEmpty()) return null;
+  }
+  if (box.isEmpty()) return null;
   const size = box.getSize(new THREE.Vector3());
-  const center = box.getCenter(new THREE.Vector3());
-  if (!(size.y > 0.12) || !(size.x > 0.05)) return null;
-  return {
-    width: size.x,
-    height: size.y,
-    depth: size.z,
-    center,
-    minY: box.min.y,
-    wheels: wheels.map((w) => ({
-      x: w.x - center.x,
-      z: w.z - center.z,
-      r: w.r,
-      t: w.t,
-    })),
-    doorWidth: doorBox && !doorBox.isEmpty() ? doorBox.getSize(new THREE.Vector3()).x : size.x * 0.86,
-    source: "twin-cabinet",
-  };
+  const aspect = size.y / Math.max(size.x, 1e-6);
+  if (!(size.y > 0.22) || aspect < 1.5 || aspect > 5.2) return null;
+
+  const origin = new THREE.Vector3(
+    (box.min.x + box.max.x) * 0.5,
+    box.min.y,
+    (box.min.z + box.max.z) * 0.5
+  );
+
+  const proto = new THREE.Group();
+  proto.name = "MiniPortaboomFromTwin";
+
+  const width = size.x;
+  const height = size.y;
+  const depth = Math.min(size.z, size.x * 2.1);
+  const wheelR = wheels[0]?.r || height * 0.055;
+  const bodyH = height - wheelR * 1.15;
+  const bodyY = wheelR * 1.05 + bodyH * 0.5;
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.98, bodyH, depth * 0.78),
+    powder(THREE, livery.Y)
+  );
+  body.name = "MiniCabinet";
+  body.position.y = bodyY;
+  proto.add(body);
+
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.88, bodyH * 0.9, depth * 0.045),
+    powder(THREE, 0xe46810)
+  );
+  door.name = "MiniDoor";
+  door.position.set(0, bodyY, depth * 0.41);
+  proto.add(door);
+
+  const darkMat = new THREE.MeshStandardMaterial({
+    color: livery.K,
+    metalness: 0.18,
+    roughness: 0.58,
+  });
+  const chassis = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 1.02, height * 0.05, depth * 0.82),
+    darkMat
+  );
+  chassis.name = "MiniChassis";
+  chassis.position.y = wheelR * 0.95;
+  proto.add(chassis);
+
+  const slots = wheels.length >= 2
+    ? wheels.map((w) => ({ x: w.x - origin.x, z: w.z - origin.z, r: w.r, t: w.t }))
+    : [
+      { x: -width * 0.32, z: -depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: width * 0.32, z: -depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: -width * 0.32, z: depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: width * 0.32, z: depth * 0.24, r: wheelR, t: width * 0.1 },
+    ];
+  const wr = slots[0].r || wheelR;
+  const wt = slots[0].t || width * 0.1;
+  const wheelGeo = new THREE.CylinderGeometry(wr, wr, wt, 10);
+  for (const w of slots.slice(0, 4)) {
+    const wheel = new THREE.Mesh(wheelGeo, darkMat);
+    wheel.name = "MiniWheel";
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(w.x, wr, w.z);
+    proto.add(wheel);
+  }
+
+  stampProtoBounds(THREE, proto);
+  ensureCabinetFace(THREE, proto, livery, logoMap);
+
+  const verts = [];
+  proto.traverse((o) => {
+    if (o.isMesh) verts.push(o.geometry.getAttribute("position")?.count || 0);
+  });
+  const vertCount = verts.reduce((a, b) => a + b, 0);
+  if (vertCount < 24 || vertCount > 24000) return null;
+
+  proto.userData.clonedFromTwin = true;
+  proto.userData.vertCount = vertCount;
+  proto.userData.partCount = proto.children.length;
+  return proto;
 }
 
 /**
  * Low-poly PORTABOOM cabinet that matches the hero silhouette:
  * tall powder-orange box, branded door, wheels, face LED bezels.
- * No traffic lantern. No boom. No navy stripe band.
+ * No traffic lantern. No boom. No navy stripe band. Fallback only.
  */
 function buildCabinetPrototype(THREE, spec) {
   const width = spec.width || CAB_W;
@@ -263,7 +412,7 @@ function buildCabinetPrototype(THREE, spec) {
   const bodyY = wheelR * 1.15 + bodyH * 0.5;
 
   const body = new THREE.Mesh(
-    new THREE.BoxGeometry(width * 0.98, bodyH, depth * 0.94),
+    new THREE.BoxGeometry(width * 0.98, bodyH, depth * 0.78),
     cabMat
   );
   body.name = "MiniCabinet";
@@ -275,11 +424,11 @@ function buildCabinetPrototype(THREE, spec) {
     cabDeep
   );
   door.name = "MiniDoor";
-  door.position.set(0, bodyY, depth * 0.49);
+  door.position.set(0, bodyY, depth * 0.41);
   g.add(door);
 
   const chassis = new THREE.Mesh(
-    new THREE.BoxGeometry(width * 1.02, chassisH, depth * 0.98),
+    new THREE.BoxGeometry(width * 1.02, chassisH, depth * 0.82),
     darkMat
   );
   chassis.name = "MiniChassis";
@@ -287,7 +436,7 @@ function buildCabinetPrototype(THREE, spec) {
   g.add(chassis);
 
   const lid = new THREE.Mesh(
-    new THREE.BoxGeometry(width * 0.92, height * 0.025, depth * 0.88),
+    new THREE.BoxGeometry(width * 0.92, height * 0.025, depth * 0.72),
     cabDeep
   );
   lid.name = "MiniLid";
@@ -300,26 +449,26 @@ function buildCabinetPrototype(THREE, spec) {
   );
   lock.name = "MiniLock";
   lock.rotation.x = Math.PI / 2;
-  lock.position.set(width * 0.28, bodyY + bodyH * 0.08, depth * 0.51);
+  lock.position.set(width * 0.28, bodyY + bodyH * 0.08, depth * 0.43);
   g.add(lock);
 
-  const logoW = width * 0.58;
+  const logoW = width * 0.62;
   const logoH = logoW * 0.698;
   const logo = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), logoMat);
   logo.name = "MiniLogo";
-  logo.position.set(0, bodyY - bodyH * 0.12, depth * 0.52);
+  logo.position.set(0, bodyY - bodyH * 0.06, depth * 0.44);
   g.add(logo);
   const logoBack = new THREE.Mesh(
     new THREE.PlaneGeometry(logoW, logoH),
     logoMat.clone()
   );
   logoBack.name = "MiniLogoBack";
-  logoBack.position.set(0, bodyY - bodyH * 0.12, -depth * 0.48);
+  logoBack.position.set(0, bodyY - bodyH * 0.06, -depth * 0.40);
   logoBack.rotation.y = Math.PI;
   g.add(logoBack);
 
-  const ledY = bodyY + bodyH * 0.32;
-  const ledZ = depth * 0.52;
+  const ledY = bodyY + bodyH * 0.34;
+  const ledZ = depth * 0.44;
   for (const dx of [-width * 0.16, width * 0.16]) {
     const bezel = new THREE.Mesh(new THREE.CircleGeometry(width * 0.075, 20), bezelMat);
     bezel.name = "MiniLedBezel";
@@ -335,10 +484,10 @@ function buildCabinetPrototype(THREE, spec) {
   const wheelSlots = spec.wheels?.length >= 2
     ? spec.wheels
     : [
-      { x: -width * 0.32, z: -depth * 0.28, r: wheelR, t: wheelT },
-      { x: width * 0.32, z: -depth * 0.28, r: wheelR, t: wheelT },
-      { x: -width * 0.32, z: depth * 0.28, r: wheelR, t: wheelT },
-      { x: width * 0.32, z: depth * 0.28, r: wheelR, t: wheelT },
+      { x: -width * 0.32, z: -depth * 0.24, r: wheelR, t: wheelT },
+      { x: width * 0.32, z: -depth * 0.24, r: wheelR, t: wheelT },
+      { x: -width * 0.32, z: depth * 0.24, r: wheelR, t: wheelT },
+      { x: width * 0.32, z: depth * 0.24, r: wheelR, t: wheelT },
     ];
   for (const w of wheelSlots) {
     const wheel = new THREE.Mesh(wheelGeo, darkMat);
@@ -348,10 +497,8 @@ function buildCabinetPrototype(THREE, spec) {
     g.add(wheel);
   }
 
-  g.userData.bodyH = height;
-  g.userData.cabW = width;
-  g.userData.cabD = depth;
-  g.userData.hasTrafficLight = false;
+  stampProtoBounds(THREE, g);
+  g.userData.clonedFromTwin = false;
   return g;
 }
 
@@ -364,6 +511,19 @@ function clearMiniField(living) {
   living.logoMats = living.logoMats || [];
 }
 
+function placeDummy(dummy, mod, local) {
+  dummy.position.set(
+    mod.position.x + (mod.userData.jx || 0),
+    mod.position.y,
+    mod.position.z + (mod.userData.jz || 0)
+  );
+  dummy.rotation.set(0, mod.userData.yaw || 0, 0);
+  const s = mod.userData.crowdScale || 1;
+  dummy.scale.set(s, s, s);
+  dummy.updateMatrix();
+  dummy.matrix.multiply(local);
+}
+
 /**
  * Instance a cabinet prototype once per dark module.
  * One draw call per prototype mesh — not 1258 CAD clones.
@@ -374,6 +534,7 @@ export function instanceCabinetField(THREE, living, prototype, source) {
   field.name = "MiniPortaboomField";
   const protoMeshes = [];
   prototype.updateMatrixWorld(true);
+  const protoH = prototype.userData.bodyH || CAB_H;
   prototype.traverse((o) => {
     if (o.isMesh && o.visible !== false) protoMeshes.push(o);
   });
@@ -394,12 +555,7 @@ export function instanceCabinetField(THREE, living, prototype, source) {
     inst.userData.hasTrafficLight = false;
     const local = src.matrixWorld.clone();
     for (let i = 0; i < count; i += 1) {
-      const mod = living.mods[i];
-      dummy.position.copy(mod.position);
-      dummy.rotation.set(0, mod.userData.yaw || 0.42, 0);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      dummy.matrix.multiply(local);
+      placeDummy(dummy, living.mods[i], local);
       inst.setMatrixAt(i, dummy.matrix);
     }
     inst.instanceMatrix.needsUpdate = true;
@@ -413,18 +569,23 @@ export function instanceCabinetField(THREE, living, prototype, source) {
   living.miniClonedFromTwin = source === "twin-cabinet";
   living.miniHasTrafficLight = false;
   living.stripeModules = 0;
+  living.miniFieldKind = "hero-cabinet-instances";
   living.group.userData.miniHasTrafficLight = false;
   living.group.userData.stripeModules = 0;
   living.group.userData.miniCabinetSource = source;
-  living.group.userData.product = "living8-mini-portabooms";
+  living.group.userData.miniClonedFromTwin = source === "twin-cabinet";
+  living.group.userData.product = "living9-mini-portabooms";
+  living.group.userData.miniFieldKind = "hero-cabinet-instances";
+  living.group.userData.modulePalette = "hero-orange";
 
-  const bodyH = prototype.userData.bodyH || CAB_H;
   for (const mod of living.mods) {
-    mod.userData.bodyH = bodyH;
+    const crowdH = mod.userData.crowdH || heightFor(mod.userData.vocab);
+    mod.userData.crowdScale = crowdH / Math.max(protoH, 1e-6);
+    mod.userData.bodyH = crowdH;
     mod.userData.miniCabinet = true;
     mod.userData.hasTrafficLight = false;
     const cap = mod.getObjectByName("QrModTop");
-    if (cap) cap.position.y = bodyH + living.cell * 0.06;
+    if (cap) cap.position.y = crowdH + living.cell * 0.06;
   }
   return field;
 }
@@ -441,11 +602,7 @@ export function syncMiniFieldWith(THREE, living) {
   const n = living.mods.length;
   for (const inst of insts) {
     for (let i = 0; i < n; i += 1) {
-      dummy.position.copy(living.mods[i].position);
-      dummy.rotation.set(0, living.mods[i].userData.yaw || 0.42, 0);
-      dummy.scale.set(1, 1, 1);
-      dummy.updateMatrix();
-      dummy.matrix.multiply(inst.local);
+      placeDummy(dummy, living.mods[i], inst.local);
       inst.mesh.setMatrixAt(i, dummy.matrix);
     }
     inst.mesh.instanceMatrix.needsUpdate = true;
@@ -456,19 +613,6 @@ export function setMiniFieldVisible(living, visible) {
   if (living.miniField) living.miniField.visible = visible;
 }
 
-function scalePrototypeToCell(proto, cell) {
-  const w = proto.userData.cabW || CAB_W;
-  // Fit the cabinet face in the cell with a gap so they read as units, not a wall.
-  const targetW = cell * MODULE_FILL * 0.78;
-  const s = targetW / w;
-  proto.scale.setScalar(s);
-  proto.updateMatrixWorld(true);
-  proto.userData.bodyH = (proto.userData.bodyH || CAB_H) * s;
-  proto.userData.cabW = w * s;
-  proto.userData.cabD = (proto.userData.cabD || CAB_D) * s;
-  return proto;
-}
-
 export function dressLookalikeCabinets(THREE, living, livery, logoMap) {
   const proto = buildCabinetPrototype(THREE, {
     width: CAB_W,
@@ -477,42 +621,18 @@ export function dressLookalikeCabinets(THREE, living, livery, logoMap) {
     livery,
     logoMap,
   });
-  scalePrototypeToCell(proto, living.cell);
   instanceCabinetField(THREE, living, proto, "lookalike");
   living.ledMats = [];
 }
 
 export function dressMiniCabinetsFromTwin(THREE, living, twin, livery, logoMap) {
-  const measured = measureTwinCabinet(THREE, twin);
-  const aspect = measured ? measured.height / Math.max(measured.width, 1e-6) : 0;
-  const sane = measured && aspect >= 1.8 && aspect <= 4.2 && measured.height > 0.3;
-  const spec = sane
-    ? {
-      width: measured.width,
-      height: measured.height,
-      depth: Math.min(measured.depth, measured.width * 2.2),
-      wheels: measured.wheels?.length >= 2 && measured.wheels.length <= 6
-        ? measured.wheels
-        : undefined,
-      livery,
-      logoMap,
-    }
-    : {
-      width: CAB_W,
-      height: CAB_H,
-      depth: CAB_D,
-      livery,
-      logoMap,
-    };
-  const proto = buildCabinetPrototype(THREE, spec);
-  scalePrototypeToCell(proto, living.cell);
-  instanceCabinetField(
-    THREE,
-    living,
-    proto,
-    sane ? "twin-cabinet" : "lookalike"
-  );
-  living.ledMats = [];
+  const cloned = extractCabinetPrototype(THREE, twin, livery, logoMap);
+  if (cloned) {
+    instanceCabinetField(THREE, living, cloned, "twin-cabinet");
+    living.ledMats = [];
+    return living.miniCabinetSource;
+  }
+  dressLookalikeCabinets(THREE, living, livery, logoMap);
   return living.miniCabinetSource;
 }
 
@@ -555,8 +675,6 @@ export function buildLivingQr(THREE, spec) {
   const ledMats = [];
   const logoMats = [];
 
-  const guessH = (cell * MODULE_FILL * 0.9) * (CAB_H / CAB_W);
-
   for (let r = 0; r < n; r += 1) {
     for (let c = 0; c < n; c += 1) {
       const x = (c - origin) * cell;
@@ -575,9 +693,10 @@ export function buildLivingQr(THREE, spec) {
 
       const g = new THREE.Group();
       g.name = `QrMod_${r}_${c}`;
+      const crowdH = heightFor(vocab);
       const cap = new THREE.Mesh(capGeo, capMat);
       cap.name = "QrModTop";
-      cap.position.y = guessH + cell * 0.06;
+      cap.position.y = crowdH + cell * 0.06;
       g.add(cap);
 
       g.position.set(x, 0, z);
@@ -587,10 +706,14 @@ export function buildLivingQr(THREE, spec) {
         kind,
         vocab,
         baseY: 0,
-        bodyH: guessH,
+        bodyH: crowdH,
+        crowdH,
+        crowdScale: 1,
         miniCabinet: true,
         hasTrafficLight: false,
-        yaw: 0.42,
+        yaw: ((r * 17 + c * 13) % 9 - 4) * 0.045,
+        jx: ((r * 13 + c * 7) % 7 - 3) * cell * 0.035,
+        jz: ((r * 5 + c * 11) % 7 - 3) * cell * 0.035,
         phase: ((r * 17 + c * 13) % 1000) / 1000 * Math.PI * 2,
       };
       group.add(g);
@@ -650,12 +773,15 @@ export function buildLivingQr(THREE, spec) {
     kinds,
     vocabs,
     texturedQuad: false,
-    product: "living8-mini-portabooms",
+    product: "living9-mini-portabooms",
     plane: "xz",
     cameraHint: "perspective-world / ortho-scan",
     miniHasTrafficLight: false,
     stripeModules: 0,
     miniCabinetSource: "lookalike",
+    miniClonedFromTwin: false,
+    miniFieldKind: "hero-cabinet-instances",
+    modulePalette: "hero-orange",
   };
 
   const living = {
@@ -680,6 +806,7 @@ export function buildLivingQr(THREE, spec) {
     stripeModules: 0,
     miniCabinetSource: "lookalike",
     miniClonedFromTwin: false,
+    miniFieldKind: "hero-cabinet-instances",
     miniField: null,
     miniInstances: [],
   };
@@ -690,7 +817,6 @@ export function buildLivingQr(THREE, spec) {
       mat.needsUpdate = true;
     }
   });
-  dressLookalikeCabinets(THREE, living, livery, logoMap);
   living.logoMap = logoMap;
 
   return living;
