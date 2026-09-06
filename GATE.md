@@ -9,7 +9,7 @@ SoT: **ICQR-first door** — pixelated QR field with PORTABOOM (cabinet + traffi
 
 Proof runner: `node scripts/gate-living4-showtime.mjs` (Playwright + jsQR).
 Send file: `fabian-showtime-qr.png` (also `gate-artifacts/` + `/opt/cursor/artifacts/`).
-Living2 regression: `node scripts/gate-living2.mjs` (no `showtime=` → boom up / green, Life + Tap to scan).
+Living2 regression: `node scripts/gate-living2.mjs` (no `showtime=` → boom up / green, Life + Tap to scan). **GREEN.**
 
 Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
@@ -17,29 +17,29 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Check | Result |
 | --- | --- |
-| `?showtime=1` first paint is ICQR QR field | PENDING — `viewMode=door`, `showtimePhase=door`, cream QR paper, pixel modules, **not** living2 `lockWorldCamera` 3/4 plaza |
-| Cabinet + traffic light + boom in the field | PENDING — cabinet not ~50%+ alone; `doorSignalInFrame` + `doorBoomInFrame`; `doorBoomHidden=false`. Living5 cabinet-only hide is rejected. Living4 full-pad speck is rejected |
-| Not another website | PENDING — studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false`. No Life / Tap to scan / PB4000 chrome |
-| Not a flat B&W QR card | PENDING — `looksLikeFlatBWQR=false`. Colored living modules + unit volume |
+| `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, pixel modules, **not** living2 `lockWorldCamera` 3/4 plaza |
+| Cabinet + traffic light + boom in the field | GREEN — cabinet `heightFrac=0.249` (not ~50%+), orange blob `0.351` / area `0.114`. Signal lantern `heightFrac=0.220` `fullyIn`. Boom visible `heightFrac=0.573` (`doorBoomHidden=false`, tip may trim). Living5 cabinet-only hide rejected. Living4 full-pad speck rejected |
+| Not another website | GREEN — studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false`. No Life / Tap to scan / PB4000 chrome |
+| Not a flat B&W QR card | GREEN — `looksLikeFlatBWQR=false`. Colored living modules + unit volume |
 
 ## SMOKE — transform → DEST (living4/5 regression)
 
 | Check | Result |
 | --- | --- |
-| Tap (or 2.6s door beat) starts transform | PENDING — stays on the QR door. Does **not** jump to a twin microsite |
-| Auto choreography longer than living2 teaser (~3.6s) | PENDING — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Amber held ≥ 1.2s. `boomPct` 100 → 0. Then **0.4s** beat and `location.assign(leaveDest)` |
-| During lower = red / moving LEDs | PENDING — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
-| After down = leave configured DEST (default) | PENDING — omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL (`leaveDestSource=default`) |
-| After down = leave configured DEST (override) | PENDING — `?dest=` URL-encoded test site → leave that URL (`leaveDestSource=query`), not the default |
-| Zero website chrome on the door | PENDING — `#hud` `display:none` for the whole showtime path |
-| Stationary send QR | PENDING — jsQR decodes living showtime URL `?v=living6&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
-| Tap to scan → baked product matrix | PENDING — default living page `captureScan()` native jsQR → default product URL |
+| Tap (or 2.6s door beat) starts transform | GREEN — stays on the QR door. Does **not** jump to a twin microsite |
+| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.18s**. Amber held **1.9s**. `boomPct` 100 → 0. Then **0.4s** beat and `location.assign(leaveDest)` |
+| During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
+| After down = leave configured DEST (default) | GREEN — omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL (`leaveDestSource=default`) |
+| After down = leave configured DEST (override) | GREEN — `?dest=` URL-encoded test site → leave that URL (`leaveDestSource=query`), not the default |
+| Zero website chrome on the door | GREEN — `#hud` `display:none` for the whole showtime path |
+| Stationary send QR | GREEN — jsQR decodes living showtime URL `?v=living6&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
+| Tap to scan → baked product matrix | GREEN — default living page `captureScan()` native jsQR → default product URL |
 
 ## STRESS
 
 | Step | Result |
 | --- | --- |
-| living2 default (no showtime) | Unchanged world rest: boom up, green, dock visible. No auto DEST |
+| living2 default (no showtime) | GREEN — unchanged world rest: boom up, green, dock visible. No auto DEST |
 | `?v=living6&showtime=1` | ICQR door (unit + signal + boom) → transform → default DEST. Query `showtime=1` is the switch |
 | `?showtime=1&dest=` | Any http(s) website. Invalid / non-http falls back to default |
 | Canvas tap on the door | Starts transform (honest click → boom). Auto-beat if nobody taps |
@@ -55,9 +55,9 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | DEST is a single hard-coded dead end | `dest-config.mjs` default + `?dest=` override. GATE proves both |
 | Showtime page is the destination | After boom 100→0 + hold, `location.assign(leaveDest)` |
 | Flatten / print is the product | Flatten gone. Print still demoted. `printClaimReady=false` |
-| Default living2 broken | No query → `showtimePhase=off`, existing idle plaza |
-| Unit still a speck in cream | Door camera frames cabinet + signal + boom-clip (`DOOR_SUBJECT_FILL=0.60`). Not living4 full-pad |
-| Cabinet-only closeup / missing traffic light / hidden boom | Boom stays visible (`doorBoomHidden=false`). Signal + boom frames must read. Cabinet heightFrac < 0.45 |
+| Default living2 broken | No query → `showtimePhase=off`, existing idle plaza. `gate-living2.mjs` green |
+| Unit still a speck in cream | Door camera sizes from the cabinet (`DOOR_CABINET_FILL=0.32`) plus signal pad. Cabinet `0.249` / orange blob `0.351` — not living4 full-pad |
+| Cabinet-only closeup / missing traffic light / hidden boom | Boom stays visible (`doorBoomHidden=false`). Signal `fullyIn`. Boom span `0.573` in frame (tip may trim). Cabinet heightFrac `0.249` < 0.42 |
 
 ## How to scan (Fabian send)
 

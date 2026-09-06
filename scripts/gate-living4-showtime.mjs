@@ -398,16 +398,17 @@ async function run() {
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
     && vision.cabinetNotDominating === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.20
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.45
-    && vision.orangeBlob.heightFrac >= 0.16
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.22
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.42
+    && vision.orangeBlob.heightFrac >= 0.20
     && vision.orangeBlob.heightFrac < 0.48
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
     && doorSnap?.doorSignalInFrame === true
     && doorSnap?.doorBoomInFrame === true
     && (doorSnap?.doorSignalFrame?.heightFrac ?? 0) >= 0.07
-    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.12
+    && (doorSnap?.doorSignalFrame?.overflowY ?? 1) <= 0.08
+    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.16
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
