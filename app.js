@@ -578,6 +578,25 @@ const aspectEl = document.getElementById("aspect");
 
 const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const pageParams = new URLSearchParams(location.search);
+const showtimeWanted = pageParams.get("showtime") === "1";
+/**
+ * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
+ * Showtime must be longer than that loop — do not lock to ~3s.
+ */
+const TEASER_LOOP_S = 3.6;
+/** Clear amber, then red while boom eases down. Budget ~7.1s (target 6–8s). */
+const SHOWTIME_AMBER_S = 1.5;
+const SHOWTIME_LOWER_S = 5.2;
+const SHOWTIME_HOLD_S = 0.4;
+const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
+if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
+  throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
+}
+let showtimePhase = showtimeWanted ? "pending" : "off";
+let showtimeStartedAt = 0;
+let showtimeElapsed = 0;
+if (showtimeWanted) document.body.classList.add("showtime");
 let viewMode = "world"; // world = ICQR default 3D · scan = tap-to-scan pose
 let scanOpen = false;
 let lifeOn = !reduced;
@@ -1313,6 +1332,41 @@ function lockWorldCamera() {
   unitCam.userData.worldLook = look;
 }
 
+function showtimeHudHidden() {
+  return showtimePhase === "pending" || showtimePhase === "playing";
+}
+
+function startShowtime() {
+  if (!showtimeWanted || !boomRig) return false;
+  if (scanOpen) applyWorldPose();
+  boomRig.speed = 100 / SHOWTIME_LOWER_S;
+  applyBoomShown(100);
+  showtimePhase = "playing";
+  showtimeStartedAt = performance.now();
+  showtimeElapsed = 0;
+  showMode = "amber";
+  showClock = 0;
+  setSignalAspect("amber");
+  document.body.classList.add("showtime");
+  if (controls) controls.enabled = false;
+  setStatus("Showtime");
+  syncModeHud();
+  return true;
+}
+
+function settleShowtime() {
+  if (!boomRig) return;
+  showtimePhase = "settled";
+  showMode = "down";
+  showClock = 0;
+  applyBoomShown(0);
+  setSignalAspect("red");
+  document.body.classList.remove("showtime");
+  if (controls && !scanOpen) controls.enabled = true;
+  setStatus("Living QR · tap to scan the field");
+  syncModeHud();
+}
+
 function applyWorldPose() {
   scanOpen = false;
   viewMode = "world";
@@ -1330,7 +1384,7 @@ function applyWorldPose() {
   renderer.setClearColor(0x0d0d12, 1);
   if (controls) {
     controls.object = unitCam;
-    controls.enabled = true;
+    controls.enabled = !showtimeHudHidden();
   }
   unitCam.near = 0.05;
   unitCam.far = 80;
@@ -1358,7 +1412,7 @@ function applyWorldPose() {
     unitCam.updateProjectionMatrix();
     unitCam.lookAt(HOME.tgt);
   }
-  setStatus("Living QR · tap to scan the field");
+  if (!showtimeHudHidden()) setStatus("Living QR · tap to scan the field");
   syncModeHud();
 }
 
@@ -1391,6 +1445,7 @@ function applyScanPose() {
 }
 
 function toggleScan() {
+  if (showtimeHudHidden()) return;
   if (scanOpen) applyWorldPose();
   else applyScanPose();
 }
@@ -1635,8 +1690,19 @@ function setBoomPct(pct) {
   boomRig.targetPct = Math.max(0, Math.min(100, pct));
 }
 
+function applyBoomShown(pct) {
+  if (!boomRig) return;
+  const p = Math.max(0, Math.min(100, pct));
+  boomRig.shownPct = p;
+  boomRig.targetPct = p;
+  if (!boomRig.pivot) return;
+  const u = p / 100;
+  boomRig.pivot.rotation.z = boomRig.drop + (boomRig.rest - boomRig.drop) * u;
+}
+
 function tickBoom(dt) {
   if (!boomRig || !boomRig.pivot) return;
+  if (showtimePhase === "playing") return;
   const d = boomRig.targetPct - boomRig.shownPct;
   const rate = boomRig.speed || 56;
   const step = Math.min(Math.abs(d), rate * dt);
@@ -2154,10 +2220,37 @@ function beginRaiseSequence() {
   setStatus("Boom raising…");
 }
 
-/** Boom motion beat. No auto-cycle — user dock drives raise/lower. */
+/** Boom motion beat. Showtime holds down+red. Dock raise/lower otherwise. */
 function tickShow(dt) {
   if (!boomRig || flat) return;
   showClock += dt;
+  if (showtimePhase === "playing") {
+    showtimeElapsed = (performance.now() - showtimeStartedAt) / 1000;
+    if (showtimeElapsed < SHOWTIME_AMBER_S) {
+      showMode = "amber";
+      setSignalAspect("amber");
+      applyBoomShown(100);
+    } else if (showtimeElapsed < SHOWTIME_AMBER_S + SHOWTIME_LOWER_S) {
+      showMode = "closing";
+      setSignalAspect("red");
+      const u = (showtimeElapsed - SHOWTIME_AMBER_S) / SHOWTIME_LOWER_S;
+      const eased = u * u * (3 - 2 * u);
+      applyBoomShown(100 * (1 - eased));
+    } else {
+      showMode = "down";
+      setSignalAspect("red");
+      applyBoomShown(0);
+      if (showtimeElapsed >= SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S) {
+        settleShowtime();
+      }
+    }
+    return;
+  }
+  if (showtimePhase === "settled") {
+    setBoomPct(0);
+    if (optsVisible.traffic) setSignalAspect("red");
+    return;
+  }
   if (showMode === "up") {
     setBoomPct(100);
     if (optsVisible.traffic) setSignalAspect("green");
@@ -2197,6 +2290,14 @@ rigTrafficLamps(boom);
 setSignType("round");
 addLogoDecal(boom);
 setSignalAspect("green");
+if (showtimeWanted) {
+  showtimePhase = "pending";
+  document.body.classList.add("showtime");
+  syncModeHud();
+  setTimeout(() => {
+    if (showtimePhase === "pending") startShowtime();
+  }, 8000);
+}
 
 const loader = new GLTFLoader();
 
@@ -2231,14 +2332,18 @@ function mountCad(gltf, label) {
     setSignType(signType || "round");
     addLogoDecal(boom);
     applyCoreShowConfig(boom);
-    showMode = "up";
-    showClock = 0;
-    setSignalAspect("green");
     boom.visible = true;
     placeTwinInLivingWorld();
     applyWorldPose();
-    if (boomRig) setStatus("Living QR · tap to scan the field");
-    else setStatus(label);
+    if (showtimeWanted && showtimePhase !== "settled") {
+      startShowtime();
+    } else {
+      showMode = "up";
+      showClock = 0;
+      setSignalAspect("green");
+      if (boomRig) setStatus("Living QR · tap to scan the field");
+      else setStatus(label);
+    }
   } catch (err) {
     console.error(err);
     setStatus("CAD parse error. Hero stand-in still live.");
@@ -2297,10 +2402,13 @@ function exportPrintPng() {
 function syncModeHud() {
   document.body.classList.toggle("scan-open", scanOpen);
   document.body.classList.remove("unit-dock");
+  document.body.classList.toggle("showtime", showtimeHudHidden());
   const badge = document.getElementById("modeBadge");
   if (badge) badge.textContent = scanOpen ? "Scan" : "Living QR";
+  const liveDock = document.getElementById("liveDock");
+  if (liveDock) liveDock.hidden = showtimeHudHidden();
   const moreDock = document.getElementById("moreDock");
-  if (moreDock) moreDock.hidden = !scanOpen;
+  if (moreDock) moreDock.hidden = !scanOpen || showtimeHudHidden();
   const scanBtn = document.getElementById("scanBtn");
   if (scanBtn) {
     scanBtn.textContent = scanOpen ? "World" : "Tap to scan";
@@ -2361,8 +2469,9 @@ function tick() {
     updateLeds();
   }
   if (controls && !scanOpen) {
+    if (showtimeHudHidden()) controls.enabled = false;
     if (!spin) controls.autoRotate = false;
-    controls.update();
+    if (controls.enabled) controls.update();
   }
   renderer.autoClear = true;
   renderer.setScissorTest(false);
@@ -2436,6 +2545,8 @@ syncDock();
 syncModeHud();
 
 window.__iqr = {
+  startShowtime,
+  settleShowtime,
   get boom() { return boom; },
   get camera() {
     return {
@@ -2483,6 +2594,21 @@ window.__iqr = {
       texturedQuad: false,
       scanPlanePresent: false,
       product: "living2-brand-world",
+      showtime: showtimeWanted,
+      showtimePhase,
+      showtimeElapsed: +showtimeElapsed.toFixed(3),
+      showtimeBudget: SHOWTIME_TOTAL_S,
+      showtimeAmberS: SHOWTIME_AMBER_S,
+      showtimeLowerS: SHOWTIME_LOWER_S,
+      showtimeTeaserS: TEASER_LOOP_S,
+      longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
+      showtimeHudHidden: showtimeHudHidden(),
+      boomAngle: boomRig?.pivot?.rotation?.z ?? null,
+      lampIntensity: {
+        red: lampMats.red?.emissiveIntensity ?? null,
+        amber: lampMats.amber?.emissiveIntensity ?? null,
+        green: lampMats.green?.emissiveIntensity ?? null,
+      },
       cameraIsPerspective: camera.isPerspectiveCamera === true,
       cameraIsOrtho: camera.isOrthographicCamera === true,
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
@@ -2516,6 +2642,7 @@ window.__iqr = {
       signalFaced: !!findSignalHead(boom)?.userData?.signalFaced,
       boomPct: boomRig?.shownPct ?? null,
       boomTarget: boomRig?.targetPct ?? null,
+      liveDockHidden: document.getElementById("liveDock")?.hidden === true,
       faceLeds: faces.length,
       hasStrip: !!ledRig.stripMat,
       hasFace: !!ledRig.faceMat,

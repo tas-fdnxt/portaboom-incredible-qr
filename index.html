@@ -47,6 +47,10 @@ body.scan-open #status{display:block}
   radial-gradient(ellipse at 50% 38%,#1B2A4A 0%,#101317 52%,#0B0D10 100%)}
 #fail{display:none;position:fixed;inset:0;place-items:center;background:var(--soft);color:#fff;padding:28px;text-align:center;z-index:20}
 #fail.show{display:grid}
+body.showtime #liveDock,
+body.showtime #moreDock{display:none !important}
+body.showtime #status{display:none !important}
+body.showtime .badge{opacity:.55}
 @media (max-width:480px){
   .dock{gap:7px}
   .btn{padding:12px 14px;font-size:12px;flex:1 1 calc(50% - 8px)}
@@ -80,7 +84,10 @@ body.scan-open #status{display:block}
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 }}
 </script>
-<!-- Living2 default door. Historical doors: archive/overnight1/ and archive/twin-tidy5/. -->
-<script type="module" src="./app.js?v=living2"></script>
+<!-- Living3 showtime door. Historical: living2 world, archive/overnight1/, archive/twin-tidy5/. -->
+<script>
+if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) document.body.classList.add("showtime");
+</script>
+<script type="module" src="./app.js?v=living3b"></script>
 </body>
 </html>
