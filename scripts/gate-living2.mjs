@@ -212,7 +212,7 @@ async function run() {
   });
   const errors = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`http://127.0.0.1:${port}/?v=living2`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living2`, { waitUntil: "load", timeout: 60000 });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForTimeout(900);
