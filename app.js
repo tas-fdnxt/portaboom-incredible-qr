@@ -620,9 +620,9 @@ const MOTION1_AMP_CELL = 0.72;
 /** motion3 only — same bob as motion1. living10 stays frozen. */
 const MOTION3_AMP_CELL = 0.72;
 /** motion3 only — shift the hero LEFT in the living field so boom-down reads. */
-const MOTION3_UNIT_X = -0.42;
+const MOTION3_UNIT_X = -0.28;
 /** motion3 only — extra boom span in the door crop (living10 keeps DOOR_BOOM_KEEP). */
-const MOTION3_BOOM_KEEP = 1.18;
+const MOTION3_BOOM_KEEP = 1.35;
 /** Minimum pad fraction so the QR crowd stays a field, not a footer. */
 const DOOR_PAD_SPAN = 0.30;
 /**
@@ -1753,8 +1753,8 @@ function fitMotion3DoorOrtho() {
     boom.updateMatrixWorld(true);
     const boomBox = worldBox(arm);
     if (boomBox && !boomBox.isEmpty() && cab && !cab.isEmpty()) {
-      boomBox.max.x = Math.min(boomBox.max.x, cab.max.x + 0.12);
-      boomBox.min.x = Math.max(boomBox.min.x, cab.min.x - MOTION3_BOOM_KEEP);
+      boomBox.min.x = Math.max(boomBox.min.x, cab.min.x - 0.10);
+      boomBox.max.x = Math.min(boomBox.max.x, cab.max.x + MOTION3_BOOM_KEEP);
       if (boomBox.max.x > boomBox.min.x) crop.union(boomBox);
     } else if (boomBox && !boomBox.isEmpty()) {
       crop.union(boomBox);
@@ -1821,9 +1821,9 @@ function lockMotion3Camera() {
     if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.22);
     if (Number.isFinite(sc.y)) cy = THREE.MathUtils.lerp(cy, sc.y, 0.18);
   }
-  // Look toward the boom (−X with planted π) so the cabinet sits LEFT.
-  const lookX = cx - sy * 0.46;
-  doorCam.position.set(lookX + sy * 0.16, cy + sy * 0.50, cz + sy * 1.44);
+  // Boom reads to screen-right; look toward the arm so the cabinet sits LEFT.
+  const lookX = cx + sy * 0.78;
+  doorCam.position.set(lookX + sy * 0.08, cy + sy * 0.50, cz + sy * 1.44);
   doorCam.lookAt(lookX, cy - sy * 0.10, cz);
   doorCam.updateProjectionMatrix();
 }
