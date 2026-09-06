@@ -3,160 +3,115 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mon AM decisions · 7 Sep</title>
+<title>Mon 7 Sep AM · Decision board</title>
 <style>
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
 body{
-  margin:0 auto;background:#F4F6F9;color:#111;
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-  font-size:18px;line-height:1.5;padding:20px 16px 96px;max-width:640px;
+  margin:0 auto;max-width:430px;padding:18px 14px 88px;
+  background:#F4F6F9;color:#202020;
+  font:18px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
 }
-h1{font-size:28px;line-height:1.15;color:#1B2A4A;margin:0 0 12px}
-h2{font-size:22px;line-height:1.2;color:#1B2A4A;margin:0 0 10px}
-p,li{font-size:18px;line-height:1.45;margin:0 0 10px}
-.meta{font-size:16px;color:#334155;margin-bottom:18px}
-.badge{display:inline-block;font-size:14px;font-weight:700;padding:8px 12px;border-radius:999px;margin:0 8px 8px 0;background:#FFE8D4;color:#9A3F00}
-.badge.ok{background:#DCFCE7;color:#14532D}
-.badge.out{background:#FEE2E2;color:#7F1D1D}
-.card{background:#fff;border-radius:16px;padding:18px 16px;margin:0 0 16px;border:2px solid #E2E8F0;box-shadow:0 2px 8px rgba(16,27,48,.06)}
+h1{margin:0 0 8px;font-size:28px;line-height:1.15;color:#1B2A4A}
+.meta{margin:0 0 16px;font-size:16px;color:#5B6573}
+.chip{display:inline-block;margin:0 6px 8px 0;padding:8px 12px;min-height:44px;
+  border-radius:999px;background:#FFE8D4;color:#9A3F00;font-size:14px;font-weight:700;line-height:28px}
+.chip.ok{background:#DCFCE7;color:#14532D}
+.chip.out{background:#FEE2E2;color:#7F1D1D}
+.card{background:#fff;border:2px solid #E2E8F0;border-radius:16px;padding:16px;margin:0 0 14px}
 .card.need{border-color:#EE7202}
 .card.ok{border-color:#22C55E}
 .card.out{border-color:#EF4444}
-.num{display:block;font-size:14px;font-weight:800;letter-spacing:.08em;text-transform:uppercase;color:#EE7202;margin-bottom:6px}
-a.door{display:block;background:#1B2A4A;color:#fff!important;text-decoration:none;font-size:17px;font-weight:700;padding:16px 14px;border-radius:14px;margin:10px 0;min-height:52px;line-height:1.3}
+.num{display:block;margin:0 0 6px;font-size:13px;font-weight:800;letter-spacing:.06em;
+  text-transform:uppercase;color:#EE7202}
+h2{margin:0 0 10px;font-size:20px;line-height:1.25;color:#1B2A4A}
+.row{margin:0 0 10px}
+.lab{display:block;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#5B6573;margin:0 0 2px}
+.row p{margin:0;font-size:18px;color:#202020}
+a.door{display:flex;align-items:center;margin:8px 0;padding:14px;min-height:52px;
+  border-radius:14px;background:#1B2A4A;color:#fff!important;text-decoration:none;font-size:17px;font-weight:700}
 a.door.preview{background:#8A5A00}
 a.door.soft{background:#EE7202}
-.choices{margin:12px 0 0;padding:0;list-style:none}
-.choices li{background:#F8FAFC;border:2px solid #CBD5E1;border-radius:12px;padding:14px 14px;margin:0 0 8px;font-size:17px;font-weight:600;color:#1B2A4A}
-.small{font-size:15px;color:#475569}
-ul.plain{padding-left:20px;margin:8px 0}
-ul.plain li{margin:6px 0}
+.opt{display:block;width:100%;margin:0 0 8px;padding:14px;min-height:48px;border:2px solid #CBD5E1;
+  border-radius:12px;background:#F8FAFC;color:#1B2A4A;font-size:17px;font-weight:600;text-align:left}
+.small{font-size:15px;color:#5B6573}
+ul.plain{margin:8px 0;padding-left:20px}
+ul.plain li{margin:6px 0;font-size:17px}
 </style>
 </head>
 <body>
-<p><span class="badge ok">Phone page</span><span class="badge">Mon 7 Sep AM</span></p>
-<h1>Your decision board</h1>
-<p class="meta">Answer in order. Clock: Schema first, then Superwhisper, then Jack (you send), then Greg 10:00, then Fable. Agents never send mail for you.</p>
+<p><span class="chip ok">LIVE WRK</span><span class="chip">Chief · 6 Sep 2026</span><span class="chip">phone-readable-html</span></p>
+<h1>Mon morning decisions</h1>
+<p class="meta">Decide these so forges can move. Order: schema first, Superwhisper, Jack (you send), Greg 10:00, Fable. Agents never send mail.</p>
 
 <div class="card ok">
-<span class="num">Live doors · tap</span>
-<a class="door" href="http://100.125.160.69:8765/#hubs">Command Hub LIVE · #hubs only</a>
-<p class="small">Phone may fail Tailscale. Use Mac if that link dies.</p>
-<a class="door preview" href="https://tas-cmd-forge-preview.vercel.app/">Command Wave 1 · PREVIEW (not live)</a>
-<a class="door soft" href="https://github.com/tas-fdnxt/fdos-command/pull/4">PR #4 · tap to review</a>
-<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/fabian-showtime-qr.png">Incredible QR send file</a>
-<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1">Living tip · showtime</a>
+<span class="num">Doors · tap</span>
+<a class="door preview" href="https://tas-cmd-forge-preview.vercel.app/">Command Wave 1 PREVIEW</a>
+<a class="door soft" href="https://github.com/tas-fdnxt/fdos-command/pull/4">Open PR #4</a>
+<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/fabian-showtime-qr.png">QR send file</a>
+<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1">Living tip showtime</a>
+<p class="small">Command live #hubs is Tailscale. Use Mac if phone cannot open it. Never treat PREVIEW as live Command.</p>
 </div>
 
 <div class="card need">
-<span class="num">1 · Schema</span>
-<h2>Option 2 hybrid is already locked. Confirm open ticks.</h2>
-<ul class="plain">
-<li>Five states + PORTABOOM PDT wording: GO or amend?</li>
-<li>Opus hard-block: yes or no?</li>
-<li>Astra product build: still defer? (connectivity separate below)</li>
-<li>Save Big Decisions notes: now or later?</li>
-</ul>
-<ul class="choices">
-<li>GO as locked</li>
-<li>Amend (tell me what)</li>
-<li>Defer notes</li>
-</ul>
+<span class="num">Decision 1 of 3 · first</span>
+<h2>Schema + Command PR #4</h2>
+<div class="row"><span class="lab">Now</span><p>Schema Option 2 hybrid is locked. PR #4 is draft, CI green, PREVIEW up, merge held.</p></div>
+<div class="row"><span class="lab">Frustration</span><p>Overnight forge cannot honestly continue past Wave 1 without your GO ticks.</p></div>
+<div class="row"><span class="lab">Ask</span><p>Confirm schema open ticks, then say merge, hold, or amend PR #4.</p></div>
+<div class="row"><span class="lab">Reality</span><p>Live Command stays #hubs until you merge. PREVIEW is not Command.</p></div>
+<div class="row"><span class="lab">Options</span>
+<button class="opt" type="button">Schema GO as locked + merge PR #4</button>
+<button class="opt" type="button">Schema GO · HOLD PR #4</button>
+<button class="opt" type="button">Amend (reply what to change)</button>
+</div>
 </div>
 
 <div class="card need">
-<span class="num">2 · Command PR #4</span>
-<h2>Merge the Wave 1 harden?</h2>
-<p>CI green. Honesty clean. Preview is up. Live Command stays #hubs until you say merge.</p>
-<ul class="choices">
-<li>GO merge</li>
-<li>HOLD</li>
-<li>Amend (comment what)</li>
-</ul>
+<span class="num">Decision 2 of 3</span>
+<h2>Next factory + paperclip name</h2>
+<div class="row"><span class="lab">Now</span><p>HAVE: overnight Cursor, Command PR pipe, Sales live, China day-only list, Skills GATE, QR tip. THIN: Superwhisper. MISSING: Claudex factory, Astra product.</p></div>
+<div class="row"><span class="lab">Frustration</span><p>You want engines you can use anytime, without old-way grinding.</p></div>
+<div class="row"><span class="lab">Ask</span><p>Confirm paperclip = reusable factories (not a buy). Pick what arms after Command.</p></div>
+<div class="row"><span class="lab">Reality</span><p>No new hub. Under Schema Option 2 only.</p></div>
+<div class="row"><span class="lab">Options</span>
+<button class="opt" type="button">Paperclip = factories YES · Command-only until happy</button>
+<button class="opt" type="button">YES · Product/China day next</button>
+<button class="opt" type="button">YES · Wave 4 Cursor/Claude/Codex next</button>
+<button class="opt" type="button">Different word for paperclip</button>
+</div>
 </div>
 
 <div class="card need">
-<span class="num">3 · Next factory</span>
-<h2>After Command, what runs next?</h2>
-<p class="small">Paperclip = name for reusable factories under Schema Option 2. Not a buy. Not a new hub.</p>
-<ul class="choices">
-<li>Paperclip = factories · YES</li>
-<li>Different word</li>
-<li>Command-only until happy</li>
-<li>Product / China day next</li>
-<li>Wave 4 Cursor / Claude / Codex next</li>
-<li>Inventory next</li>
-</ul>
+<span class="num">Decision 3 of 3</span>
+<h2>Superwhisper slot + MCP auth</h2>
+<div class="row"><span class="lab">Now</span><p>Superwhisper app live on Mini; modes folder missing until you open it once. MCP needsAuth: GitHub, GitLab, Vercel, Airtable, Outlook, Cloudflare builds.</p></div>
+<div class="row"><span class="lab">Frustration</span><p>Voice and tools feel disconnected from the stack.</p></div>
+<div class="row"><span class="lab">Ask</span><p>When do Mini first-run + auth taps happen relative to Greg 10:00?</p></div>
+<div class="row"><span class="lab">Reality</span><p>Astra product still deferred. Connectivity prep only. You must tap auth cards.</p></div>
+<div class="row"><span class="lab">Options</span>
+<button class="opt" type="button">Superwhisper + auth before Greg</button>
+<button class="opt" type="button">After Greg</button>
+<button class="opt" type="button">GitHub+Vercel only first · Superwhisper after</button>
+<button class="opt" type="button">Hold both today</button>
 </div>
-
-<div class="card need">
-<span class="num">4 · Claudex</span>
-<h2>Hard-plan factory timing</h2>
-<ul class="choices">
-<li>Leave Wave 4 sequenced</li>
-<li>Want a Mon recipe (no install)</li>
-</ul>
-</div>
-
-<div class="card need">
-<span class="num">5 · Superwhisper</span>
-<h2>Mini first-run (open the app once)</h2>
-<p>App is installed. Modes folder missing until you open Superwhisper on Mini, sign in, allow mic.</p>
-<ul class="choices">
-<li>Before Greg</li>
-<li>After Greg</li>
-<li>Hold the day</li>
-</ul>
-</div>
-
-<div class="card need">
-<span class="num">6 · Jack / China</span>
-<h2>You send · agents never send</h2>
-<p>Confirm sheet is draft. 6 asks still open. Stock 120 vs about 50 conflict: do not invent a number.</p>
-<ul class="choices">
-<li>Send confirm today</li>
-<li>Prep only</li>
-<li>Strike 120 language first</li>
-</ul>
 </div>
 
 <div class="card ok">
-<span class="num">7 · Greg 10:00</span>
-<h2>Held on the clock</h2>
-<p>Quote + marketing. Nothing jumps this except the schema block first.</p>
-</div>
-
-<div class="card need">
-<span class="num">8 · Fable / Nick</span>
-<h2>Eval only · no install</h2>
+<span class="num">Also on the clock</span>
 <ul class="plain">
-<li>Fable model → Ai_UPSKILL eval until Skills stamps</li>
-<li>Nick vault steal → parked until after Greg</li>
-</ul>
-<ul class="choices">
-<li>Eval only · OK</li>
-<li>Comment</li>
-</ul>
-</div>
-
-<div class="card need">
-<span class="num">9 · Astra + MCP</span>
-<h2>Connectivity prep · product still deferred</h2>
-<p>Already connected: Gmail, Drive, Calendar, Composio, Zapier, Tavily, Supabase, Miro, Plaud, Cloudflare docs.</p>
-<p><strong>Mon morning tap auth:</strong> GitHub · GitLab · Vercel · Airtable · Outlook calendar · Cloudflare builds. Mini 1Password Allow if still open.</p>
-<ul class="choices">
-<li>Auth batch GO Mon</li>
-<li>GitHub + Vercel only first</li>
-<li>Hold</li>
+<li>Greg 10:00 quote + marketing · held</li>
+<li>Jack confirm · you send only · prep or send today</li>
+<li>Fable eval only via Ai_UPSKILL · Nick vault parked after Greg</li>
+<li>Claudex: leave Wave 4 sequenced unless you want a Mon recipe</li>
 </ul>
 </div>
 
 <div class="card out">
 <span class="num">Out of scope</span>
-<p><span class="badge out">Do not forge</span></p>
+<p><span class="chip out">Do not forge</span></p>
 <ul class="plain">
-<li>Finance / Design / Mini-write</li>
+<li>Finance · Design · Mini-write</li>
 <li>Live Command merge without PR #4 GO</li>
 <li>QR living11 · half-door send</li>
 <li>Astra Voice product build · Paperclip buy</li>
@@ -164,7 +119,6 @@ ul.plain li{margin:6px 0}
 </ul>
 </div>
 
-<p class="meta">Chief owns forge gates. PlanBot = clock. Skills = stamp before sendables. Vault = logins.</p>
-<p class="meta">Desktop companion (Mac): Monday-07-Sep-2026-Plan.html</p>
+<p class="meta">Reply in Chief chat with your picks. PlanBot = clock. Skills = stamp. Vault = logins.</p>
 </body>
 </html>
