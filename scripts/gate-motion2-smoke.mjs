@@ -160,6 +160,18 @@ async function main() {
         && (left.snap.destLeaveReason === "motion2-flatten-hold")
         && String(left.snap.destLeaveUrl || left.left?.dest || "").includes("portaboom-pb4000-series"),
     };
+    const destPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    destPage.on("pageerror", (e) => console.warn("motion2 dest", e.message));
+    await destPage.addInitScript(() => { window.__iqrOnLeaveToDest = (d) => { window.__left = d; }; });
+    const override = "https://example.com/motion2-dest-override";
+    await destPage.goto(`http://127.0.0.1:${port}/?v=motion2&dest=${encodeURIComponent(override)}`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await waitSnap(destPage, (s) => s.motion2 === true && s.leaveDest === override);
+    const destSnap = await destPage.evaluate(() => window.__iqr.snap);
+    await destPage.close();
+    report.motion2.destOverride = destSnap.leaveDest;
+    report.motion2.destOverrideOk = destSnap.leaveDest === override;
+    report.motion2.ok = report.motion2.ok && destSnap.leaveDest === override;
+
     report.ok = report.living10.ok && report.motion1.ok && report.motion2.ok;
     await mkdir(OUT, { recursive: true });
     await writeFile(join(OUT, "SMOKE_SNAP_MOTION2.json"), JSON.stringify(report, null, 2));
