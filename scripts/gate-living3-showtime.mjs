@@ -1,7 +1,8 @@
 /**
  * GATE living3 showtime proof.
- * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s
- * (natural PB4000 pace, not a 3s sting), then Life / Tap to scan return.
+ * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s.
+ * Must beat Fabian’s living2 teaser GIF loop (~3.58–3.6s, 43 frames @ ~12fps).
+ * Target 6–8s. Then Life / Tap to scan return.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -146,7 +147,8 @@ function summarizeTimeline(samples) {
     playDurationS: +duration.toFixed(3),
     amberHeldS: +amberHeldS.toFixed(3),
     elapsedAtEnd: +elapsedAtEnd.toFixed(3),
-    naturalPace: amberHeldS >= 1.2 && elapsedAtEnd >= 5 && elapsedAtEnd <= 8.5,
+    longerThanTeaser: elapsedAtEnd > 3.6,
+    naturalPace: amberHeldS >= 1.2 && elapsedAtEnd > 3.6,
     sampleCount: samples.length,
   };
 }
@@ -257,7 +259,8 @@ async function run() {
     && (snapEnd?.boomPct ?? 99) < 8
     && snapEnd?.signalAspect === "red"
     && snapEnd?.viewMode === "world"
-    && settleElapsed >= 5
+    && settleElapsed > 3.6
+    && settleElapsed >= 6
     && settleElapsed <= 8.5;
   const hudRestored = dockAfter.hidden === false && dockAfter.scan === "Tap to scan";
 
@@ -296,6 +299,9 @@ async function run() {
       signalAspect: snapEnd?.signalAspect,
       defaultShowsTwin: snapEnd?.defaultShowsTwin,
       product: snapEnd?.product,
+      showtimeBudget: snapEnd?.showtimeBudget,
+      showtimeTeaserS: snapEnd?.showtimeTeaserS,
+      longerThanTeaser: snapEnd?.longerThanTeaser,
     },
   };
 
@@ -331,7 +337,10 @@ async function run() {
     && timeline.redLampOn
     && timeline.lowered
     && timeline.naturalPace
+    && timeline.longerThanTeaser
     && timeline.amberHeldS >= 1.2
+    && (snapEnd?.longerThanTeaser === true)
+    && (snapEnd?.showtimeBudget || 0) > (snapEnd?.showtimeTeaserS || 3.6)
     && timeline.hudHiddenWhilePlaying
     && settleOk
     && hudRestored

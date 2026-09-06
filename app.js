@@ -580,11 +580,19 @@ const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const showtimeWanted = pageParams.get("showtime") === "1";
-/** Amber hold + boom drop + brief red hold. Real PB4000 lower feel, not a 3s sting. */
+/**
+ * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
+ * Showtime must be longer than that loop — do not lock to ~3s.
+ */
+const TEASER_LOOP_S = 3.6;
+/** Clear amber, then red while boom eases down. Budget ~7.1s (target 6–8s). */
 const SHOWTIME_AMBER_S = 1.5;
 const SHOWTIME_LOWER_S = 5.2;
 const SHOWTIME_HOLD_S = 0.4;
 const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
+if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
+  throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
+}
 let showtimePhase = showtimeWanted ? "pending" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
@@ -2592,6 +2600,8 @@ window.__iqr = {
       showtimeBudget: SHOWTIME_TOTAL_S,
       showtimeAmberS: SHOWTIME_AMBER_S,
       showtimeLowerS: SHOWTIME_LOWER_S,
+      showtimeTeaserS: TEASER_LOOP_S,
+      longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
       showtimeHudHidden: showtimeHudHidden(),
       boomAngle: boomRig?.pivot?.rotation?.z ?? null,
       lampIntensity: {

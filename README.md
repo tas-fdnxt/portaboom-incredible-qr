@@ -3,7 +3,7 @@
 Living3 Incredible QR for PORTABOOM PB4000 (ICQR Magic Tree *pattern*: a 3D brand world that is itself scannable).
 
 - **Default** = living 3D PORTABOOM world (powder orange plaza, twin-tidy5 PB4000).
-- **`?showtime=1`** (and `?v=living3&showtime=1`) auto-plays ~7s: clear amber, then red as the boom lowers at a real PB4000 pace, then Life / Tap to scan return.
+- **`?showtime=1`** (and `?v=living3&showtime=1`) auto-plays ~7s — longer than the living2 teaser GIF loop (~3.6s). Clear amber, then red as the boom lowers, then Life / Tap to scan return.
 - The scannable matrix lives in the terrain. Tap / **Tap to scan** for a clearer scan pose (DEST product page).
 - Print PNG is a demoted export under the scan dock — never the READY claim
 - DEST: https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
