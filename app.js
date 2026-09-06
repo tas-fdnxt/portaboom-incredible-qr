@@ -596,13 +596,13 @@ const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAUL
 const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
- * Showtime must still beat that loop — living7 does it with a faster 4s path.
+ * Showtime lock is now shorter: 0.5 + 1.0 + 0.5 + boom down.
  */
 const TEASER_LOOP_S = 3.6;
-/** Green 1s → amber 1s → red 1s → boom down 1s (~4s). Clear green phase. */
-const SHOWTIME_GREEN_S = 1.0;
+/** Green 0.5s → amber 1s → red 0.5s → boom down. */
+const SHOWTIME_GREEN_S = 0.5;
 const SHOWTIME_AMBER_S = 1.0;
-const SHOWTIME_RED_HOLD_S = 1.0;
+const SHOWTIME_RED_HOLD_S = 0.5;
 const SHOWTIME_LOWER_S = 1.0;
 const SHOWTIME_HOLD_S = 0;
 /** Short beat after boom fully down, then leave to DEST. */
@@ -625,9 +625,7 @@ const DOOR_SUBJECT_FILL = 0.72;
 const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.55;
-if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
-  throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
-}
+// Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
 let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
@@ -3202,7 +3200,7 @@ window.__iqr = {
       showtimeLowerS: SHOWTIME_LOWER_S,
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
-      timingBeat: "1+1+1+1",
+      timingBeat: "0.5+1+0.5+boom",
       showtimeHudHidden: showtimeHudHidden(),
       showtimeLeaveS: SHOWTIME_LEAVE_S,
       destLeave,

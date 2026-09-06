@@ -5,7 +5,7 @@ DEST **default**: `https://www.trafficaccess.com.au/portaboom-product/portaboom-
 DEST **override**: living door `?dest=<URL-encoded http(s) URL>` (any website). Config: `dest-config.mjs`.
 Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living8&showtime=1`
 ECC **H** send QR. World still uses the baked default-product H-matrix (version **8**, **49×49**, **1258** dark modules).
-SoT: **ICQR-first door** — pixelated QR field of miniature PORTABOOM cabinets (hero silhouette: orange cabinet, door_decal, wheels — **not** black/stripe/glitch towers), planted unit (cabinet + traffic light + **one** boom) **straight-on** so lenses read, big PORTABOOM logo in the back. Then green 1s → amber 1s → red 1s → boom down 1s (~4s). Then DEST. **Not** a twin-site 3/4 plaza. **Not** WordPress.
+SoT: **ICQR-first door** — pixelated QR field of miniature PORTABOOM cabinets (hero silhouette: orange cabinet, door_decal, wheels — **not** black/stripe/glitch towers), planted unit (cabinet + traffic light + **one** boom) **straight-on** so lenses read, big PORTABOOM logo in the back. Then green **0.5s** → amber **1s** → red **0.5s** → boom down. Then DEST. **Not** a twin-site 3/4 plaza. **Not** WordPress.
 
 Proof runner: `node scripts/gate-living4-showtime.mjs` (Playwright + jsQR).
 Send file: `fabian-showtime-qr.png` (also `gate-artifacts/` + `/opt/cursor/artifacts/`).
@@ -31,7 +31,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing ~1+1+1+1 | GREEN — measured green **1.239s** → amber **0.897s** → red hold **1.083s** → boom down; settle **4.118s**. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Timing 0.5+1+0.5+boom | GREEN — Fabian lock: green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Then **0.4s** beat and `location.assign(leaveDest)` |
 | Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
@@ -45,7 +45,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Step | Result |
 | --- | --- |
 | living2 default (no showtime) | Unchanged world rest: boom up, green, dock visible. No auto DEST |
-| `?v=living8&showtime=1` | ICQR door → 4s transform → default DEST. Query `showtime=1` is the switch |
+| `?v=living8&showtime=1` | ICQR door → 0.5+1+0.5+boom transform → default DEST. Query `showtime=1` is the switch |
 | `?showtime=1&dest=` | Any http(s) website. Invalid / non-http falls back to default |
 | Canvas tap on the door | Starts transform (honest click → boom). Auto-beat if nobody taps |
 
@@ -70,7 +70,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 1. Point a phone at **`fabian-showtime-qr.png`** (stationary).
 2. Camera opens the living Incredible QR **door** — straight-on cabinet, traffic light lenses readable, one boom, mini PORTABOOMs, brand in the back.
-3. Tap (or wait one beat). Watch green → amber → red → boom down (~4s) **on that QR world**.
+3. Tap (or wait one beat). Watch green 0.5s → amber 1s → red 0.5s → boom down **on that QR world**.
 4. After the boom is fully down, the page goes to DEST (default product link, or `?dest=` if the living URL includes one).
 
 Do not merge. Chief delivers the PNG after merge.

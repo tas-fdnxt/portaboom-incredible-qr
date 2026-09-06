@@ -4,7 +4,7 @@
  * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
  * and a visible boom span (not living5 cabinet-only, not living4 speck,
  * not the living2/3d plaza twin-as-website, not living6 steep tilt).
- * Tap or door-beat starts green 1s → amber 1s → red 1s → boom down 1s (~4s),
+ * Tap or door-beat starts green 0.5s → amber 1s → red 0.5s → boom down,
  * then leave to configured DEST.
  * Stationary send QR encodes the living showtime URL, never DEST.
  */
@@ -322,7 +322,8 @@ function summarizeTimeline(samples) {
   const singleBoomDuringLower = playing
     .filter((s) => (s.boomPct ?? 100) < 85)
     .every((s) => (s.ghostBoomCount ?? 0) === 0 && s.singleBoom !== false);
-  const beat = (v) => v >= 0.7 && v <= 1.45;
+  const shortBeat = (v) => v >= 0.32 && v <= 0.82;
+  const amberBeat = (v) => v >= 0.75 && v <= 1.35;
   return {
     aspects,
     phases,
@@ -347,8 +348,9 @@ function summarizeTimeline(samples) {
     lowerS: +lowerS.toFixed(3),
     elapsedAtEnd: +elapsedAtEnd.toFixed(3),
     longerThanTeaser: elapsedAtEnd > 3.6,
-    naturalPace: beat(greenHeldS) && beat(amberHeldS) && beat(redHoldS) && elapsedAtEnd >= 3.7 && elapsedAtEnd <= 5.2,
-    timingBeat: "1+1+1+1",
+    naturalPace: shortBeat(greenHeldS) && amberBeat(amberHeldS) && shortBeat(redHoldS)
+      && elapsedAtEnd >= 2.4 && elapsedAtEnd <= 3.6,
+    timingBeat: "0.5+1+0.5+boom",
     ghostMax,
     singleBoomDuringLower,
     sampleCount: samples.length,
@@ -616,9 +618,8 @@ async function run() {
     && (snapEnd?.boomPct ?? 99) < 8
     && snapEnd?.signalAspect === "red"
     && snapEnd?.viewMode === "door"
-    && settleElapsed > 3.6
-    && settleElapsed >= 3.7
-    && settleElapsed <= 5.2;
+    && settleElapsed >= 2.4
+    && settleElapsed <= 3.6;
   const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
@@ -772,16 +773,20 @@ async function run() {
     && timeline.redLampOn
     && timeline.lowered
     && timeline.naturalPace
-    && timeline.longerThanTeaser
-    && timeline.greenHeldS >= 0.7
-    && timeline.amberHeldS >= 0.7
-    && timeline.redHoldS >= 0.7
+    && timeline.greenHeldS >= 0.32
+    && timeline.greenHeldS <= 0.82
+    && timeline.amberHeldS >= 0.75
+    && timeline.amberHeldS <= 1.35
+    && timeline.redHoldS >= 0.32
+    && timeline.redHoldS <= 0.82
     && timeline.singleBoomDuringLower
     && timeline.ghostMax === 0
     && timeline.stayedOnDoor
     && timeline.noStudio
-    && (snapEnd?.longerThanTeaser === true)
-    && (snapEnd?.showtimeBudget || 0) > (snapEnd?.showtimeTeaserS || 3.6)
+    && snapEnd?.timingBeat === "0.5+1+0.5+boom"
+    && (snapEnd?.showtimeGreenS ?? 0) === 0.5
+    && (snapEnd?.showtimeAmberS ?? 0) === 1
+    && (snapEnd?.showtimeRedHoldS ?? 0) === 0.5
     && timeline.hudHiddenWhilePlaying
     && settleOk
     && report.hud.leftHidden
