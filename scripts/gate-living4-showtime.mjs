@@ -1,9 +1,7 @@
 /**
- * GATE living9 showtime — ICQR door first (straight-on, one boom,
- * cloned mini PORTABOOM field, brand back), then DEST.
- * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
- * and a visible boom span (not living5 cabinet-only, not living4 speck,
- * not the living2/3d plaza twin-as-website, not living6 steep tilt).
+ * GATE living10 showtime — ICQR door first (elevated 3D QR field,
+ * one boom, cuboid minis). Restore the last GOOD dense field.
+ * Reject living8/9 flatten (logo header + orange footer strip).
  * Tap or door-beat starts green 0.5s → amber 1s → red 0.5s → boom down,
  * then leave to configured DEST.
  * Stationary send QR encodes the living showtime URL, never DEST.
@@ -210,18 +208,21 @@ function doorVision(buf) {
   const orangeBBoxFrac = (orangeBBoxW * orangeBBoxH) / n;
   // Field modules are also powder-orange — use the largest blob, not the union bbox.
   const blob = largestOrangeBlob(data, W, H);
-  const looksLikeQrField = creamRatio > 0.12
-    && darkRatio > 0.03
-    && darkRatio < 0.62
-    && chromaRatio > 0.05;
+  const looksLikeQrField = darkRatio > 0.06
+    && darkRatio < 0.72
+    && chromaRatio > 0.08
+    && creamRatio < 0.62;
   const portaboomInField = orange > 8000 && blob.pixels > 4000;
-  const portaboomLargeEnough = blob.heightFrac >= 0.16
-    && blob.heightFrac < 0.70
-    && blob.areaFrac >= 0.035
-    && blob.pixels > 7000;
-  const cabinetNotDominating = blob.heightFrac < 0.70;
+  const portaboomLargeEnough = blob.heightFrac >= 0.12
+    && blob.heightFrac < 0.55
+    && blob.areaFrac >= 0.02
+    && blob.pixels > 5000;
+  const cabinetNotDominating = blob.heightFrac < 0.55;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
+  const orangeTopFrac = orangeMinY < Infinity ? orangeMinY / H : 1;
+  const orangeHeightSpan = orangeBBoxH / H;
+  const looksLikeFlattenedPoster = creamRatio > 0.42 && orangeHeightSpan < 0.38 && orangeTopFrac > 0.28;
   return {
     width: W,
     height: H,
@@ -246,6 +247,9 @@ function doorVision(buf) {
     cabinetNotDominating,
     looksLikeWebsiteTwin,
     looksLikeFlatBWQR,
+    looksLikeFlattenedPoster,
+    orangeTopFrac: +orangeTopFrac.toFixed(4),
+    orangeHeightSpan: +orangeHeightSpan.toFixed(4),
     looksLikeNormalQR: looksLikeQrField && looksLikeFlatBWQR,
   };
 }
@@ -389,14 +393,14 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living9&showtime=1`, { waitUntil: "domcontentloaded" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living10&showtime=1`, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
     window.__iqr?.snap?.usingGlb === true
     && window.__iqr?.snap?.viewMode === "door"
-    && window.__iqr?.snap?.miniClonedFromTwin === true
-    && window.__iqr?.snap?.miniCabinetSource === "twin-cabinet"
+    && window.__iqr?.snap?.miniHasTrafficLight === false
+    && (window.__iqr?.snap?.stripeModules ?? 0) >= 0
   ), { timeout: 25000 });
 
   const doorSnap = await page.evaluate(() => window.__iqr?.snap);
@@ -416,12 +420,17 @@ async function run() {
     };
   });
   const doorDataUrl = await page.evaluate(() => window.__iqr.captureDoor());
+  await page.evaluate(() => window.__iqr.frameMiniCloseup());
+  const miniDataUrl = await page.evaluate(() => document.getElementById("stage").toDataURL("image/png"));
+  await writeFile(join(OUT, "showtime-mini-close.png"), dataUrlToBuf(miniDataUrl));
+  await page.evaluate(() => window.__iqr.captureDoor());
   const started = await page.evaluate(() => window.__iqr.startShowtime());
   if (!started) {
     throw new Error(`startShowtime failed (phase=${(await page.evaluate(() => window.__iqr?.snap?.showtimePhase))})`);
   }
   const doorShot = dataUrlToBuf(doorDataUrl);
   await writeFile(join(OUT, "showtime-door.png"), doorShot);
+  await writeFile(join(OUT, "showtime-door-webgl.png"), doorShot);
   const vision = doorVision(doorShot);
   const firstPaintPhaseOk = doorSnap?.showtimePhase === "door"
     || (doorSnap?.showtimePhase === "playing"
@@ -429,43 +438,41 @@ async function run() {
       && (doorSnap?.showtimeElapsed ?? 99) < 0.85);
   const firstPaintOk = firstPaintPhaseOk
     && doorSnap?.viewMode === "door"
-    && (doorSnap?.icqrFirstPaint === true || doorSnap?.miniClonedFromTwin === true)
     && doorSnap?.twinInQrField === true
     && doorSnap?.studioVisible === false
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living9-icqr-door"
+    && doorSnap?.product === "living10-icqr-door"
     && doorSnap?.miniHasTrafficLight === false
-    && doorSnap?.miniCabinetSource === "twin-cabinet"
-    && doorSnap?.miniClonedFromTwin === true
-    && doorSnap?.miniFieldKind === "hero-cabinet-instances"
-    && doorSnap?.modulePalette === "hero-orange"
+    && doorSnap?.miniCabinetSource === "cuboid-field"
+    && doorSnap?.miniFieldKind === "dense-cuboid-qr"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
     && vision.cabinetNotDominating === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.16
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.48
-    && vision.orangeBlob.heightFrac >= 0.16
-    && vision.orangeBlob.heightFrac < 0.70
+    && vision.looksLikeFlattenedPoster === false
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.10
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.52
+    && vision.orangeBlob.heightFrac >= 0.10
+    && vision.orangeBlob.heightFrac < 0.55
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
     && doorSnap?.doorSignalInFrame === true
     && doorSnap?.doorBoomInFrame === true
-    && (doorSnap?.doorSignalFrame?.heightFrac ?? 0) >= 0.07
-    && (doorSnap?.doorSignalFrame?.overflowY ?? 1) <= 0.12
-    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.12
-    && doorSnap?.doorCamFrontFacing === true
-    && (doorSnap?.doorCamElevationDeg ?? -90) > -18
+    && (doorSnap?.doorSignalFrame?.heightFrac ?? 0) >= 0.05
+    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.10
+    && doorSnap?.doorCamElevatedField === true
+    && (doorSnap?.doorCamElevationDeg ?? 0) <= -12
+    && (doorSnap?.doorCamElevationDeg ?? -90) >= -38
     && doorSnap?.singleBoom === true
     && (doorSnap?.ghostBoomCount ?? 99) === 0
     && doorSnap?.miniHasTrafficLight === false
     && (doorSnap?.miniTrafficLights ?? 99) === 0
-    && (doorSnap?.stripeModules ?? 99) === 0
-    && doorSnap?.backLogoVisible === true
+    && (doorSnap?.stripeModules ?? 0) > 0
+    && doorSnap?.backLogoVisible === false
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -562,7 +569,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living9&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living10&showtime=1&${overrideQuery}`,
     { waitUntil: "domcontentloaded" },
   );
   await overridePage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
@@ -598,7 +605,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living9`, { waitUntil: "domcontentloaded" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living10`, { waitUntil: "domcontentloaded" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -621,7 +628,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living9/.test(qrProof.clean.decoded || "");
+    && /v=living10/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -653,6 +660,7 @@ async function run() {
         doorSignalInFrame: doorSnap?.doorSignalInFrame ?? null,
         doorBoomInFrame: doorSnap?.doorBoomInFrame ?? null,
         doorCamElevationDeg: doorSnap?.doorCamElevationDeg ?? null,
+        doorCamElevatedField: doorSnap?.doorCamElevatedField ?? null,
         doorCamFrontFacing: doorSnap?.doorCamFrontFacing ?? null,
         singleBoom: doorSnap?.singleBoom ?? null,
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
@@ -737,6 +745,7 @@ async function run() {
     for (const name of [
       "showtime-door.png",
       "showtime-door-webgl.png",
+      "showtime-mini-close.png",
       "showtime-green.png",
       "showtime-amber.png",
       "showtime-amber-webgl.png",
