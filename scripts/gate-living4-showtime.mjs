@@ -85,6 +85,81 @@ function dataUrlToBuf(url) {
   return Buffer.from(b64, "base64");
 }
 
+function isCabinetOrange(r, g, b) {
+  return r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18;
+}
+
+/** Largest 4-connected orange blob — the cabinet, not scattered QR towers. */
+function largestOrangeBlob(data, W, H) {
+  const step = 2;
+  const gw = Math.ceil(W / step);
+  const gh = Math.ceil(H / step);
+  const seen = new Uint8Array(gw * gh);
+  const mark = (x, y) => {
+    const gx = (x / step) | 0;
+    const gy = (y / step) | 0;
+    seen[gy * gw + gx] = 1;
+  };
+  const visited = (x, y) => seen[((y / step) | 0) * gw + ((x / step) | 0)];
+  let best = { pixels: 0, minX: 0, minY: 0, maxX: 0, maxY: 0, widthFrac: 0, heightFrac: 0, areaFrac: 0 };
+  const stack = [];
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      if (visited(x, y)) continue;
+      const i = (y * W + x) * 4;
+      if (!isCabinetOrange(data[i], data[i + 1], data[i + 2])) {
+        mark(x, y);
+        continue;
+      }
+      stack.length = 0;
+      stack.push(x, y);
+      mark(x, y);
+      let pixels = 0;
+      let minX = x;
+      let minY = y;
+      let maxX = x;
+      let maxY = y;
+      while (stack.length) {
+        const cy = stack.pop();
+        const cx = stack.pop();
+        pixels += step * step;
+        if (cx < minX) minX = cx;
+        if (cy < minY) minY = cy;
+        if (cx > maxX) maxX = cx;
+        if (cy > maxY) maxY = cy;
+        const nbs = [cx - step, cy, cx + step, cy, cx, cy - step, cx, cy + step];
+        for (let k = 0; k < nbs.length; k += 2) {
+          const nx = nbs[k];
+          const ny = nbs[k + 1];
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H || visited(nx, ny)) continue;
+          const ni = (ny * W + nx) * 4;
+          if (isCabinetOrange(data[ni], data[ni + 1], data[ni + 2])) {
+            mark(nx, ny);
+            stack.push(nx, ny);
+          } else {
+            mark(nx, ny);
+          }
+        }
+      }
+      if (pixels > best.pixels) {
+        const bw = maxX - minX + 1;
+        const bh = maxY - minY + 1;
+        best = {
+          pixels,
+          minX,
+          minY,
+          maxX,
+          maxY,
+          widthFrac: +(bw / W).toFixed(4),
+          heightFrac: +(bh / H).toFixed(4),
+          areaFrac: +((bw * bh) / (W * H)).toFixed(4),
+        };
+      }
+    }
+  }
+  return best;
+}
+
 function doorVision(buf) {
   const png = PNG.sync.read(buf);
   const { width: W, height: H, data } = png;
@@ -130,14 +205,16 @@ function doorVision(buf) {
   const orangeBBoxW = orangeMaxX > orangeMinX ? (orangeMaxX - orangeMinX + 1) : 0;
   const orangeBBoxH = orangeMaxY > orangeMinY ? (orangeMaxY - orangeMinY + 1) : 0;
   const orangeBBoxFrac = (orangeBBoxW * orangeBBoxH) / n;
+  // Field modules are also powder-orange — use the largest blob, not the union bbox.
+  const blob = largestOrangeBlob(data, W, H);
   const looksLikeQrField = creamRatio > 0.12
     && darkRatio > 0.03
     && darkRatio < 0.62
     && chromaRatio > 0.05;
-  const portaboomInField = orange > 8000;
-  const portaboomLargeEnough = orangeRatio >= 0.018
-    && orangeBBoxFrac >= 0.055
-    && orangeBBoxH / H >= 0.16;
+  const portaboomInField = orange > 8000 && blob.pixels > 4000;
+  const portaboomLargeEnough = blob.heightFrac >= 0.16
+    && blob.areaFrac >= 0.035
+    && blob.pixels > 8000;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -157,6 +234,7 @@ function doorVision(buf) {
     orangeBBoxH,
     orangeBBoxFrac: +orangeBBoxFrac.toFixed(4),
     orangeHeightFrac: +(orangeBBoxH / H).toFixed(4),
+    orangeBlob: blob,
     looksLikeQrField,
     portaboomInField,
     portaboomLargeEnough,
@@ -315,8 +393,8 @@ async function run() {
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
-    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.20
-    && (doorSnap?.doorHeroFrame?.areaFrac ?? 0) >= 0.04
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.18
+    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.22
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -508,6 +586,7 @@ async function run() {
         doorOrthoWorldW: doorSnap?.doorOrthoWorldW ?? null,
         doorOrthoWorldH: doorSnap?.doorOrthoWorldH ?? null,
         doorHeroFrame: doorSnap?.doorHeroFrame ?? null,
+        doorCabinetFrame: doorSnap?.doorCabinetFrame ?? null,
       },
       chrome: doorChrome,
       vision,

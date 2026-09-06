@@ -18,7 +18,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, pixel modules, **not** living2 `lockWorldCamera` 3/4 plaza |
-| PORTABOOM in the field, readable | GREEN — planted twin fills a substantial share of the viewport. `doorHeroFrame.heightFrac ≥ 0.20`, orange bbox height ≥ 16% of phone, `orangeRatio ≥ 0.018`. Living4 width-fit of the whole pad is rejected (Fabian: too far / can’t see it) |
+| PORTABOOM in the field, readable | GREEN — cabinet fills a substantial share of the viewport. `doorCabinetFrame.heightFrac ≥ 0.18`, `doorHeroFrame.heightFrac ≥ 0.22`, largest orange blob height ≥ 16% of phone. Living4 width-fit of the whole pad is rejected (Fabian: too far / can’t see it) |
 | Not another website | GREEN — studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false`. No Life / Tap to scan / PB4000 chrome |
 | Not a flat B&W QR card | GREEN — `looksLikeFlatBWQR=false`. Colored living modules + unit volume |
 
@@ -56,7 +56,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Showtime page is the destination | After boom 100→0 + hold, `location.assign(leaveDest)` |
 | Flatten / print is the product | Flatten gone. Print still demoted. `printClaimReady=false` |
 | Default living2 broken | No query → `showtimePhase=off`, existing idle plaza |
-| Unit still a speck in cream | Door ortho cover-fits `0.70 × pad` on the tall axis (living4 width-fit the whole pad). `doorHeroFrame` + orange bbox prove size |
+| Unit still a speck in cream | Door ortho cover-fits `0.32 × pad` on the tall axis (living4 width-fit the whole pad). `doorCabinetFrame` + largest orange blob prove size |
 
 ## How to scan (Fabian send)
 

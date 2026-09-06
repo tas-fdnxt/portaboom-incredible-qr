@@ -607,6 +607,8 @@ const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
 const SHOWTIME_DOOR_S = 2.6;
+/** Door ortho cover window as a fraction of the QR pad. Living4 width-fit the whole pad. */
+const DOOR_PAD_SPAN = 0.32;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -1319,7 +1321,6 @@ function fitScanOrtho() {
  * worldH ≈ pad / 0.39 — PORTABOOM a speck in cream paper (Fabian).
  * Cover-fit a tighter crop so the cabinet fills the QR field, not the quiet zone.
  */
-const DOOR_PAD_SPAN = 0.70;
 function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
@@ -1386,6 +1387,22 @@ function measureDoorHeroFrame() {
   return projectBoxViewportFrac(gatherHeroBox(boom), doorCam);
 }
 
+function findCabinetMesh(root) {
+  if (!root) return null;
+  let door = null;
+  root.traverse((o) => {
+    if (!door && /^115-DOOR$|^115_DOOR$|HeroCabinet/i.test(o.name || "")) door = o;
+  });
+  return door;
+}
+
+function measureDoorCabinetFrame() {
+  if (!boom || viewMode !== "door") return null;
+  const cab = findCabinetMesh(boom);
+  if (!cab) return measureDoorHeroFrame();
+  return projectBoxViewportFrac(worldBox(cab), doorCam);
+}
+
 /**
  * Steep look-down so the 49×49 towers still read as a QR matrix.
  * Closer ortho + cabinet look-at so PORTABOOM fills the field.
@@ -1403,10 +1420,10 @@ function lockDoorCamera() {
     if (Number.isFinite(c.y)) lookY = c.y;
     if (Number.isFinite(c.z)) lookZ = c.z;
   }
-  // ~48° from vertical: face is readable, still a QR field — not a plaza hero.
+  // ~46° from vertical: cabinet face reads; still a QR field — not a plaza hero.
   // Y stays above the raised 4 m-class boom so the pole is not clipped by near.
-  doorCam.position.set(pad * 0.10, 4.10, lookZ + pad * 1.02);
-  doorCam.lookAt(0, lookY, lookZ);
+  doorCam.position.set(pad * 0.07, 4.16, lookZ + pad * 0.86);
+  doorCam.lookAt(0, lookY + 0.06, lookZ);
   doorCam.updateProjectionMatrix();
 }
 
@@ -2865,6 +2882,7 @@ window.__iqr = {
       doorOrthoWorldW: viewMode === "door" ? +(doorCam.right - doorCam.left).toFixed(4) : null,
       doorOrthoWorldH: viewMode === "door" ? +(doorCam.top - doorCam.bottom).toFixed(4) : null,
       doorHeroFrame: measureDoorHeroFrame(),
+      doorCabinetFrame: measureDoorCabinetFrame(),
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
       twinInQrField: !!(boom && boom.visible && viewMode === "door"),
