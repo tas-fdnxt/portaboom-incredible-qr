@@ -1,0 +1,25 @@
+{
+  "product": "motion1-smoke",
+  "ready": false,
+  "living10": {
+    "product": "living10-icqr-door",
+    "viewMode": "door",
+    "motion1": false,
+    "fieldMotionOn": false,
+    "showtimeDoorS": 2.6,
+    "icqrDoor": true,
+    "ok": true
+  },
+  "motion1": {
+    "idleProduct": "motion1-icqr-door",
+    "fieldMotionOn": true,
+    "fieldMotionAmpCell": 0.72,
+    "holdPhase": "hold",
+    "modulesStable": true,
+    "magicHoldMs": 566.2,
+    "scanOpen": true,
+    "payload": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "ok": true
+  },
+  "ok": true
+}

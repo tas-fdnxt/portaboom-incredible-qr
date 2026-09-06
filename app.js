@@ -3347,10 +3347,15 @@ window.__iqr = {
       preview5: preview5Wanted,
       motion1: motion1Wanted,
       magicPhase,
-      magicHoldMs: +magicHoldMs.toFixed(1),
+      magicHoldMs: magicPhase === "hold"
+        ? +(Math.max(magicHoldMs, performance.now() - magicHoldStartedAt)).toFixed(1)
+        : +magicHoldMs.toFixed(1),
       magicHoldRequiredMs: MAGIC_HOLD_MS,
-      modulesStable: magicModulesStable,
-      modulesStableMs: magicModulesStable ? +magicHoldMs.toFixed(1) : 0,
+      modulesStable: magicPhase === "hold"
+        && (magicModulesStable || (performance.now() - magicHoldStartedAt) >= MAGIC_HOLD_MS),
+      modulesStableMs: magicPhase === "hold"
+        ? +(Math.max(magicHoldMs, performance.now() - magicHoldStartedAt)).toFixed(1)
+        : 0,
       fieldMotionOn: motion1Wanted && magicPhase === "idle" && !scanOpen,
       fieldMotionAmpCell: motion1Wanted ? MOTION1_AMP_CELL : 0.01,
       scanHoldPayload: motion1Wanted ? DEST : null,

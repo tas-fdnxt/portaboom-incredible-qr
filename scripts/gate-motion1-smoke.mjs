@@ -43,14 +43,29 @@ function serve() {
 async function main() {
   const server = await serve();
   const port = server.address().port;
-  const browser = await chromium.launch({ args: ["--use-gl=angle"] });
+  const browser = await chromium.launch({
+    args: ["--use-gl=angle", "--ignore-gpu-blocklist", "--enable-webgl"],
+  });
   const report = { product: "motion1-smoke", ready: false, living10: {}, motion1: {} };
+  async function waitSnap(page, test, ms = 20000) {
+    const t0 = Date.now();
+    let last = null;
+    while (Date.now() - t0 < ms) {
+      last = await page.evaluate(() => window.__iqr?.snap ?? { iqr: !!window.__iqr });
+      if (test(last)) return last;
+      await page.waitForTimeout(150);
+    }
+    throw new Error(`snap wait failed: ${JSON.stringify(last)}`);
+  }
   try {
     const living = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    living.on("pageerror", (e) => console.warn("living10", e.message));
     await living.addInitScript(() => { window.__iqrOnLeaveToDest = (d) => { window.__left = d; }; });
-    await living.goto(`http://127.0.0.1:${port}/?v=living10&showtime=1`, { waitUntil: "networkidle" });
-    await living.waitForFunction(() => window.__iqr?.snap?.viewMode === "door", { timeout: 25000 });
+    await living.goto(`http://127.0.0.1:${port}/?v=living10&showtime=1`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await waitSnap(living, (s) => s.product === "living10-icqr-door");
     const liveSnap = await living.evaluate(() => window.__iqr.snap);
+    await living.screenshot({ path: join(OUT, "smoke-living10-door.png"), type: "png" });
+    await living.close();
     report.living10 = {
       product: liveSnap.product,
       viewMode: liveSnap.viewMode,
@@ -66,14 +81,19 @@ async function main() {
     };
 
     const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+    page.on("pageerror", (e) => console.warn("motion1", e.message));
     await page.addInitScript(() => { window.__iqrOnLeaveToDest = (d) => { window.__left = d; }; });
-    await page.goto(`http://127.0.0.1:${port}/?v=motion1`, { waitUntil: "networkidle" });
-    await page.waitForFunction(() => window.__iqr?.snap?.motion1 === true && window.__iqr?.snap?.viewMode === "door", { timeout: 25000 });
+    await page.goto(`http://127.0.0.1:${port}/?v=motion1`, { waitUntil: "domcontentloaded", timeout: 15000 });
+    await waitSnap(page, (s) => s.motion1 === true && s.viewMode === "door");
     await page.waitForTimeout(400);
     const idle = await page.evaluate(() => window.__iqr.snap);
     await page.evaluate(() => window.__iqr.beginMagicHold());
     await page.waitForTimeout(560);
     const hold = await page.evaluate(() => window.__iqr.snap);
+    await page.screenshot({ path: join(OUT, "smoke-motion1-hold.png"), type: "png" });
+    await page.evaluate(() => window.__iqr.endMagicHold());
+    await page.waitForTimeout(200);
+    await page.screenshot({ path: join(OUT, "smoke-motion1-idle.png"), type: "png" });
     report.motion1 = {
       idleProduct: idle.product,
       fieldMotionOn: idle.fieldMotionOn,
