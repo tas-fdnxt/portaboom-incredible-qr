@@ -2896,7 +2896,11 @@ function mountCad(gltf, label) {
     if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
-    dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
+    try {
+      dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
+    } catch (err) {
+      console.warn("mini cabinet dress failed; lookalike field stays", err);
+    }
     if (scanOpen) setScanModuleLook(true);
     else setDoorModuleLook(true);
     if (showtimeWanted && showtimePhase !== "settled") {

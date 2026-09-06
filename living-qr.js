@@ -22,47 +22,43 @@ const SKIP_TWIN =
   /Traffic[_\s-]*Light|信号灯|HeroSignal|HeroLens|HeroBoom|BoomPivot|主杆|105-|105_|灯条|FENGKONG|^006$|太阳能|solar|柱子|PED_|TL2_|PortaboomBoom|HeroBoomArm|快速夹具|^夹具$|PortaboomStop|STOP|灯罩|灯壳/i;
 
 function powder(THREE, hex) {
-  return new THREE.MeshPhysicalMaterial({
+  return new THREE.MeshStandardMaterial({
     color: hex,
-    metalness: 0,
-    roughness: 0.38,
-    clearcoat: 1,
-    clearcoatRoughness: 0.14,
+    metalness: 0.04,
+    roughness: 0.4,
     envMapIntensity: 1.05,
-    sheen: 0.22,
-    sheenRoughness: 0.5,
-    sheenColor: new THREE.Color(0xffffff),
   });
 }
 
-/** Sync stand-in that matches door_decal.png (not the living7 canvas junk). */
-function makeDoorDecalFallback(THREE) {
+/**
+ * Wordmark as it reads on the hero cabinet: dark PORTA / BOOM on orange,
+ * not a black plate (door_decal's opaque ground).
+ */
+function makeCabinetWordmark(THREE) {
   const c = document.createElement("canvas");
   c.width = 512;
   c.height = 360;
   const ctx = c.getContext("2d");
-  ctx.fillStyle = "#0a0a0a";
-  ctx.fillRect(0, 0, 512, 360);
+  ctx.clearRect(0, 0, 512, 360);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "900 92px Arial Black, Arial, sans-serif";
-  ctx.fillStyle = "#ffffff";
-  ctx.fillText("PORTA", 256, 88);
-  ctx.fillStyle = "#6a6a6a";
-  ctx.fillText("BOOM", 256, 178);
-  ctx.fillStyle = "#ffffff";
+  ctx.font = "900 96px Arial Black, Arial, sans-serif";
+  ctx.fillStyle = "#1a1d22";
+  ctx.fillText("PORTA", 256, 86);
+  ctx.fillText("BOOM", 256, 176);
+  ctx.fillStyle = "#c01421";
   for (let i = 0; i < 4; i += 1) {
-    const x = 148 + i * 56;
+    const x = 150 + i * 54;
     ctx.beginPath();
-    ctx.moveTo(x, 236);
-    ctx.lineTo(x + 36, 236);
-    ctx.lineTo(x + 20, 292);
-    ctx.lineTo(x - 16, 292);
+    ctx.moveTo(x, 232);
+    ctx.lineTo(x + 34, 232);
+    ctx.lineTo(x + 18, 288);
+    ctx.lineTo(x - 16, 288);
     ctx.closePath();
     ctx.fill();
   }
-  ctx.font = "600 22px Arial, sans-serif";
-  ctx.fillStyle = "#5a5a5a";
+  ctx.font = "700 22px Arial, sans-serif";
+  ctx.fillStyle = "#1a1d22";
   ctx.fillText("portaboom.com.au", 256, 328);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
@@ -70,21 +66,65 @@ function makeDoorDecalFallback(THREE) {
   return tex;
 }
 
+function knockoutBlack(THREE, tex) {
+  const img = tex.image;
+  if (!img) return tex;
+  const c = document.createElement("canvas");
+  c.width = img.width || 512;
+  c.height = img.height || 360;
+  const ctx = c.getContext("2d");
+  ctx.drawImage(img, 0, 0, c.width, c.height);
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  for (let i = 0; i < id.data.length; i += 4) {
+    const r = id.data[i];
+    const g = id.data[i + 1];
+    const b = id.data[i + 2];
+    const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
+    if (lum < 32) {
+      id.data[i + 3] = 0;
+    }
+  }
+  ctx.putImageData(id, 0, 0);
+  const out = new THREE.CanvasTexture(c);
+  out.colorSpace = THREE.SRGBColorSpace;
+  out.anisotropy = 8;
+  return out;
+}
+
 function loadDoorDecal(THREE, onReady) {
-  const fallback = makeDoorDecalFallback(THREE);
+  const mark = makeCabinetWordmark(THREE);
   const loader = new THREE.TextureLoader();
   loader.load(
     "./door_decal.png",
     (tex) => {
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.anisotropy = 8;
-      tex.needsUpdate = true;
-      onReady(tex);
+      const cut = knockoutBlack(THREE, tex);
+      const img = cut.image;
+      if (img) {
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const ctx = c.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        const id = ctx.getImageData(0, 0, c.width, c.height);
+        for (let i = 0; i < id.data.length; i += 4) {
+          if (id.data[i + 3] < 16) continue;
+          id.data[i] = 26;
+          id.data[i + 1] = 29;
+          id.data[i + 2] = 34;
+        }
+        ctx.putImageData(id, 0, 0);
+        const out = new THREE.CanvasTexture(c);
+        out.colorSpace = THREE.SRGBColorSpace;
+        out.anisotropy = 8;
+        onReady(out);
+        return;
+      }
+      onReady(mark);
     },
     undefined,
-    () => onReady(fallback)
+    () => onReady(mark)
   );
-  return fallback;
+  return mark;
 }
 
 function isVisibleInTree(o) {
@@ -228,8 +268,6 @@ function buildCabinetPrototype(THREE, spec) {
   );
   body.name = "MiniCabinet";
   body.position.y = bodyY;
-  body.castShadow = true;
-  body.receiveShadow = true;
   g.add(body);
 
   const door = new THREE.Mesh(
@@ -265,22 +303,22 @@ function buildCabinetPrototype(THREE, spec) {
   lock.position.set(width * 0.28, bodyY + bodyH * 0.08, depth * 0.51);
   g.add(lock);
 
-  const logoW = width * 0.62;
+  const logoW = width * 0.58;
   const logoH = logoW * 0.698;
   const logo = new THREE.Mesh(new THREE.PlaneGeometry(logoW, logoH), logoMat);
   logo.name = "MiniLogo";
-  logo.position.set(0, bodyY + bodyH * 0.08, depth * 0.52);
+  logo.position.set(0, bodyY - bodyH * 0.12, depth * 0.52);
   g.add(logo);
   const logoBack = new THREE.Mesh(
     new THREE.PlaneGeometry(logoW, logoH),
     logoMat.clone()
   );
   logoBack.name = "MiniLogoBack";
-  logoBack.position.set(0, bodyY + bodyH * 0.08, -depth * 0.48);
+  logoBack.position.set(0, bodyY - bodyH * 0.12, -depth * 0.48);
   logoBack.rotation.y = Math.PI;
   g.add(logoBack);
 
-  const ledY = bodyY - bodyH * 0.22;
+  const ledY = bodyY + bodyH * 0.32;
   const ledZ = depth * 0.52;
   for (const dx of [-width * 0.16, width * 0.16]) {
     const bezel = new THREE.Mesh(new THREE.CircleGeometry(width * 0.075, 20), bezelMat);
@@ -349,8 +387,8 @@ export function instanceCabinetField(THREE, living, prototype, source) {
     if (/MiniLogo/.test(src.name || "") && mat) living.logoMats.push(mat);
     const inst = new THREE.InstancedMesh(geo, mat, count);
     inst.name = src.name || "MiniCabinetInst";
-    inst.castShadow = !!src.castShadow;
-    inst.receiveShadow = !!src.receiveShadow;
+    inst.castShadow = false;
+    inst.receiveShadow = false;
     inst.frustumCulled = false;
     inst.userData.miniCabinet = true;
     inst.userData.hasTrafficLight = false;
@@ -358,7 +396,7 @@ export function instanceCabinetField(THREE, living, prototype, source) {
     for (let i = 0; i < count; i += 1) {
       const mod = living.mods[i];
       dummy.position.copy(mod.position);
-      dummy.rotation.set(0, 0, 0);
+      dummy.rotation.set(0, mod.userData.yaw || 0.42, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       dummy.matrix.multiply(local);
@@ -404,7 +442,7 @@ export function syncMiniFieldWith(THREE, living) {
   for (const inst of insts) {
     for (let i = 0; i < n; i += 1) {
       dummy.position.copy(living.mods[i].position);
-      dummy.rotation.set(0, 0, 0);
+      dummy.rotation.set(0, living.mods[i].userData.yaw || 0.42, 0);
       dummy.scale.set(1, 1, 1);
       dummy.updateMatrix();
       dummy.matrix.multiply(inst.local);
@@ -420,7 +458,8 @@ export function setMiniFieldVisible(living, visible) {
 
 function scalePrototypeToCell(proto, cell) {
   const w = proto.userData.cabW || CAB_W;
-  const targetW = cell * MODULE_FILL * 0.9;
+  // Fit the cabinet face in the cell with a gap so they read as units, not a wall.
+  const targetW = cell * MODULE_FILL * 0.78;
   const s = targetW / w;
   proto.scale.setScalar(s);
   proto.updateMatrixWorld(true);
@@ -443,45 +482,18 @@ export function dressLookalikeCabinets(THREE, living, livery, logoMap) {
   living.ledMats = [];
 }
 
-function collectCabinetSignatureMeshes(root) {
-  if (!root) return { door: null, body: null };
-  let door = null;
-  let body = null;
-  root.traverse((o) => {
-    if (!o.isMesh || !o.geometry || !isVisibleInTree(o)) return;
-    const blob = ancestorBlob(o);
-    if (SKIP_TWIN.test(blob)) return;
-    const n = o.name || "";
-    const count = o.geometry.attributes?.position?.count || 0;
-    if (count < 24 || count > 24000) return;
-    if (/^115-DOOR$|AK-XLH-D115C-01-02-1/i.test(n) || (/115-DOOR/i.test(blob) && /01-02-1/i.test(n))) {
-      if (!door || count > (door.geometry.attributes?.position?.count || 0)) door = o;
-    }
-    if (/AK-XLH-D115C-01-01-1$/i.test(n)) body = o;
-  });
-  return { door, body };
-}
-
-function adoptTwinMesh(THREE, proto, src, origin) {
-  if (!src?.geometry) return;
-  const mesh = new THREE.Mesh(src.geometry, src.material);
-  mesh.name = src.name || "MiniTwinMesh";
-  mesh.castShadow = true;
-  const inv = new THREE.Matrix4().makeTranslation(-origin.x, -origin.y, -origin.z);
-  mesh.matrix.copy(src.matrixWorld);
-  mesh.matrix.premultiply(inv);
-  mesh.matrix.decompose(mesh.position, mesh.quaternion, mesh.scale);
-  proto.add(mesh);
-}
-
 export function dressMiniCabinetsFromTwin(THREE, living, twin, livery, logoMap) {
   const measured = measureTwinCabinet(THREE, twin);
-  const spec = measured
+  const aspect = measured ? measured.height / Math.max(measured.width, 1e-6) : 0;
+  const sane = measured && aspect >= 1.8 && aspect <= 4.2 && measured.height > 0.3;
+  const spec = sane
     ? {
       width: measured.width,
       height: measured.height,
-      depth: measured.depth,
-      wheels: measured.wheels,
+      depth: Math.min(measured.depth, measured.width * 2.2),
+      wheels: measured.wheels?.length >= 2 && measured.wheels.length <= 6
+        ? measured.wheels
+        : undefined,
       livery,
       logoMap,
     }
@@ -493,37 +505,12 @@ export function dressMiniCabinetsFromTwin(THREE, living, twin, livery, logoMap) 
       logoMap,
     };
   const proto = buildCabinetPrototype(THREE, spec);
-  if (measured && twin) {
-    twin.updateMatrixWorld(true);
-    const { door, body } = collectCabinetSignatureMeshes(twin);
-    const origin = new THREE.Vector3(
-      measured.center.x,
-      measured.minY,
-      measured.center.z
-    );
-    const hide = [];
-    proto.traverse((o) => {
-      if (/MiniCabinet|MiniDoor/.test(o.name || "")) hide.push(o);
-    });
-    let usedTwinMesh = false;
-    if (body) {
-      adoptTwinMesh(THREE, proto, body, origin);
-      usedTwinMesh = true;
-    }
-    if (door) {
-      adoptTwinMesh(THREE, proto, door, origin);
-      usedTwinMesh = true;
-    }
-    if (usedTwinMesh) {
-      hide.forEach((o) => { o.visible = false; });
-    }
-  }
   scalePrototypeToCell(proto, living.cell);
   instanceCabinetField(
     THREE,
     living,
     proto,
-    measured ? "twin-cabinet" : "lookalike"
+    sane ? "twin-cabinet" : "lookalike"
   );
   living.ledMats = [];
   return living.miniCabinetSource;
@@ -603,6 +590,7 @@ export function buildLivingQr(THREE, spec) {
         bodyH: guessH,
         miniCabinet: true,
         hasTrafficLight: false,
+        yaw: 0.42,
         phase: ((r * 17 + c * 13) % 1000) / 1000 * Math.PI * 2,
       };
       group.add(g);
