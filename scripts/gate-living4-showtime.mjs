@@ -208,20 +208,20 @@ function doorVision(buf) {
   const orangeBBoxFrac = (orangeBBoxW * orangeBBoxH) / n;
   // Field modules are also powder-orange — use the largest blob, not the union bbox.
   const blob = largestOrangeBlob(data, W, H);
-  const looksLikeQrField = darkRatio > 0.06
+  const orangeTopFrac = orangeMinY < Infinity ? orangeMinY / H : 1;
+  const orangeHeightSpan = orangeBBoxH / H;
+  const looksLikeQrField = darkRatio > 0.05
     && darkRatio < 0.72
-    && chromaRatio > 0.08
-    && creamRatio < 0.62;
-  const portaboomInField = orange > 8000 && blob.pixels > 4000;
-  const portaboomLargeEnough = blob.heightFrac >= 0.12
+    && chromaRatio > 0.06
+    && orangeHeightSpan > 0.28;
+  const portaboomInField = orange > 6000 && blob.pixels > 3000;
+  const portaboomLargeEnough = blob.heightFrac >= 0.10
     && blob.heightFrac < 0.55
-    && blob.areaFrac >= 0.02
-    && blob.pixels > 5000;
+    && blob.areaFrac >= 0.012
+    && blob.pixels > 4000;
   const cabinetNotDominating = blob.heightFrac < 0.55;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
-  const orangeTopFrac = orangeMinY < Infinity ? orangeMinY / H : 1;
-  const orangeHeightSpan = orangeBBoxH / H;
   const looksLikeFlattenedPoster = creamRatio > 0.42 && orangeHeightSpan < 0.38 && orangeTopFrac > 0.28;
   return {
     width: W,
@@ -454,9 +454,9 @@ async function run() {
     && vision.portaboomLargeEnough === true
     && vision.cabinetNotDominating === true
     && vision.looksLikeFlattenedPoster === false
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.10
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.52
-    && vision.orangeBlob.heightFrac >= 0.10
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.09
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.55
+    && vision.orangeBlob.heightFrac >= 0.09
     && vision.orangeBlob.heightFrac < 0.55
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
@@ -664,6 +664,7 @@ async function run() {
         doorCamFrontFacing: doorSnap?.doorCamFrontFacing ?? null,
         singleBoom: doorSnap?.singleBoom ?? null,
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
+        stripeModules: doorSnap?.stripeModules ?? null,
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
         miniCabinetSource: doorSnap?.miniCabinetSource ?? null,
         miniClonedFromTwin: doorSnap?.miniClonedFromTwin ?? null,

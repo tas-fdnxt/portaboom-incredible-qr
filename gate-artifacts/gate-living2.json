@@ -16,11 +16,11 @@
   "vision": {
     "width": 780,
     "height": 1688,
-    "orange": 143698,
-    "greenLed": 8374,
-    "orangeRatio": 0.1091,
-    "chromaRatio": 0.4606,
-    "bwish": 0.1974,
+    "orange": 93305,
+    "greenLed": 10509,
+    "orangeRatio": 0.0709,
+    "chromaRatio": 0.2492,
+    "bwish": 0.2625,
     "looksLikeFlatBWQR": false,
     "looksLikeNormalQR": false,
     "portaboomVisible": true
@@ -94,11 +94,11 @@
     "viewMode": "world",
     "scanOpen": false,
     "miniHasTrafficLight": false,
-    "miniCabinetSource": "twin-cabinet",
-    "miniClonedFromTwin": true,
-    "miniFieldKind": "hero-cabinet-instances",
-    "modulePalette": "hero-orange",
-    "stripeModules": 0
+    "miniCabinetSource": "cuboid-field",
+    "miniClonedFromTwin": false,
+    "miniFieldKind": "dense-cuboid-qr",
+    "modulePalette": "finder-dark / cabinet-orange / boom-stripe / led-navy",
+    "stripeModules": 296
   },
   "snap": {
     "viewMode": "world",

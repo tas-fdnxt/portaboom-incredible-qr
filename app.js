@@ -609,19 +609,18 @@ const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
 const SHOWTIME_DOOR_S = 2.6;
-/** Fallback door crop — wide enough that the QR field fills the ground. */
-const DOOR_PAD_SPAN = 0.46;
+/** Minimum pad fraction so the QR crowd stays a field, not a footer. */
+const DOOR_PAD_SPAN = 0.30;
 /**
- * Elevated field crop: hero + lantern + a boom span sit IN the crowd,
- * not a dead-on poster that crops the field to a footer strip.
- * living7/8/9 subject-fill 0.72 flattened the door. living4 full-pad speck
- * is also rejected. living5 GOOD door used ~0.52 cabinet fill.
+ * Elevated field crop: cabinet + lantern sit IN the crowd.
+ * Do not let the 4 m boom drive the span (that recreates living4 speck).
+ * living7/8/9 subject-fill 0.72 flattened the door.
  */
-const DOOR_SUBJECT_FILL = 0.36;
+const DOOR_SUBJECT_FILL = 0.44;
 /** Extra ortho so the lantern housing clears the crop. */
-const DOOR_SIGNAL_PAD = 1.12;
+const DOOR_SIGNAL_PAD = 1.10;
 /** World units of boom kept in the look-at subject — tip may trim. */
-const DOOR_BOOM_KEEP = 0.72;
+const DOOR_BOOM_KEEP = 0.62;
 // Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
 let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
@@ -1452,16 +1451,19 @@ function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
-  const box = doorSubjectBox();
+  const crop = new THREE.Box3();
+  const cab = doorCabinetBox();
+  if (cab && !cab.isEmpty()) crop.union(cab);
+  const lantern = doorSignalLanternBox();
+  if (lantern && !lantern.isEmpty()) crop.union(lantern);
   let span = living.padSize * DOOR_PAD_SPAN;
-  if (box && !box.isEmpty()) {
-    const size = box.getSize(new THREE.Vector3());
-    // Keep the QR pad in frame so the crowd is a field, not a footer strip.
+  if (!crop.isEmpty()) {
+    const size = crop.getSize(new THREE.Vector3());
     span = Math.max(
       size.y / DOOR_SUBJECT_FILL,
-      size.x / 0.62,
+      size.x / 0.55,
       living.padSize * DOOR_PAD_SPAN,
-      1.35
+      1.05
     ) * DOOR_SIGNAL_PAD;
   }
   let worldW;
