@@ -87,7 +87,7 @@ body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 }}
 </script>
-<!-- Living5 ICQR showtime door (closer twin). Historical: living4 far door, living3d plaza-hero. -->
+<!-- Living6 ICQR showtime door (unit + signal + boom). Historical: living5 cabinet-only, living4 far door. -->
 <script>
 if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) {
   document.body.classList.add("showtime");
@@ -95,6 +95,6 @@ if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) {
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");
 }
 </script>
-<script type="module" src="./app.js?v=living5"></script>
+<script type="module" src="./app.js?v=living6"></script>
 </body>
 </html>
