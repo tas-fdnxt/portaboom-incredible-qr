@@ -1,8 +1,10 @@
 /**
- * GATE living3 showtime proof.
+ * GATE living3c showtime → DEST proof.
  * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s.
  * Must beat Fabian’s living2 teaser GIF loop (~3.58–3.6s, 43 frames @ ~12fps).
- * Target 6–8s. Then Life / Tap to scan return.
+ * After settle/hold, the page must leave to DEST (hooked location.assign).
+ * Stationary send QR encodes the living showtime URL, never DEST.
+ * Tap-to-scan still decodes DEST.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -170,8 +172,22 @@ async function run() {
     deviceScaleFactor: 2,
   });
   const errors = [];
+  const navigations = [];
   page.on("pageerror", (e) => errors.push(String(e)));
-  await page.goto(`http://127.0.0.1:${port}/?v=living3&showtime=1`, { waitUntil: "networkidle" });
+  page.on("framenavigated", (frame) => {
+    if (frame === page.mainFrame()) navigations.push(frame.url());
+  });
+  await page.addInitScript(() => {
+    window.__iqrDestLeaves = [];
+    window.__iqrOnLeaveToDest = (info) => {
+      window.__iqrDestLeaves.push({
+        dest: info?.dest || null,
+        reason: info?.reason || null,
+        at: info?.at || Date.now(),
+      });
+    };
+  });
+  await page.goto(`http://127.0.0.1:${port}/?v=living3c&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
 
   const samples = [];
@@ -206,6 +222,9 @@ async function run() {
       showtimeHudHidden: snap?.showtimeHudHidden ?? null,
       liveDockHidden: snap?.liveDockHidden ?? null,
       cameraIsPerspective: snap?.cameraIsPerspective ?? null,
+      destLeft: snap?.destLeft ?? null,
+      destLeaveUrl: snap?.destLeaveUrl ?? null,
+      destLeaveReason: snap?.destLeaveReason ?? null,
     };
     samples.push(row);
     if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
@@ -226,8 +245,10 @@ async function run() {
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(250);
+  await page.waitForFunction(() => window.__iqr?.snap?.destLeft === true, { timeout: 4000 }).catch(() => {});
+  await page.waitForTimeout(80);
   const snapEnd = await page.evaluate(() => window.__iqr?.snap);
+  const destLeaves = await page.evaluate(() => window.__iqrDestLeaves || []);
   if (!snappedDown) {
     await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
   }
@@ -238,20 +259,34 @@ async function run() {
     const life = document.getElementById("lifeBtn");
     const scan = document.getElementById("scanBtn");
     return {
-      hidden: dock?.hidden === true,
+      hidden: dock?.hidden === true || dock?.offsetParent === null,
       bodyShowtime: document.body.classList.contains("showtime"),
       life: life?.textContent || null,
       scan: scan?.textContent || null,
     };
   });
 
-  await page.locator("#scanBtn").click();
-  await page.waitForTimeout(400);
-  const smokeUrl = await page.evaluate(() => window.__iqr.captureScan());
+  const destLeave = destLeaves[0] || (snapEnd?.destLeave ?? null);
+  const destLeaveOk = !!destLeave
+    && destLeave.dest === DEST
+    && destLeave.reason === "showtime-complete"
+    && !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+
+  const scanPage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+  scanPage.on("pageerror", (e) => errors.push(String(e)));
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living3c`, { waitUntil: "networkidle" });
+  await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
+  await scanPage.locator("#scanBtn").click();
+  await scanPage.waitForTimeout(400);
+  const smokeUrl = await scanPage.evaluate(() => window.__iqr.captureScan());
   const smokeBuf = dataUrlToBuf(smokeUrl);
   await writeFile(join(OUT, "showtime-scan-webgl.png"), smokeBuf);
   const smoke = decodePngBuffer(smokeBuf);
-  await page.screenshot({ path: join(OUT, "showtime-scan.png"), type: "png" });
+  await scanPage.screenshot({ path: join(OUT, "showtime-scan.png"), type: "png" });
+  await scanPage.close();
 
   const timeline = summarizeTimeline(samples);
   const settleElapsed = snapEnd?.showtimeElapsed ?? 0;
@@ -262,7 +297,10 @@ async function run() {
     && settleElapsed > 3.6
     && settleElapsed >= 6
     && settleElapsed <= 8.5;
-  const hudRestored = dockAfter.hidden === false && dockAfter.scan === "Tap to scan";
+  const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+  const qrIsLiving = qrProof.clean.match === true
+    && qrProof.clean.decoded === LIVING_SHOWTIME_URL
+    && qrProof.clean.decoded !== DEST;
 
   const report = {
     dest: DEST,
@@ -281,26 +319,39 @@ async function run() {
       budget: snapEnd?.showtimeBudget ?? null,
       ok: settleOk,
     },
+    destLeave: {
+      calls: destLeaves,
+      dest: destLeave?.dest || null,
+      reason: destLeave?.reason || null,
+      ok: destLeaveOk,
+      stayedOnLivingForProof: stayedOnLiving,
+      navigations,
+    },
     hud: {
       duringPlayHidden: timeline.hudHiddenWhilePlaying,
       after: dockAfter,
-      restored: hudRestored,
+      restored: false,
+      leftHidden: dockAfter.bodyShowtime === true,
     },
     smoke: {
       decoded: smoke?.data || null,
       match: smoke?.data === DEST,
       how: smoke?.how || null,
-      from: "Tap to scan after showtime settle",
+      from: "Tap to scan on default living page (no showtime)",
     },
     snapEnd: {
       viewMode: snapEnd?.viewMode,
       showtimePhase: snapEnd?.showtimePhase,
       boomPct: snapEnd?.boomPct,
       signalAspect: snapEnd?.signalAspect,
+      destLeft: snapEnd?.destLeft ?? null,
+      destLeaveUrl: snapEnd?.destLeaveUrl ?? null,
+      destLeaveReason: snapEnd?.destLeaveReason ?? null,
       defaultShowsTwin: snapEnd?.defaultShowsTwin,
       product: snapEnd?.product,
       showtimeBudget: snapEnd?.showtimeBudget,
       showtimeTeaserS: snapEnd?.showtimeTeaserS,
+      showtimeLeaveS: snapEnd?.showtimeLeaveS,
       longerThanTeaser: snapEnd?.longerThanTeaser,
     },
   };
@@ -330,7 +381,8 @@ async function run() {
   await browser.close();
   server.close();
 
-  const ok = qrProof.clean.match
+  const ok = qrIsLiving
+    && destLeaveOk
     && timeline.sawAmber
     && timeline.sawRed
     && timeline.amberLampOn
@@ -343,7 +395,7 @@ async function run() {
     && (snapEnd?.showtimeBudget || 0) > (snapEnd?.showtimeTeaserS || 3.6)
     && timeline.hudHiddenWhilePlaying
     && settleOk
-    && hudRestored
+    && report.hud.leftHidden
     && report.smoke.match
     && !errors.length;
   process.exit(ok ? 0 : 1);

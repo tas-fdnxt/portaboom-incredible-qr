@@ -589,6 +589,8 @@ const TEASER_LOOP_S = 3.6;
 const SHOWTIME_AMBER_S = 1.5;
 const SHOWTIME_LOWER_S = 5.2;
 const SHOWTIME_HOLD_S = 0.4;
+/** Short beat after boom fully down, then leave to DEST. */
+const SHOWTIME_LEAVE_S = 0.4;
 const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
@@ -596,6 +598,8 @@ if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
 let showtimePhase = showtimeWanted ? "pending" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
+let destLeave = null;
+let destLeaveTimer = 0;
 if (showtimeWanted) document.body.classList.add("showtime");
 let viewMode = "world"; // world = ICQR default 3D · scan = tap-to-scan pose
 let scanOpen = false;
@@ -1333,7 +1337,7 @@ function lockWorldCamera() {
 }
 
 function showtimeHudHidden() {
-  return showtimePhase === "pending" || showtimePhase === "playing";
+  return !!showtimeWanted;
 }
 
 function startShowtime() {
@@ -1354,6 +1358,20 @@ function startShowtime() {
   return true;
 }
 
+function leaveToDest(reason = "showtime-complete") {
+  if (destLeave) return destLeave;
+  destLeave = { dest: DEST, reason, at: performance.now() };
+  const hook = typeof window.__iqrOnLeaveToDest === "function"
+    ? window.__iqrOnLeaveToDest
+    : null;
+  if (hook) {
+    hook(destLeave);
+    return destLeave;
+  }
+  location.assign(DEST);
+  return destLeave;
+}
+
 function settleShowtime() {
   if (!boomRig) return;
   showtimePhase = "settled";
@@ -1361,10 +1379,17 @@ function settleShowtime() {
   showClock = 0;
   applyBoomShown(0);
   setSignalAspect("red");
-  document.body.classList.remove("showtime");
-  if (controls && !scanOpen) controls.enabled = true;
-  setStatus("Living QR · tap to scan the field");
+  // Stay in showtime HUD — this page is not the destination. DEST is.
+  document.body.classList.add("showtime");
+  if (controls) controls.enabled = false;
+  setStatus("Showtime");
   syncModeHud();
+  if (!destLeave && !destLeaveTimer) {
+    destLeaveTimer = window.setTimeout(() => {
+      destLeaveTimer = 0;
+      leaveToDest("showtime-complete");
+    }, Math.round(SHOWTIME_LEAVE_S * 1000));
+  }
 }
 
 function applyWorldPose() {
@@ -2547,6 +2572,7 @@ syncModeHud();
 window.__iqr = {
   startShowtime,
   settleShowtime,
+  leaveToDest,
   get boom() { return boom; },
   get camera() {
     return {
@@ -2603,6 +2629,11 @@ window.__iqr = {
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
       showtimeHudHidden: showtimeHudHidden(),
+      showtimeLeaveS: SHOWTIME_LEAVE_S,
+      destLeave,
+      destLeft: !!destLeave,
+      destLeaveUrl: destLeave?.dest ?? null,
+      destLeaveReason: destLeave?.reason ?? null,
       boomAngle: boomRig?.pivot?.rotation?.z ?? null,
       lampIntensity: {
         red: lampMats.red?.emissiveIntensity ?? null,
