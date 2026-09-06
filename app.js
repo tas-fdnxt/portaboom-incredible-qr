@@ -580,10 +580,11 @@ const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const showtimeWanted = pageParams.get("showtime") === "1";
-/** Amber hold + boom drop + brief red hold ≈ 3.3s. */
-const SHOWTIME_AMBER_S = 0.8;
-const SHOWTIME_LOWER_S = 2.3;
-const SHOWTIME_HOLD_S = 0.25;
+/** Amber hold + boom drop + brief red hold. Real PB4000 lower feel, not a 3s sting. */
+const SHOWTIME_AMBER_S = 1.5;
+const SHOWTIME_LOWER_S = 5.2;
+const SHOWTIME_HOLD_S = 0.4;
+const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
 let showtimePhase = showtimeWanted ? "pending" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
@@ -2225,7 +2226,8 @@ function tickShow(dt) {
       showMode = "closing";
       setSignalAspect("red");
       const u = (showtimeElapsed - SHOWTIME_AMBER_S) / SHOWTIME_LOWER_S;
-      applyBoomShown(100 * (1 - u));
+      const eased = u * u * (3 - 2 * u);
+      applyBoomShown(100 * (1 - eased));
     } else {
       showMode = "down";
       setSignalAspect("red");
@@ -2587,6 +2589,9 @@ window.__iqr = {
       showtime: showtimeWanted,
       showtimePhase,
       showtimeElapsed: +showtimeElapsed.toFixed(3),
+      showtimeBudget: SHOWTIME_TOTAL_S,
+      showtimeAmberS: SHOWTIME_AMBER_S,
+      showtimeLowerS: SHOWTIME_LOWER_S,
       showtimeHudHidden: showtimeHudHidden(),
       boomAngle: boomRig?.pivot?.rotation?.z ?? null,
       lampIntensity: {

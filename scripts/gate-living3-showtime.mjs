@@ -1,7 +1,7 @@
 /**
  * GATE living3 showtime proof.
- * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~3.3s,
- * then Life / Tap to scan return. Scan DEST is still the product page.
+ * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s
+ * (natural PB4000 pace, not a 3s sting), then Life / Tap to scan return.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -116,7 +116,7 @@ function summarizeTimeline(samples) {
     && (s.lampIntensity?.red || 0) > 4
     && (s.lampIntensity?.red || 0) > (s.lampIntensity?.amber || 0)
   );
-  const lowered = boomStart != null && boomEnd != null && boomStart > 80 && boomEnd < 15;
+  const lowered = boomStart != null && boomEnd != null && boomStart > 80 && boomEnd < 8;
   const hudHiddenWhilePlaying = samples
     .filter((s) => s.showtimePhase === "playing")
     .every((s) => s.showtimeHudHidden === true && s.liveDockHidden === true);
@@ -124,6 +124,12 @@ function summarizeTimeline(samples) {
   const duration = playing.length
     ? (playing[playing.length - 1].t - playing[0].t)
     : 0;
+  const firstRed = samples.find((s) => s.signalAspect === "red" && s.showtimePhase === "playing");
+  const lastPlay = [...playing].reverse().find(Boolean);
+  const amberHeldS = firstRed?.showtimeElapsed ?? 0;
+  const elapsedAtEnd = lastPlay?.showtimeElapsed
+    ?? samples[samples.length - 1]?.showtimeElapsed
+    ?? 0;
   return {
     aspects,
     phases,
@@ -138,6 +144,9 @@ function summarizeTimeline(samples) {
     lowered,
     hudHiddenWhilePlaying,
     playDurationS: +duration.toFixed(3),
+    amberHeldS: +amberHeldS.toFixed(3),
+    elapsedAtEnd: +elapsedAtEnd.toFixed(3),
+    naturalPace: amberHeldS >= 1.2 && elapsedAtEnd >= 5 && elapsedAtEnd <= 8.5,
     sampleCount: samples.length,
   };
 }
@@ -168,7 +177,7 @@ async function run() {
   let snappedAmber = false;
   let snappedLower = false;
   let snappedDown = false;
-  while (Date.now() - t0 < 14000) {
+  while (Date.now() - t0 < 18000) {
     const pack = await page.evaluate(() => {
       const snap = window.__iqr?.snap;
       let world = null;
@@ -243,10 +252,13 @@ async function run() {
   await page.screenshot({ path: join(OUT, "showtime-scan.png"), type: "png" });
 
   const timeline = summarizeTimeline(samples);
+  const settleElapsed = snapEnd?.showtimeElapsed ?? 0;
   const settleOk = snapEnd?.showtimePhase === "settled"
     && (snapEnd?.boomPct ?? 99) < 8
     && snapEnd?.signalAspect === "red"
-    && snapEnd?.viewMode === "world";
+    && snapEnd?.viewMode === "world"
+    && settleElapsed >= 5
+    && settleElapsed <= 8.5;
   const hudRestored = dockAfter.hidden === false && dockAfter.scan === "Tap to scan";
 
   const report = {
@@ -262,6 +274,8 @@ async function run() {
       signalAspect: snapEnd?.signalAspect,
       viewMode: snapEnd?.viewMode,
       usingGlb: snapEnd?.usingGlb,
+      elapsed: settleElapsed,
+      budget: snapEnd?.showtimeBudget ?? null,
       ok: settleOk,
     },
     hud: {
@@ -316,6 +330,8 @@ async function run() {
     && timeline.amberLampOn
     && timeline.redLampOn
     && timeline.lowered
+    && timeline.naturalPace
+    && timeline.amberHeldS >= 1.2
     && timeline.hudHiddenWhilePlaying
     && settleOk
     && hudRestored
