@@ -2,7 +2,7 @@
 
 Living4 Incredible QR for PORTABOOM PB4000 (ICQR *pattern*: the door **looks like a QR**, with the unit living inside the matrix).
 
-- **`?showtime=1`** (and `?v=living4&showtime=1`) first paint = QR-matrix aesthetic + PORTABOOM in the field. Not a twin-site plaza. Tap (or a 2s beat) plays ~7s — longer than the living2 teaser GIF loop (~3.6s). Amber, then red as the boom lowers. After the boom is down, the page goes to DEST.
+- **`?showtime=1`** (and `?v=living4&showtime=1`) first paint = QR-matrix aesthetic + PORTABOOM in the field. Not a twin-site plaza. Tap (or a 2.6s beat) plays ~7s — longer than the living2 teaser GIF loop (~3.6s). Amber, then red as the boom lowers. After the boom is down, the page goes to DEST.
 - **DEST is configurable.** Default = Traffic Access PB4000 product page. Override with `?dest=<URL-encoded http(s) URL>` on the living door. Config: `dest-config.mjs`.
 - **Default (no showtime)** = living 3D PORTABOOM world for tap-to-scan of the baked product matrix.
 - Print PNG is a demoted export under the scan dock — never the READY claim

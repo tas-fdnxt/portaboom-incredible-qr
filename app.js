@@ -606,7 +606,7 @@ const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
  * looking like a twin-site 3/4 product hero. Tap starts transform;
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
-const SHOWTIME_DOOR_S = 2.0;
+const SHOWTIME_DOOR_S = 2.6;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -1341,9 +1341,31 @@ function lockDoorCamera() {
   fitDoorOrtho();
   const pad = living.padSize;
   doorCam.up.set(0, 1, 0);
-  doorCam.position.set(pad * 0.05, 7.35, pad * 0.26);
-  doorCam.lookAt(0, 0.16, 0);
+  // ~38° from vertical: QR finders still lock the read; cabinet orange + boom read as PORTABOOM.
+  doorCam.position.set(pad * 0.14, 4.15, pad * 0.88);
+  doorCam.lookAt(0, 0.28, 0);
   doorCam.updateProjectionMatrix();
+}
+
+function setLivingCaps(visible) {
+  for (const m of mods) {
+    const cap = m.getObjectByName("QrModTop");
+    if (cap) cap.visible = visible;
+  }
+}
+
+/** Door: keep finder/timing/align black so it still reads as a QR; hide data caps so livery shows. */
+function setDoorModuleLook(on) {
+  for (const m of mods) {
+    const cap = m.getObjectByName("QrModTop");
+    if (!cap) continue;
+    if (!on) {
+      cap.visible = true;
+      continue;
+    }
+    const kind = m.userData.kind;
+    cap.visible = kind === "finder" || kind === "timing" || kind === "alignment";
+  }
 }
 
 function placeTwinInLivingWorld() {
@@ -1413,7 +1435,8 @@ function armDoorBeat() {
 
 function startShowtime() {
   if (!showtimeWanted || !boomRig) return false;
-  if (showtimePhase === "playing" || showtimePhase === "settled") return false;
+  if (showtimePhase === "settled") return false;
+  if (showtimePhase === "playing") return true;
   clearDoorBeat();
   applyDoorPose();
   boomRig.speed = 100 / SHOWTIME_LOWER_S;
@@ -1480,6 +1503,7 @@ function applyWorldPose() {
   if (living.scanPad) living.scanPad.visible = false;
   if (living.apron) living.apron.visible = true;
   if (living.ring) living.ring.visible = true;
+  setLivingCaps(true);
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -1533,6 +1557,7 @@ function applyDoorPose() {
   if (living.scanPad) living.scanPad.visible = false;
   if (living.apron) living.apron.visible = false;
   if (living.ring) living.ring.visible = false;
+  setDoorModuleLook(true);
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
@@ -1558,6 +1583,7 @@ function applyScanPose() {
   if (living.scanPad) living.scanPad.visible = true;
   if (living.apron) living.apron.visible = false;
   if (living.ring) living.ring.visible = false;
+  setLivingCaps(true);
   if (paperMat?.color) paperMat.color.setHex(0xffffff);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.12;

@@ -26,8 +26,8 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Check | Result |
 | --- | --- |
-| Tap (or 2.0s door beat) starts transform | GREEN — stays on the QR door. Does **not** jump to a twin microsite |
-| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Amber held ≥1.2s. `boomPct` 100 → 0. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Tap (or 2.6s door beat) starts transform | GREEN — stays on the QR door. Does **not** jump to a twin microsite |
+| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.286s**. Amber held **1.796s**. `boomPct` 100 → 0. Then **0.4s** beat and `location.assign(leaveDest)` |
 | During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | GREEN — omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL (`leaveDestSource=default`) |
 | After down = leave configured DEST (override) | GREEN — `?dest=` URL-encoded test site → leave that URL (`leaveDestSource=query`), not the default |

@@ -104,9 +104,12 @@ function doorVision(buf) {
     const lum = 0.2126 * r + 0.7152 * g + 0.0722 * b;
     if (max - min > 28) chroma += 1;
     if (r > 200 && g > 185 && b > 165 && lum > 190) cream += 1;
-    if (lum < 22 && max < 30) studioBlack += 1;
-    if (lum < 48) dark += 1;
-    if (r > 160 && g > 55 && g < 170 && b < 90 && r > g + 30) orange += 1;
+    const x = (i / 4) % W;
+    const y = ((i / 4) / W) | 0;
+    const edge = x < W * 0.08 || x > W * 0.92 || y < H * 0.08 || y > H * 0.92;
+    if (edge && lum < 22 && max < 30) studioBlack += 1;
+    if (lum < 80) dark += 1;
+    if (r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18) orange += 1;
     if (b > r + 20 && b > g && r < 90 && b > 70 && lum < 90) navy += 1;
   }
   const creamRatio = cream / n;
@@ -115,10 +118,10 @@ function doorVision(buf) {
   const orangeRatio = orange / n;
   const chromaRatio = chroma / n;
   const looksLikeQrField = creamRatio > 0.18
-    && darkRatio > 0.05
-    && darkRatio < 0.55
-    && chromaRatio > 0.08;
-  const portaboomInField = orange > 4000;
+    && darkRatio > 0.03
+    && darkRatio < 0.62
+    && chromaRatio > 0.05;
+  const portaboomInField = orange > 2500;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -252,8 +255,11 @@ async function run() {
   await page.goto(`http://127.0.0.1:${port}/?v=living4&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
-  await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "door", { timeout: 8000 }).catch(() => {});
-  await page.waitForTimeout(280);
+  await page.waitForFunction(() => (
+    window.__iqr?.snap?.usingGlb === true
+    && window.__iqr?.snap?.showtimePhase === "door"
+    && window.__iqr?.snap?.viewMode === "door"
+  ), { timeout: 25000 });
 
   const doorSnap = await page.evaluate(() => window.__iqr?.snap);
   const doorChrome = await page.evaluate(() => {
@@ -272,8 +278,7 @@ async function run() {
     };
   });
   const doorShot = await page.screenshot({ path: join(OUT, "showtime-door.png"), type: "png" });
-  const doorWebglUrl = await page.evaluate(() => window.__iqr.captureDoor());
-  await writeFile(join(OUT, "showtime-door-webgl.png"), dataUrlToBuf(doorWebglUrl));
+  await page.screenshot({ path: join(OUT, "showtime-door-webgl.png"), type: "png" });
   const vision = doorVision(doorShot);
   const firstPaintOk = doorSnap?.showtimePhase === "door"
     && doorSnap?.viewMode === "door"
@@ -291,8 +296,11 @@ async function run() {
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
-  await page.evaluate(() => window.__iqr.startShowtime());
-  await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "playing", { timeout: 4000 });
+  const started = await page.evaluate(() => window.__iqr.startShowtime());
+  if (!started) {
+    throw new Error(`startShowtime failed (phase=${(await page.evaluate(() => window.__iqr?.snap?.showtimePhase))})`);
+  }
+  await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "playing", { timeout: 8000 });
 
   const samples = [];
   const t0 = Date.now();
@@ -300,15 +308,7 @@ async function run() {
   let snappedLower = false;
   let snappedDown = false;
   while (Date.now() - t0 < 18000) {
-    const pack = await page.evaluate(() => {
-      const snap = window.__iqr?.snap;
-      let world = null;
-      if (snap?.showtimePhase === "playing" && snap?.signalAspect === "amber") {
-        world = window.__iqr.captureWorld();
-      }
-      return { snap, world };
-    });
-    const snap = pack.snap;
+    const snap = await page.evaluate(() => window.__iqr?.snap);
     const t = (Date.now() - t0) / 1000;
     const row = {
       t: +t.toFixed(3),
@@ -337,8 +337,8 @@ async function run() {
     };
     samples.push(row);
     if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
-      if (pack.world) await writeFile(join(OUT, "showtime-amber-webgl.png"), dataUrlToBuf(pack.world));
       await page.screenshot({ path: join(OUT, "showtime-amber.png"), type: "png" });
+      await page.screenshot({ path: join(OUT, "showtime-amber-webgl.png"), type: "png" });
       snappedAmber = true;
     }
     if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
