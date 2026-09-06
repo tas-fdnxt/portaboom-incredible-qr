@@ -625,9 +625,9 @@ const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
 const scanCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
-/** Top-down scan of the XZ plaza. Peek stays inside the known jsQR envelope. */
+/** Dead-on +Y ortho of the XZ caps. OrbitControls must not own this camera. */
 const SCAN_POSE = {
-  pos: new THREE.Vector3(0.18, 8, 0.12),
+  pos: new THREE.Vector3(0, 8, 0.0001),
   tgt: new THREE.Vector3(0, 0, 0),
 };
 scanCam.position.copy(SCAN_POSE.pos);
@@ -1314,12 +1314,17 @@ function applyWorldPose() {
   studioGroup.visible = true;
   grid.visible = true;
   if (living.scanPad) living.scanPad.visible = false;
+  if (living.apron) living.apron.visible = true;
+  if (living.ring) living.ring.visible = true;
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
   scene.background.setHex(0x0d0d12);
   renderer.setClearColor(0x0d0d12, 1);
-  if (controls) controls.object = unitCam;
+  if (controls) {
+    controls.object = unitCam;
+    controls.enabled = true;
+  }
   unitCam.near = 0.05;
   unitCam.far = 80;
   placeTwinInLivingWorld();
@@ -1357,25 +1362,23 @@ function applyScanPose() {
   studioGroup.visible = false;
   grid.visible = true;
   if (living.scanPad) living.scanPad.visible = true;
+  if (living.apron) living.apron.visible = false;
+  if (living.ring) living.ring.visible = false;
   if (paperMat?.color) paperMat.color.setHex(0xffffff);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.12;
   scene.background.setHex(0xffffff);
   renderer.setClearColor(0xffffff, 1);
   camera = scanCam;
-  if (controls) controls.object = scanCam;
+  if (controls) {
+    controls.enabled = false;
+    controls.autoRotate = false;
+  }
   fitScanOrtho();
   scanCam.up.set(0, 0, -1);
   scanCam.position.copy(SCAN_POSE.pos);
   scanCam.lookAt(SCAN_POSE.tgt);
   scanCam.updateProjectionMatrix();
-  if (controls) {
-    controls.target.copy(SCAN_POSE.tgt);
-    controls.enableRotate = false;
-    controls.enablePan = false;
-    controls.enableZoom = true;
-    controls.update();
-  }
   setStatus("Scan pose · point a phone at the field");
   syncModeHud();
 }
@@ -2350,8 +2353,8 @@ function tick() {
     tickShow(dt);
     updateLeds();
   }
-  if (controls) {
-    if (!spin || scanOpen) controls.autoRotate = false;
+  if (controls && !scanOpen) {
+    if (!spin) controls.autoRotate = false;
     controls.update();
   }
   renderer.autoClear = true;

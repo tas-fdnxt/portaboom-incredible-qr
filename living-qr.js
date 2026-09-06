@@ -262,6 +262,8 @@ export function buildLivingQr(THREE, spec) {
     group,
     mods,
     pad,
+    apron,
+    ring,
     scanPad,
     paperMat,
     scanPaperMat,
