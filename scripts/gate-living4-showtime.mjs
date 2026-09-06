@@ -1,5 +1,5 @@
 /**
- * GATE living4 showtime — ICQR door first, then transform, then DEST.
+ * GATE living5 showtime — ICQR door first (close twin), then transform, then DEST.
  * First paint must be the QR-matrix aesthetic with PORTABOOM in the field
  * (not the living2/3d plaza twin-as-website). Tap or door-beat starts
  * amber → red, boom 100→0 (~7s), then leave to configured DEST.
@@ -85,6 +85,81 @@ function dataUrlToBuf(url) {
   return Buffer.from(b64, "base64");
 }
 
+function isCabinetOrange(r, g, b) {
+  return r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18;
+}
+
+/** Largest 4-connected orange blob — the cabinet, not scattered QR towers. */
+function largestOrangeBlob(data, W, H) {
+  const step = 2;
+  const gw = Math.ceil(W / step);
+  const gh = Math.ceil(H / step);
+  const seen = new Uint8Array(gw * gh);
+  const mark = (x, y) => {
+    const gx = (x / step) | 0;
+    const gy = (y / step) | 0;
+    seen[gy * gw + gx] = 1;
+  };
+  const visited = (x, y) => seen[((y / step) | 0) * gw + ((x / step) | 0)];
+  let best = { pixels: 0, minX: 0, minY: 0, maxX: 0, maxY: 0, widthFrac: 0, heightFrac: 0, areaFrac: 0 };
+  const stack = [];
+  for (let y = 0; y < H; y += step) {
+    for (let x = 0; x < W; x += step) {
+      if (visited(x, y)) continue;
+      const i = (y * W + x) * 4;
+      if (!isCabinetOrange(data[i], data[i + 1], data[i + 2])) {
+        mark(x, y);
+        continue;
+      }
+      stack.length = 0;
+      stack.push(x, y);
+      mark(x, y);
+      let pixels = 0;
+      let minX = x;
+      let minY = y;
+      let maxX = x;
+      let maxY = y;
+      while (stack.length) {
+        const cy = stack.pop();
+        const cx = stack.pop();
+        pixels += step * step;
+        if (cx < minX) minX = cx;
+        if (cy < minY) minY = cy;
+        if (cx > maxX) maxX = cx;
+        if (cy > maxY) maxY = cy;
+        const nbs = [cx - step, cy, cx + step, cy, cx, cy - step, cx, cy + step];
+        for (let k = 0; k < nbs.length; k += 2) {
+          const nx = nbs[k];
+          const ny = nbs[k + 1];
+          if (nx < 0 || ny < 0 || nx >= W || ny >= H || visited(nx, ny)) continue;
+          const ni = (ny * W + nx) * 4;
+          if (isCabinetOrange(data[ni], data[ni + 1], data[ni + 2])) {
+            mark(nx, ny);
+            stack.push(nx, ny);
+          } else {
+            mark(nx, ny);
+          }
+        }
+      }
+      if (pixels > best.pixels) {
+        const bw = maxX - minX + 1;
+        const bh = maxY - minY + 1;
+        best = {
+          pixels,
+          minX,
+          minY,
+          maxX,
+          maxY,
+          widthFrac: +(bw / W).toFixed(4),
+          heightFrac: +(bh / H).toFixed(4),
+          areaFrac: +((bw * bh) / (W * H)).toFixed(4),
+        };
+      }
+    }
+  }
+  return best;
+}
+
 function doorVision(buf) {
   const png = PNG.sync.read(buf);
   const { width: W, height: H, data } = png;
@@ -95,6 +170,10 @@ function doorVision(buf) {
   let orange = 0;
   let chroma = 0;
   let navy = 0;
+  let orangeMinX = W;
+  let orangeMinY = H;
+  let orangeMaxX = 0;
+  let orangeMaxY = 0;
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
@@ -109,7 +188,13 @@ function doorVision(buf) {
     const edge = x < W * 0.08 || x > W * 0.92 || y < H * 0.08 || y > H * 0.92;
     if (edge && lum < 22 && max < 30) studioBlack += 1;
     if (lum < 80) dark += 1;
-    if (r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18) orange += 1;
+    if (r > 185 && g > 85 && g < 225 && b < 185 && r > g + 12 && r > b + 18) {
+      orange += 1;
+      if (x < orangeMinX) orangeMinX = x;
+      if (x > orangeMaxX) orangeMaxX = x;
+      if (y < orangeMinY) orangeMinY = y;
+      if (y > orangeMaxY) orangeMaxY = y;
+    }
     if (b > r + 20 && b > g && r < 90 && b > 70 && lum < 90) navy += 1;
   }
   const creamRatio = cream / n;
@@ -117,11 +202,19 @@ function doorVision(buf) {
   const darkRatio = dark / n;
   const orangeRatio = orange / n;
   const chromaRatio = chroma / n;
-  const looksLikeQrField = creamRatio > 0.18
+  const orangeBBoxW = orangeMaxX > orangeMinX ? (orangeMaxX - orangeMinX + 1) : 0;
+  const orangeBBoxH = orangeMaxY > orangeMinY ? (orangeMaxY - orangeMinY + 1) : 0;
+  const orangeBBoxFrac = (orangeBBoxW * orangeBBoxH) / n;
+  // Field modules are also powder-orange — use the largest blob, not the union bbox.
+  const blob = largestOrangeBlob(data, W, H);
+  const looksLikeQrField = creamRatio > 0.12
     && darkRatio > 0.03
     && darkRatio < 0.62
     && chromaRatio > 0.05;
-  const portaboomInField = orange > 2500;
+  const portaboomInField = orange > 8000 && blob.pixels > 4000;
+  const portaboomLargeEnough = blob.heightFrac >= 0.22
+    && blob.areaFrac >= 0.06
+    && blob.pixels > 12000;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -137,8 +230,14 @@ function doorVision(buf) {
     darkRatio: +darkRatio.toFixed(4),
     orangeRatio: +orangeRatio.toFixed(4),
     chromaRatio: +chromaRatio.toFixed(4),
+    orangeBBoxW,
+    orangeBBoxH,
+    orangeBBoxFrac: +orangeBBoxFrac.toFixed(4),
+    orangeHeightFrac: +(orangeBBoxH / H).toFixed(4),
+    orangeBlob: blob,
     looksLikeQrField,
     portaboomInField,
+    portaboomLargeEnough,
     looksLikeWebsiteTwin,
     looksLikeFlatBWQR,
     looksLikeNormalQR: looksLikeQrField && looksLikeFlatBWQR,
@@ -252,7 +351,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living4&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living5&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -288,11 +387,15 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living4-icqr-door"
+    && doorSnap?.product === "living5-icqr-door"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
+    && vision.portaboomLargeEnough === true
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.40
+    && vision.orangeBlob.heightFrac >= 0.28
+    && doorSnap?.doorBoomHidden === true
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -402,7 +505,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living4&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living5&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -437,7 +540,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living4`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living5`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -461,7 +564,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living4/.test(qrProof.clean.decoded || "");
+    && /v=living5/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -481,6 +584,11 @@ async function run() {
         websiteChrome: doorSnap?.websiteChrome ?? null,
         cameraIsOrtho: doorSnap?.cameraIsOrtho ?? null,
         usingGlb: doorSnap?.usingGlb ?? null,
+        doorOrthoWorldW: doorSnap?.doorOrthoWorldW ?? null,
+        doorOrthoWorldH: doorSnap?.doorOrthoWorldH ?? null,
+        doorHeroFrame: doorSnap?.doorHeroFrame ?? null,
+        doorCabinetFrame: doorSnap?.doorCabinetFrame ?? null,
+        doorBoomHidden: doorSnap?.doorBoomHidden ?? null,
       },
       chrome: doorChrome,
       vision,
