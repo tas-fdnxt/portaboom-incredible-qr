@@ -1,10 +1,33 @@
-# GATE — living10 ICQR door (elevated 3D QR field, one boom, cuboid minis)
+# GATE — send-still Magic Tree PORTABOOM (living10 tip)
+
+Phone-width (390×844). Tip stays **`app.js?v=living10`** (no living11 STOP circus; no living12 unless this bake needed a new tip — it did not).
+DEST **default**: `https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/`
+Living door (stationary send payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
+Send file: **`fabian-showtime-qr.png`** — Magic Tree still of the living field. Dark modules = 2.5D PORTABOOM / boom **geometry in the QR**. Hero cabinet + one head + striped boom / STOP stand **in** the field. Quiet zone is cream only.
+ECC **H**, version **8**, **49×49**, **1244** dark. Encodes the living10 showtime URL. **Never DEST**.
+
+Proof baker: `node scripts/make-showtime-qr.mjs` (jsQR native + 800px).
+Tip / showtime runner: `node scripts/gate-living4-showtime.mjs` (Playwright + jsQR).
+Send file copies: `fabian-showtime-qr.png`, `gate-artifacts/`, `/opt/cursor/artifacts/`.
+
+Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress. Do not ping Fabian.
+
+## SMOKE — send-still (this bake)
+
+| Check | Result |
+| --- | --- |
+| Looks like a QR with PORTABOOM geometry in the field | GREEN — square field, cream quiet zone, mini cabinet/boom/LED modules, hero woven into center data modules |
+| Not paintClean novel B&W | GREEN — `look.notFlatBW=true`, `look.notPaintClean=true`. `fabian-showtime-qr-paint-clean.png` is a fixture only |
+| Not paintLivingMatrix flat cubes | GREEN — rejected painter written to `fabian-showtime-qr-living-matrix.png` and **fails** jsQR (as expected) |
+| Not PR#28 sticker | GREEN — `look.sticker=false`, `look.heroInField=true`, `look.chromeOutsideBorder=false`, `orangeOutside=0` |
+| jsQR decodes living tip showtime URL | GREEN — native + phone-800 → `?v=living10&showtime=1` |
+| Send file is not DEST | GREEN — `phoneScan.notDest=true` |
+
+## SMOKE — tip still living10 (unchanged)
 
 Phone-width (390×844). `app.js?v=living10`.
-DEST **default**: `https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/`
 DEST **override**: living door `?dest=<URL-encoded http(s) URL>` (any website). Config: `dest-config.mjs`.
-Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
-ECC **H** send QR. World still uses the baked default-product H-matrix (version **8**, **49×49**, **1258** dark modules).
+World still uses the baked default-product H-matrix (version **8**, **49×49**, **1258** dark modules).
 SoT: **ICQR-first door** — dense 3D QR field of cuboid minions around the hero PORTABOOM (yellow cabinet + traffic light + **one** boom). Elevated look into the field. Finder-pattern clusters stay dark. Cabinet-vocab modules get a light mini-PORTABOOM dress (orange + LEDs/wordmark). **No** traffic lights / **no** booms on minis. Then green **0.5s** → amber **1s** → red **0.5s** → boom down. Then DEST. **Not** a twin-site 3/4 plaza. **Not** WordPress. **Not** a flat brand poster.
 
 **living8 + living9 are REJECTED** (Fabian HARD): camera/crop + all-orange instanced strip flattened the door into a 2D poster (big PORTA BOOM logo, TL, boom, orange cabinet footer). living10 restores the last GOOD 3D field (living5 composition / living7 structure) and only then lightly dresses cabinet modules.
@@ -41,7 +64,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
 | After down = leave configured DEST (override) | `?dest=` URL-encoded test site → leave that URL, not the default |
 | Zero website chrome on the door | `#hud` `display:none` for the whole showtime path |
-| Stationary send QR | jsQR decodes living showtime URL `?v=living10&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
+| Stationary send still | jsQR native + 800px decodes living showtime URL `?v=living10&showtime=1` from Magic Tree `fabian-showtime-qr.png` (not DEST; not B&W; not sticker) |
 | Tap to scan → baked product matrix | default living page `captureScan()` native jsQR → default product URL |
 
 ## STRESS
@@ -57,6 +80,9 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Claim | Refute |
 | --- | --- |
+| Novel sticker / PR#28 (matrix + PORTABOOM outside border) | Hero bbox is inside the module field. Quiet zone is cream (`chromeQuiet=0`, `orangeOutside=0`). No sky band. Send file **is** the field |
+| Flatten-as-DONE / paintClean is the product | Send file is 2.5D cabinet/boom/LED geometry + living palette. paintClean is a named fixture only and is **not** `fabian-showtime-qr.png` |
+| Website-hop / encode DEST in the send file | jsQR payload is the living10 showtime Pages URL. DEST is leave-after-showtime only (`dest-config.mjs`) |
 | Opens looking like another website / twin hub | `showtime-door.png` is the QR matrix + unit. Studio cyclorama off. HUD/brand gone. `product=living10-icqr-door` |
 | living2/3d world-default is the showtime first paint | Showtime never calls `applyWorldPose` / `lockWorldCamera`. `viewMode=door` |
 | Dead-on flatten / logo header / footer strip | Elevated camera. No `PortaboomBackLogo`. Dense cuboid field fills the ground |
@@ -72,8 +98,8 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 ## How to scan (Fabian send)
 
-1. Point a phone at **`fabian-showtime-qr.png`** (stationary).
-2. Camera opens the living Incredible QR **door** — elevated 3D field of cuboid minions around the hero (cabinet + traffic light + one boom).
+1. Point a phone at **`fabian-showtime-qr.png`** (stationary Magic Tree still — PORTABOOM geometry in the field).
+2. Camera opens the living Incredible QR **door** — elevated 3D field of cuboid minions around the hero (cabinet + traffic light + one boom). Same living10 world.
 3. Tap (or wait one beat). Watch green 0.5s → amber 1s → red 0.5s → boom down **on that QR world**.
 4. After the boom is fully down, the page goes to DEST (default product link, or `?dest=` if the living URL includes one).
 

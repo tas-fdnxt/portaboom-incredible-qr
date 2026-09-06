@@ -625,10 +625,14 @@ async function run() {
     && settleElapsed >= 2.4
     && settleElapsed <= 4.2;
   const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
-  const qrIsLiving = qrProof.clean.match === true
-    && qrProof.clean.decoded === LIVING_SHOWTIME_URL
-    && qrProof.clean.decoded !== DEST
-    && /v=living10/.test(qrProof.clean.decoded || "");
+  const qrIsLiving = qrProof.livingStill?.match === true
+    && qrProof.livingStill.decoded === LIVING_SHOWTIME_URL
+    && qrProof.livingStill.decoded !== DEST
+    && /v=living10/.test(qrProof.livingStill.decoded || "")
+    && qrProof.livingStill.look?.geometryInField === true
+    && qrProof.livingStill.look?.sticker === false
+    && qrProof.livingStill.look?.chromeOutsideBorder === false
+    && qrProof.phoneScan?.notDest === true;
 
   const report = {
     dest: DEST,
