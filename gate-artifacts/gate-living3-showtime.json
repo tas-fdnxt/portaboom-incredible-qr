@@ -21,10 +21,12 @@
   },
   "timeline": {
     "aspects": [
+      "green",
       "amber",
       "red"
     ],
     "phases": [
+      "pending",
       "playing",
       "settled"
     ],
@@ -38,14 +40,59 @@
     "redLampOn": true,
     "lowered": true,
     "hudHiddenWhilePlaying": true,
-    "playDurationS": 2.123,
-    "sampleCount": 4
+    "playDurationS": 5.473,
+    "amberHeldS": 1.822,
+    "elapsedAtEnd": 6.021,
+    "naturalPace": true,
+    "sampleCount": 26
   },
   "samples": [
     {
-      "t": 0.623,
+      "t": 0.005,
+      "showtimePhase": "pending",
+      "showtimeElapsed": 0,
+      "signalAspect": "green",
+      "showMode": "up",
+      "boomPct": 100,
+      "boomTarget": 100,
+      "boomAngle": 1.12,
+      "lampIntensity": {
+        "red": 0.08,
+        "amber": 0.08,
+        "green": 8.8
+      },
+      "viewMode": "world",
+      "usingGlb": false,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 0.134,
+      "showtimePhase": "pending",
+      "showtimeElapsed": 0,
+      "signalAspect": "green",
+      "showMode": "up",
+      "boomPct": 100,
+      "boomTarget": 100,
+      "boomAngle": 1.12,
+      "lampIntensity": {
+        "red": 0.08,
+        "amber": 0.08,
+        "green": 8.8
+      },
+      "viewMode": "world",
+      "usingGlb": false,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 0.857,
       "showtimePhase": "playing",
-      "showtimeElapsed": 0.611,
+      "showtimeElapsed": 0.001,
       "signalAspect": "amber",
       "showMode": "amber",
       "boomPct": 100,
@@ -64,14 +111,14 @@
       "cameraIsPerspective": true
     },
     {
-      "t": 1.805,
+      "t": 2.132,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.403,
+      "showtimeElapsed": 1.822,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 30.295652173915066,
-      "boomTarget": 30.295652173915066,
-      "boomAngle": 2.0222320678954016,
+      "boomPct": 98.89915805261855,
+      "boomTarget": 98.89915805261855,
+      "boomAngle": 3.099853418290597,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -85,14 +132,14 @@
       "cameraIsPerspective": true
     },
     {
-      "t": 2.746,
+      "t": 2.302,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.344,
+      "showtimeElapsed": 1.974,
       "signalAspect": "red",
-      "showMode": "down",
-      "boomPct": 0,
-      "boomTarget": 0,
-      "boomAngle": 1.5463490763689856,
+      "showMode": "closing",
+      "boomPct": 97.66163968131674,
+      "boomTarget": 97.66163968131674,
+      "boomAngle": 3.0804145251707764,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -106,9 +153,429 @@
       "cameraIsPerspective": true
     },
     {
-      "t": 3.913,
+      "t": 2.426,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 1.974,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 97.66163968131674,
+      "boomTarget": 97.66163968131674,
+      "boomAngle": 3.0804145251707764,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 2.572,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.277,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 93.97492939675729,
+      "boomTarget": 93.97492939675729,
+      "boomAngle": 3.022503815441347,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 2.733,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.424,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 91.65480156613117,
+      "boomTarget": 91.65480156613117,
+      "boomAngle": 2.9860593327009255,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 2.899,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.588,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 88.69675704062544,
+      "boomTarget": 88.69675704062544,
+      "boomAngle": 2.9395944779493237,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 3.084,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.755,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 85.347756640625,
+      "boomTarget": 85.347756640625,
+      "boomAngle": 2.8869885026817705,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 3.224,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.911,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 81.91171676677314,
+      "boomTarget": 81.91171676677314,
+      "boomAngle": 2.8330153145560972,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 3.384,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 3.067,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 78.23988401840066,
+      "boomTarget": 78.23988401840066,
+      "boomAngle": 2.7753383006186105,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 3.535,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 3.227,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 74.23119958415991,
+      "boomTarget": 74.23119958415991,
+      "boomAngle": 2.712370032772758,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 4.675,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 4.361,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 42.48787687812533,
+      "boomTarget": 42.48787687812533,
+      "boomAngle": 2.2137470857037163,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 4.873,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 4.526,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 37.82430920854936,
+      "boomTarget": 37.82430920854936,
+      "boomAngle": 2.1404919360524226,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 4.526,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 37.82430920854936,
+      "boomTarget": 37.82430920854936,
+      "boomAngle": 2.1404919360524226,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.13,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 4.526,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 37.82430920854936,
+      "boomTarget": 37.82430920854936,
+      "boomAngle": 2.1404919360524226,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.274,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 4.905,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 27.52606879635898,
+      "boomTarget": 27.52606879635898,
+      "boomAngle": 1.9787275539332287,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.397,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.064,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 23.46903530968165,
+      "boomTarget": 23.46903530968165,
+      "boomAngle": 1.9149998209476622,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.532,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.225,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 19.578011044879652,
+      "boomTarget": 19.578011044879652,
+      "boomAngle": 1.8538797547214543,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.695,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.38,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 16.053343914467433,
+      "boomTarget": 16.053343914467433,
+      "boomAngle": 1.798514412905192,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 5.858,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.55,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 12.51936210937501,
+      "boomTarget": 12.51936210937501,
+      "boomAngle": 1.7430027565212003,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 6.012,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.706,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 9.570346121405404,
+      "boomTarget": 9.570346121405404,
+      "boomAngle": 1.6966797217055796,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 6.172,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.857,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 7.0307283517456405,
+      "boomTarget": 7.0307283517456405,
+      "boomAngle": 1.6567874990651335,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 6.33,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 6.021,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 4.6750648523785525,
+      "boomTarget": 4.6750648523785525,
+      "boomAngle": 1.619784823345427,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 7.449,
       "showtimePhase": "settled",
-      "showtimeElapsed": 3.492,
+      "showtimeElapsed": 7.131,
       "signalAspect": "red",
       "showMode": "down",
       "boomPct": 0,
@@ -133,6 +600,8 @@
     "signalAspect": "red",
     "viewMode": "world",
     "usingGlb": true,
+    "elapsed": 7.131,
+    "budget": 7.1000000000000005,
     "ok": true
   },
   "hud": {

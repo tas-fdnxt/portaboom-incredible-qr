@@ -17,7 +17,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` opens world with twin | GREEN — `viewMode=world`, `usingGlb=true`, `defaultShowsTwin=true` |
-| Auto choreography ~5–8s (not a 3s sting) | GREEN — wall-clock 1.5s amber + 5.2s ease-in-out lower + 0.4s hold (budget 7.1s). Settle `showtimeElapsed` in 5–8.5s. `boomPct` 100 → 0 before settle. Amber lamp 8.8 / red 0.07, then red 8.8 / amber 0.07 |
+| Auto choreography ~5–8s (not a 3s sting) | GREEN — budget 7.1s (1.5s amber + 5.2s ease-in-out lower + 0.4s hold). Measured settle **7.13s**. Amber held **1.82s** before first red. `boomPct` 100 → 0. Amber lamp 8.8 / red 0.07, then red 8.8 / amber 0.07 |
 | During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = red held | GREEN — `showtimePhase=settled`, `signalAspect=red`, `boomPct=0`. No auto-raise |
 | Minimal HUD during showtime | GREEN — `#liveDock` hidden while `playing` / `pending` |
