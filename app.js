@@ -607,8 +607,10 @@ const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
 const SHOWTIME_DOOR_S = 2.6;
-/** Door ortho cover window as a fraction of the QR pad. Living4 width-fit the whole pad. */
-const DOOR_PAD_SPAN = 0.22;
+/** Fallback door crop if the cabinet bbox is not ready. Living4 width-fit the whole pad. */
+const DOOR_PAD_SPAN = 0.18;
+/** Cabinet should fill this much of the phone height on the door. */
+const DOOR_CABINET_FILL = 0.52;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -1316,16 +1318,27 @@ function fitScanOrtho() {
   scanCam.updateProjectionMatrix();
 }
 
+function doorCabinetBox() {
+  const cab = findCabinetMesh(boom);
+  if (cab) return worldBox(cab);
+  if (boom) return gatherHeroBox(boom);
+  return null;
+}
+
 /**
- * Living4 framed the whole pad in width. On a 390×844 phone that made
- * worldH ≈ pad / 0.39 — PORTABOOM a speck in cream paper (Fabian).
- * Cover-fit a tighter crop so the cabinet fills the QR field, not the quiet zone.
+ * Frame the portable cabinet, not the 4 m boom and not the whole QR pad.
+ * Fabian: unit itself is the subject; boom may be cropped or hidden.
  */
 function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
-  const span = living.padSize * DOOR_PAD_SPAN;
+  const box = doorCabinetBox();
+  let span = living.padSize * DOOR_PAD_SPAN;
+  if (box && !box.isEmpty()) {
+    const size = box.getSize(new THREE.Vector3());
+    span = Math.max(size.y / DOOR_CABINET_FILL, size.x * 2.15, 0.42);
+  }
   let worldW;
   let worldH;
   if (aspect < 1) {
@@ -1403,27 +1416,38 @@ function measureDoorCabinetFrame() {
   return projectBoxViewportFrac(worldBox(cab), doorCam);
 }
 
+/** Hide the long boom arm on the door so the cabinet can fill the frame. */
+function setDoorBoomArm(visible) {
+  if (!boom) return;
+  const pivot = boom.getObjectByName("BoomPivot");
+  if (pivot) pivot.visible = visible;
+  const heroArm = boom.getObjectByName("HeroBoomArm") || boom.userData?.heroArm;
+  if (heroArm && heroArm !== pivot) heroArm.visible = visible;
+}
+
 /**
- * Steep look-down so the 49×49 towers still read as a QR matrix.
- * Closer ortho + cabinet look-at so PORTABOOM fills the field.
- * Not lockWorldCamera's 3/4 plaza hero.
+ * Face the portable cabinet. Boom stays hidden/cropped — not a plaza hero.
+ * QR modules remain around the unit.
  */
 function lockDoorCamera() {
   fitDoorOrtho();
-  const pad = living.padSize;
   doorCam.up.set(0, 1, 0);
-  let lookY = 0.52;
-  let lookZ = 0.12;
-  if (boom) {
-    const hero = gatherHeroBox(boom);
-    const c = hero.getCenter(new THREE.Vector3());
-    if (Number.isFinite(c.y)) lookY = c.y;
-    if (Number.isFinite(c.z)) lookZ = c.z;
+  let cx = 0;
+  let cy = 0.48;
+  let cz = 0.12;
+  let sy = 0.72;
+  const box = doorCabinetBox();
+  if (box && !box.isEmpty()) {
+    const c = box.getCenter(new THREE.Vector3());
+    const s = box.getSize(new THREE.Vector3());
+    if (Number.isFinite(c.x)) cx = c.x;
+    if (Number.isFinite(c.y)) cy = c.y;
+    if (Number.isFinite(c.z)) cz = c.z;
+    if (Number.isFinite(s.y) && s.y > 0.2) sy = s.y;
   }
-  // Cabinet-first: crop the long boom if needed so PORTABOOM fills the field.
-  // ~44° from vertical — QR modules still read; not a plaza hero.
-  doorCam.position.set(pad * 0.05, 4.18, lookZ + pad * 0.78);
-  doorCam.lookAt(0, lookY - 0.04, lookZ);
+  // ~58° from vertical: cabinet face + PORTABOOM read; field still a QR.
+  doorCam.position.set(cx + sy * 0.16, cy + sy * 0.58, cz + sy * 1.42);
+  doorCam.lookAt(cx, cy - sy * 0.06, cz);
   doorCam.updateProjectionMatrix();
 }
 
@@ -1518,10 +1542,11 @@ function startShowtime() {
   if (showtimePhase === "settled") return false;
   if (showtimePhase === "playing") return true;
   clearDoorBeat();
+  showtimePhase = "playing";
   applyDoorPose();
+  setDoorBoomArm(true);
   boomRig.speed = 100 / SHOWTIME_LOWER_S;
   applyBoomShown(100);
-  showtimePhase = "playing";
   showtimeStartedAt = performance.now();
   showtimeElapsed = 0;
   showMode = "amber";
@@ -1649,6 +1674,7 @@ function applyDoorPose() {
     controls.object = doorCam;
   }
   placeTwinInLivingWorld();
+  setDoorBoomArm(showtimePhase === "playing" || showtimePhase === "settled");
   lockDoorCamera();
   if (showtimeHudHidden()) setStatus("PORTABOOM");
   syncModeHud();
@@ -2883,6 +2909,10 @@ window.__iqr = {
       doorOrthoWorldH: viewMode === "door" ? +(doorCam.top - doorCam.bottom).toFixed(4) : null,
       doorHeroFrame: measureDoorHeroFrame(),
       doorCabinetFrame: measureDoorCabinetFrame(),
+      doorBoomHidden: (() => {
+        const p = boom?.getObjectByName?.("BoomPivot");
+        return !!(p && p.visible === false);
+      })(),
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
       twinInQrField: !!(boom && boom.visible && viewMode === "door"),

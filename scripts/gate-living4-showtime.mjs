@@ -393,8 +393,9 @@ async function run() {
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.28
-    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.28
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.40
+    && vision.orangeBlob.heightFrac >= 0.28
+    && doorSnap?.doorBoomHidden === true
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -587,6 +588,7 @@ async function run() {
         doorOrthoWorldH: doorSnap?.doorOrthoWorldH ?? null,
         doorHeroFrame: doorSnap?.doorHeroFrame ?? null,
         doorCabinetFrame: doorSnap?.doorCabinetFrame ?? null,
+        doorBoomHidden: doorSnap?.doorBoomHidden ?? null,
       },
       chrome: doorChrome,
       vision,
