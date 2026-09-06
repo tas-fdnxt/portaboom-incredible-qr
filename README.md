@@ -19,3 +19,15 @@ Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 3. Optional: Unit dock to orbit the planted twin. Print PNG if you need a paper export.
 
 Not WordPress. Not Command Hub. NEVER SEND until Chief merges after GATE.
+
+## Archive doors (historical Pages)
+
+Frozen snapshots so phone can open pre-living1 bakes again:
+
+- https://tas-fdnxt.github.io/portaboom-incredible-qr/archive/overnight1/ — `03e35a2` (Flatten to QR)
+- https://tas-fdnxt.github.io/portaboom-incredible-qr/archive/twin-tidy5/ — `a93ced6` (planted STOP/stripes)
+
+Listing: https://tas-fdnxt.github.io/portaboom-incredible-qr/archive/
+
+Living root stays `app.js?v=living1` until living2. This is archive-only — not a living QR fix.
+
