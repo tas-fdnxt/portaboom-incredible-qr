@@ -31,7 +31,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing 0.5+1+0.5+boom | GREEN — Fabian lock: green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Timing 0.5+1+0.5+boom | GREEN — lock green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Measured green **0.628s** → amber **0.874s** → red hold **0.739s**; settle **3.109s**. Then **0.4s** beat and `location.assign(leaveDest)` |
 | Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
