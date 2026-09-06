@@ -56,7 +56,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Showtime page is the destination | After boom 100→0 + hold, `location.assign(leaveDest)` |
 | Flatten / print is the product | Flatten gone. Print still demoted. `printClaimReady=false` |
 | Default living2 broken | No query → `showtimePhase=off`, existing idle plaza |
-| Unit still a speck in cream | Door ortho cover-fits `0.32 × pad` on the tall axis (living4 width-fit the whole pad). `doorCabinetFrame` + largest orange blob prove size |
+| Unit still a speck in cream | Door ortho cover-fits `0.22 × pad` on the tall axis (living4 width-fit the whole pad). Cabinet-first: boom may be cropped. `doorCabinetFrame` + largest orange blob prove size |
 
 ## How to scan (Fabian send)
 

@@ -608,7 +608,7 @@ const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
  */
 const SHOWTIME_DOOR_S = 2.6;
 /** Door ortho cover window as a fraction of the QR pad. Living4 width-fit the whole pad. */
-const DOOR_PAD_SPAN = 0.32;
+const DOOR_PAD_SPAN = 0.22;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -1420,10 +1420,10 @@ function lockDoorCamera() {
     if (Number.isFinite(c.y)) lookY = c.y;
     if (Number.isFinite(c.z)) lookZ = c.z;
   }
-  // ~46° from vertical: cabinet face reads; still a QR field — not a plaza hero.
-  // Y stays above the raised 4 m-class boom so the pole is not clipped by near.
-  doorCam.position.set(pad * 0.07, 4.16, lookZ + pad * 0.86);
-  doorCam.lookAt(0, lookY + 0.06, lookZ);
+  // Cabinet-first: crop the long boom if needed so PORTABOOM fills the field.
+  // ~44° from vertical — QR modules still read; not a plaza hero.
+  doorCam.position.set(pad * 0.05, 4.18, lookZ + pad * 0.78);
+  doorCam.lookAt(0, lookY - 0.04, lookZ);
   doorCam.updateProjectionMatrix();
 }
 

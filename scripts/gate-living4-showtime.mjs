@@ -212,9 +212,9 @@ function doorVision(buf) {
     && darkRatio < 0.62
     && chromaRatio > 0.05;
   const portaboomInField = orange > 8000 && blob.pixels > 4000;
-  const portaboomLargeEnough = blob.heightFrac >= 0.16
-    && blob.areaFrac >= 0.035
-    && blob.pixels > 8000;
+  const portaboomLargeEnough = blob.heightFrac >= 0.22
+    && blob.areaFrac >= 0.06
+    && blob.pixels > 12000;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -393,8 +393,8 @@ async function run() {
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.18
-    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.22
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.28
+    && (doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.28
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
