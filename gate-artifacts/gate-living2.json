@@ -1,0 +1,111 @@
+{
+  "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+  "errors": [],
+  "smoke": {
+    "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "match": true,
+    "how": "native",
+    "from": "tap-to-scan ortho canvas.toDataURL (not qr.png, not the default world)"
+  },
+  "viewport": {
+    "decoded": null,
+    "match": false,
+    "how": null,
+    "from": "default 390×844 world screenshot including HUD — must fail looksLikeNormalQR"
+  },
+  "vision": {
+    "width": 780,
+    "height": 1688,
+    "orange": 95354,
+    "greenLed": 7897,
+    "orangeRatio": 0.0724,
+    "chromaRatio": 0.2093,
+    "bwish": 0.3646,
+    "looksLikeFlatBWQR": false,
+    "looksLikeNormalQR": false,
+    "portaboomVisible": true
+  },
+  "stress": {
+    "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "match": true,
+    "how": "bbox-nearest-256",
+    "from": "slight camera nudge of living world"
+  },
+  "brightness": {
+    "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "match": true,
+    "how": "native",
+    "from": "+18% luminance on live WebGL frame"
+  },
+  "life": {
+    "on": true,
+    "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "match": true,
+    "how": "native"
+  },
+  "hud": {
+    "primaryControls": 2,
+    "flattenBtnPresent": false,
+    "unitDockPresent": false,
+    "moreOpenDefault": false,
+    "visiblePrimaryOk": true
+  },
+  "pressure": {
+    "living": true,
+    "texturedQuad": true,
+    "scanPlanePresent": true,
+    "product": "living2-brand-world",
+    "moduleMeshGroups": 1258,
+    "darkCount": 1258,
+    "matrixN": 49,
+    "viewMode": "world",
+    "printClaimReady": false,
+    "groupsMatchDark": true,
+    "notASingleQuad": true,
+    "cameraIsPerspective": true,
+    "cameraIsOrtho": false,
+    "defaultShowsTwin": true,
+    "flattenGone": true,
+    "notFlatBW": true,
+    "notANormalQR": true,
+    "portaboomVisible": true,
+    "defaultIsWorld": true
+  },
+  "living": {
+    "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "ecc": "H",
+    "size": 49,
+    "dark": 1258,
+    "kinds": {
+      "finder": 99,
+      "timing": 28,
+      "alignment": 102,
+      "data": 1029
+    },
+    "vocabs": {
+      "finder": 99,
+      "timing": 28,
+      "cabinet": 255,
+      "boom": 268,
+      "head": 351,
+      "led": 257
+    },
+    "texturedQuad": false,
+    "viewMode": "world",
+    "scanOpen": false
+  },
+  "snap": {
+    "viewMode": "world",
+    "living": true,
+    "ecc": "H",
+    "matrixN": 49,
+    "darkCount": 1258,
+    "product": "living2-brand-world",
+    "usingGlb": true,
+    "defaultShowsTwin": true,
+    "cameraIsPerspective": true,
+    "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "signImpliedM": 0.4,
+    "stripePeriodM": 0.34
+  }
+}
