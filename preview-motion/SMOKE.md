@@ -55,6 +55,10 @@ Runner notes (not executed as READY):
 - living2: `node scripts/gate-living2.mjs`
 - motion1 helper: `node scripts/gate-motion1-smoke.mjs` (Playwright snap only — not phone GATE)
 
+## Lane 2 animated companion (honest)
+
+`preview-motion/DECODE.json` — 36 idle frames, 6 sampled, jsQR all null. Pair `/?v=motion1`. Not a scan door.
+
 ## SKIP / kill
 
 - TEASER morph-GIF as product (modules not locked every idle frame)

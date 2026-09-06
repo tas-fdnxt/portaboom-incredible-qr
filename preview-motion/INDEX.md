@@ -6,6 +6,12 @@ Not READY. Do not send. Do not merge as product. living10 tip must stay:
 
 Send file `fabian-showtime-qr.png` was not overwritten.
 
+## Cut-order LOCK (do not reshuffle)
+
+1. **Lane 1 usable now** — `/?v=motion1` living WebGL tip (motion ≤3s first paint).
+2. **Lane 2** — animated companion (`living-field.gif` / `.webp` / `.mp4`) + honest decode + tip URL pair.
+3. **Lane 3** — on-screen ICQR (`OPTION_M3_PREVIEW.html` iframe of the same tip).
+
 ## Sendable (the product under PREVIEW)
 
 The living Pages URL **is** the sendable. Not a PNG pack. Not a sticker.
@@ -28,8 +34,10 @@ Short HTML door (iframe of the tip):
 | M1 tip | Three.js living field (HAVE) | `/?v=motion1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1` |
 | M1 tip+show | same tip + auto showtime | `/?v=motion1&showtime=1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1&showtime=1` |
 | M1 short | HTML door | `preview-motion/tip.html` | `…/preview-motion/tip.html` |
-| M2 | OPTION M2 · PREVIEW — OG still poster | `preview-motion/OPTION_M2_PREVIEW.html` | `…/preview-motion/OPTION_M2_PREVIEW.html` |
-| M2 still | OG cannot play WebGL | `preview-motion/og-still.png` | `…/preview-motion/og-still.png` |
+| M2 | OPTION M2 · PREVIEW — animated sendable | `preview-motion/OPTION_M2_PREVIEW.html` | `…/preview-motion/OPTION_M2_PREVIEW.html` |
+| M2 loop | GIF / WebP / MP4 | `preview-motion/living-field.gif` · `.webp` · `.mp4` | `…/preview-motion/living-field.gif` |
+| M2 decode | honest jsQR note | `preview-motion/DECODE.json` | `…/preview-motion/DECODE.json` |
+| M2 OG | share still only | `preview-motion/og-still.png` | `…/preview-motion/og-still.png` |
 | M3 | OPTION M3 · PREVIEW — on-screen ICQR | `preview-motion/OPTION_M3_PREVIEW.html` | `…/preview-motion/OPTION_M3_PREVIEW.html` |
 | Index | this file + gallery | `preview-motion/INDEX.md` · `index.html` | `…/preview-motion/` |
 | Smoke | motion + flatten hold + living10 | `preview-motion/SMOKE.md` | `…/preview-motion/SMOKE.md` |
@@ -39,8 +47,8 @@ Short HTML door (iframe of the tip):
 1. **First paint = living motion** — elevated PORTABOOM QR field (living10 door), raised dark modules idle-bob. Visible on a phone viewport without pinch. Three.js HAVE — not a rewrite.
 2. **Tap → Magic Tree flatten** — H-matrix scan pose, modules frozen. Snap `modulesStable` after **≥500ms**. Payload of the flatten is the baked DEST H-matrix (`dest-config` / `qr-encode.js`). Honest: Camera on the flatten reads DEST, not a novel sticker.
 3. **Showtime on the same tip** — second tap after hold (or `?showtime=1` idle beat) plays green 0.5s → amber 1s → red 0.5s → boom down → DEST. Twin LED SoT: green raised-at-rest / red flash moving-or-down. No amber face LEDs invented.
-4. **OG still poster** — share card only. OG cannot play WebGL. Not the product.
-5. **TEASER loop** — **SKIP**. Idle modules move, so a morph-GIF cannot lock every frame. Do not ship GIF-as-product.
+4. **Lane 2 animated companion** — GIF/WebP/MP4 of idle motion. jsQR on sampled frames = null. Pair lane 1 tip URL. Not a Camera door.
+5. **OG still poster** — share card only. OG cannot play WebGL. Not the product.
 6. **Print PNG** — existing dock export stays scaffolding. Never READY.
 
 ## DEST
@@ -53,7 +61,7 @@ Leave-after-showtime / flatten payload:
 
 - No living11
 - No WebGPU rewrite
-- No morph-GIF as product
+- No morph-GIF claimed as Camera-ready product (companion only; pair tip URL)
 - No Apple-ring stickers / static OPTION 1–4 theatre as the ask
 - No Meshopt
 - No new QR lib deps
