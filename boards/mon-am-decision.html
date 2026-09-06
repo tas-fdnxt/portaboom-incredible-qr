@@ -1,124 +1,1089 @@
 <!DOCTYPE html>
 <html lang="en-AU">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Mon 7 Sep AM · Decision board</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"/>
+<meta name="color-scheme" content="light"/>
+<title>Mon 07/09/2026 AM · Decision Board · Chief</title>
 <style>
-*{box-sizing:border-box}
-html{-webkit-text-size-adjust:100%}
-body{
-  margin:0 auto;max-width:430px;padding:18px 14px 88px;
-  background:#F4F6F9;color:#202020;
-  font:18px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
-}
-h1{margin:0 0 8px;font-size:28px;line-height:1.15;color:#1B2A4A}
-.meta{margin:0 0 16px;font-size:16px;color:#5B6573}
-.chip{display:inline-block;margin:0 6px 8px 0;padding:8px 12px;min-height:44px;
-  border-radius:999px;background:#FFE8D4;color:#9A3F00;font-size:14px;font-weight:700;line-height:28px}
-.chip.ok{background:#DCFCE7;color:#14532D}
-.chip.out{background:#FEE2E2;color:#7F1D1D}
-.card{background:#fff;border:2px solid #E2E8F0;border-radius:16px;padding:16px;margin:0 0 14px}
-.card.need{border-color:#EE7202}
-.card.ok{border-color:#22C55E}
-.card.out{border-color:#EF4444}
-.num{display:block;margin:0 0 6px;font-size:13px;font-weight:800;letter-spacing:.06em;
-  text-transform:uppercase;color:#EE7202}
-h2{margin:0 0 10px;font-size:20px;line-height:1.25;color:#1B2A4A}
-.row{margin:0 0 10px}
-.lab{display:block;font-size:13px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;color:#5B6573;margin:0 0 2px}
-.row p{margin:0;font-size:18px;color:#202020}
-a.door{display:flex;align-items:center;margin:8px 0;padding:14px;min-height:52px;
-  border-radius:14px;background:#1B2A4A;color:#fff!important;text-decoration:none;font-size:17px;font-weight:700}
-a.door.preview{background:#8A5A00}
-a.door.soft{background:#EE7202}
-.opt{display:block;width:100%;margin:0 0 8px;padding:14px;min-height:48px;border:2px solid #CBD5E1;
-  border-radius:12px;background:#F8FAFC;color:#1B2A4A;font-size:17px;font-weight:600;text-align:left}
-.small{font-size:15px;color:#5B6573}
-ul.plain{margin:8px 0;padding-left:20px}
-ul.plain li{margin:6px 0;font-size:17px}
+  :root {
+    --soft: #F4F6F9;
+    --paper: #ffffff;
+    --ink: #202020;
+    --mute: #5B6573;
+    --line: #E2E8F0;
+    --navy: #1B2A4A;
+    --orange: #EE7202;
+    --pine: #1F7A4C;
+    --wine: #B42318;
+    --amber: #C98400;
+    --ok-bg: #E5F3EB;
+    --warn-bg: #FFF3D6;
+    --out-bg: #FCE8E6;
+    --pending-bg: #FFE8D4;
+  }
+  * { box-sizing: border-box; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0;
+    background: var(--soft);
+    color: var(--ink);
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-size: 18px;
+    line-height: 1.45;
+    padding-bottom: 6.5rem;
+  }
+  .wrap {
+    max-width: 560px;
+    margin: 0 auto;
+    padding: 16px 14px 24px;
+  }
+  header {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 16px 14px;
+    margin-bottom: 14px;
+    box-shadow: 0 1px 2px rgba(16,27,48,.05);
+  }
+  .prov {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+    color: var(--navy);
+    margin: 0 0 8px;
+  }
+  .fence {
+    display: inline-block;
+    margin: 0 0 10px;
+    padding: 6px 10px;
+    border-radius: 8px;
+    background: #3a2418;
+    color: #f0c090;
+    font-size: 13px;
+    font-weight: 700;
+  }
+  h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.2;
+    color: var(--navy);
+    letter-spacing: -.02em;
+  }
+  .lead {
+    margin: 0;
+    color: var(--mute);
+    font-size: 16px;
+  }
+  .clock {
+    margin: 12px 0 0;
+    padding: 12px;
+    background: var(--soft);
+    border-radius: 10px;
+    border-left: 4px solid var(--orange);
+    font-size: 16px;
+  }
+  .clock strong { color: var(--navy); }
+  .sec-label {
+    margin: 22px 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  .doors {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 8px;
+  }
+  a.door {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 4px;
+    min-height: 52px;
+    padding: 14px 14px;
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    text-decoration: none;
+    color: var(--ink);
+    box-shadow: 0 1px 2px rgba(16,27,48,.05);
+  }
+  a.door:active { border-color: var(--orange); }
+  a.door .door-label {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mute);
+  }
+  a.door .door-url {
+    font-size: 15px;
+    font-weight: 600;
+    color: #D76100;
+    word-break: break-all;
+  }
+  a.door .badge {
+    display: inline-block;
+    align-self: flex-start;
+    margin-top: 4px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: var(--warn-bg);
+    color: #8A5A00;
+    font-size: 12px;
+    font-weight: 700;
+  }
+  .note-door {
+    margin: 8px 0 0;
+    padding: 12px 14px;
+    background: var(--warn-bg);
+    border-radius: 10px;
+    font-size: 15px;
+    color: #8A5A00;
+  }
+  details.card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--orange);
+    border-radius: 14px;
+    margin: 0 0 12px;
+    box-shadow: 0 1px 2px rgba(16,27,48,.05), 0 8px 20px rgba(16,27,48,.04);
+    overflow: hidden;
+  }
+  details.card.ok { border-left-color: var(--pine); }
+  details.card.hold { border-left-color: var(--amber); }
+  details.card.info { border-left-color: #5b9fd4; }
+  summary.card-sum {
+    list-style: none;
+    cursor: pointer;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    min-height: 56px;
+    padding: 14px;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  summary.card-sum::-webkit-details-marker { display: none; }
+  summary.card-sum::marker { content: ""; }
+  .chev {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    margin-top: 2px;
+    border-radius: 8px;
+    background: var(--soft);
+    color: var(--navy);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+  }
+  details[open] .chev { background: #FFE8D4; color: var(--orange); }
+  .sum-main { flex: 1; min-width: 0; }
+  .card-title {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.25;
+    color: var(--navy);
+    font-weight: 700;
+  }
+  .sum-meta {
+    margin: 6px 0 0;
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .status {
+    flex: none;
+    display: inline-block;
+    margin-top: 2px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    background: var(--pending-bg);
+    color: #D76100;
+  }
+  .status.picked {
+    background: var(--ok-bg);
+    color: #165C39;
+  }
+  .status.info {
+    background: #E8F1FA;
+    color: #1B4F72;
+  }
+  .card-body {
+    padding: 0 14px 16px;
+    border-top: 1px dashed var(--line);
+  }
+  .row { margin: 12px 0; }
+  .label {
+    display: block;
+    font-size: 12px;
+    font-weight: 800;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    color: var(--mute);
+    margin-bottom: 4px;
+  }
+  .row > div { font-size: 17px; }
+  .opts { margin-top: 14px; }
+  .opt-group-title {
+    margin: 14px 0 8px;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--navy);
+  }
+  label.opt {
+    display: block;
+    min-height: 44px;
+    padding: 12px 12px;
+    margin: 8px 0;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--soft);
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+  label.opt:has(input:checked) {
+    border-color: var(--orange);
+    background: #FFF7F0;
+  }
+  label.opt input {
+    width: 20px;
+    height: 20px;
+    margin: 0 10px 0 0;
+    vertical-align: middle;
+    accent-color: var(--orange);
+  }
+  label.opt b { font-size: 17px; vertical-align: middle; }
+  .gm {
+    margin: 8px 0 0 30px;
+    font-size: 15px;
+    color: var(--mute);
+  }
+  .gm .get { color: var(--pine); font-weight: 700; }
+  .gm .miss { color: var(--amber); font-weight: 700; }
+  .notes-wrap {
+    margin-top: 14px;
+    padding-top: 12px;
+    border-top: 1px dashed var(--line);
+  }
+  textarea.notes-area {
+    width: 100%;
+    min-height: 96px;
+    margin-top: 6px;
+    padding: 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #FAFBFC;
+    color: var(--ink);
+    font: inherit;
+    font-size: 17px;
+    resize: vertical;
+  }
+  .cite {
+    margin: 10px 0 0;
+    font-size: 13px;
+    color: var(--mute);
+  }
+  .out-card {
+    background: var(--paper);
+    border: 1px solid var(--line);
+    border-left: 4px solid var(--wine);
+    border-radius: 14px;
+    padding: 14px;
+    margin: 0 0 12px;
+  }
+  .out-card h2 {
+    margin: 0 0 8px;
+    font-size: 20px;
+    color: var(--navy);
+  }
+  .out-card ul { margin: 8px 0 0; padding-left: 20px; }
+  .out-card li { margin: 6px 0; font-size: 16px; }
+  .locks {
+    margin: 16px 0 8px;
+    padding: 14px;
+    background: #8F1B12;
+    color: #fff;
+    border-radius: 14px;
+    font-size: 16px;
+  }
+  .locks strong { display: block; margin-bottom: 6px; }
+  footer {
+    margin: 18px 0 8px;
+    font-size: 14px;
+    color: var(--mute);
+  }
+  .save-bar {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 10px 14px calc(10px + env(safe-area-inset-bottom, 0px));
+    background: rgba(255,255,255,.97);
+    border-top: 1px solid var(--line);
+    backdrop-filter: blur(8px);
+    max-width: 560px;
+    margin: 0 auto;
+    box-shadow: 0 -6px 20px rgba(16,27,48,.08);
+  }
+  .save-bar-inner {
+    width: 100%;
+    max-width: 560px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .save-bar button {
+    appearance: none;
+    border: 0;
+    border-radius: 10px;
+    min-height: 44px;
+    padding: 10px 16px;
+    background: var(--orange);
+    color: #fff;
+    font-weight: 800;
+    font-size: 16px;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .save-bar button.secondary {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 700;
+  }
+  .save-status {
+    font-size: 14px;
+    color: var(--mute);
+    flex: 1 1 120px;
+  }
+  .save-status.ok { color: var(--pine); font-weight: 700; }
+  .save-status.fail { color: var(--wine); font-weight: 700; }
+  .save-tip {
+    width: 100%;
+    font-size: 13px;
+    color: #8A5A00;
+    display: none;
+  }
+  .save-tip.show { display: block; }
+  code { font-size: 0.92em; background: var(--soft); padding: 1px 5px; border-radius: 4px; }
+  @media (min-width: 640px) {
+    .wrap, .save-bar { max-width: 640px; }
+  }
 </style>
 </head>
 <body>
-<p><span class="chip ok">LIVE WRK</span><span class="chip">Chief · 6 Sep 2026</span><span class="chip">phone-readable-html</span></p>
-<h1>Mon morning decisions</h1>
-<p class="meta">Decide these so forges can move. Order: schema first, Superwhisper, Jack (you send), Greg 10:00, Fable. Agents never send mail.</p>
+<div class="wrap">
 
-<div class="card ok">
-<span class="num">Doors · tap</span>
-<a class="door preview" href="https://tas-cmd-forge-preview.vercel.app/">Command Wave 1 PREVIEW</a>
-<a class="door soft" href="https://github.com/tas-fdnxt/fdos-command/pull/4">Open PR #4</a>
-<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/fabian-showtime-qr.png">QR send file</a>
-<a class="door soft" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1">Living tip showtime</a>
-<p class="small">Command live #hubs is Tailscale. Use Mac if phone cannot open it. Never treat PREVIEW as live Command.</p>
+<header>
+  <p class="prov">Chief · LIVE WRK · 6-7 Sep 2026 · NEVER SEND · NO Zoho</p>
+  <span class="fence">NEVER SEND · NO Zoho · agents NEVER SEND</span>
+  <h1>Mon 07/09/2026 AM · Decision board</h1>
+  <p class="lead">Tap a card to open. Tick real options. Type notes. Save for Chief. Phone-first paint. Australian English. Dates DD/MM/YYYY.</p>
+  <div class="clock">
+    <strong>Clock order:</strong> Schema FIRST 07:00-09:30 → Superwhisper → Jack → Greg 10:00 → Fable.
+    Companion clock: <code>Monday-07-Sep-2026-Plan.html</code> on Desktop / M6 / Mini / box.
+  </div>
+</header>
+
+<p class="sec-label">Live doors (big tap)</p>
+<div class="doors">
+  <a class="door" href="https://tas-cmd-forge-preview.vercel.app/" target="_blank" rel="noopener">
+    <span class="door-label">Command Wave 1 · PREVIEW (not live Command)</span>
+    <span class="door-url">https://tas-cmd-forge-preview.vercel.app/</span>
+    <span class="badge">PREVIEW</span>
+  </a>
+  <a class="door" href="https://github.com/tas-fdnxt/fdos-command/pull/4" target="_blank" rel="noopener">
+    <span class="door-label">Command PR #4 · PENDING_FABIAN_GO</span>
+    <span class="door-url">https://github.com/tas-fdnxt/fdos-command/pull/4</span>
+  </a>
+  <a class="door" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/fabian-showtime-qr.png" target="_blank" rel="noopener">
+    <span class="door-label">Incredible QR · send-still (Skills delivered)</span>
+    <span class="door-url">https://tas-fdnxt.github.io/portaboom-incredible-qr/fabian-showtime-qr.png</span>
+  </a>
+  <a class="door" href="https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&amp;showtime=1" target="_blank" rel="noopener">
+    <span class="door-label">Living tip · showtime living10</span>
+    <span class="door-url">https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&amp;showtime=1</span>
+  </a>
+</div>
+<p class="note-door">Note: Command <code>#hubs</code> Tailscale may fail on phone. Use Mac or ask for a screenshot. Never bare <code>/</code>. PREVIEW ≠ live Command.</p>
+
+<p class="sec-label">1 · Schema / overnight forge FIRST</p>
+
+<details class="card" data-card-id="schema-open-ticks" data-card-title="A. Schema open ticks">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">A. Schema open ticks</h2>
+      <p class="sum-meta">Option 2 already LOCKED · five-state + PDT · Opus · Astra · Big-Dec Save</p>
+    </span>
+    <span class="status" data-status-for="schema-open-ticks">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Schema Option 2 is already FINALIZE / LOCKED. Overnight forge left open ticks: five-state vocabulary + PORTABOOM PDT boundary, Opus hard-block policy, Astra product vs research, and Big Decisions HTML Save notes still missing on Desktop.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Half-open policy forks. Easy to forge the wrong brick before you tick GO or amend. Big-Dec Save notes still not on Desktop for Chief.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Close the open ticks in order so overnight knows what is GO, what is amend, and what stays deferred.</div></div>
+    <div class="row"><span class="label">Reality</span><div>Option 2 locked. Cost ladder as policy is already GO. Astra product build stays deferred unless you start a research brick. Agents NEVER SEND.</div></div>
+
+    <div class="opts">
+      <span class="label">Options</span>
+
+      <p class="opt-group-title">Five-state vocabulary + PORTABOOM PDT boundary</p>
+      <label class="opt"><input type="radio" name="schema-pdt" value="GO"/> <b>GO as locked</b>
+        <div class="gm"><span class="get">GET</span> overnight can use five-state + PDT boundary without re-debate. <span class="miss">MISS</span> no room to tweak wording today.</div></label>
+      <label class="opt"><input type="radio" name="schema-pdt" value="AMEND"/> <b>Amend (comment in notes)</b>
+        <div class="gm"><span class="get">GET</span> you can fix edge language before forge. <span class="miss">MISS</span> delays Schema FIRST block.</div></label>
+
+      <p class="opt-group-title">Opus hard-block policy</p>
+      <label class="opt"><input type="radio" name="schema-opus" value="YES"/> <b>Yes · hard-block ON</b>
+        <div class="gm"><span class="get">GET</span> clear stop for Opus when policy says no. <span class="miss">MISS</span> may block useful research paths.</div></label>
+      <label class="opt"><input type="radio" name="schema-opus" value="NO"/> <b>No · do not hard-block</b>
+        <div class="gm"><span class="get">GET</span> keeps Opus flexible. <span class="miss">MISS</span> UNKNOWN stays fuzzy until written.</div></label>
+
+      <p class="opt-group-title">Astra product</p>
+      <label class="opt"><input type="radio" name="schema-astra" value="DEFER"/> <b>Still defer product (recommend)</b>
+        <div class="gm"><span class="get">GET</span> protects Mon AM clock; product stays out of forge. <span class="miss">MISS</span> no Astra product progress today.</div></label>
+      <label class="opt"><input type="radio" name="schema-astra" value="RESEARCH"/> <b>Start research brick only</b>
+        <div class="gm"><span class="get">GET</span> research can move without product build. <span class="miss">MISS</span> still not a shippable Astra face.</div></label>
+
+      <p class="opt-group-title">Big Decisions Save notes</p>
+      <label class="opt"><input type="radio" name="schema-bigdec" value="NOW"/> <b>Save notes now</b>
+        <div class="gm"><span class="get">GET</span> Chief gets Friday Big-Dec notes on Desktop today. <span class="miss">MISS</span> costs a few Mon AM minutes.</div></label>
+      <label class="opt"><input type="radio" name="schema-bigdec" value="LATER"/> <b>Later</b>
+        <div class="gm"><span class="get">GET</span> keeps Schema FIRST clear. <span class="miss">MISS</span> Desktop notes stay missing for Chief.</div></label>
+    </div>
+
+    <div class="notes-wrap">
+      <label class="label" for="notes-schema-open-ticks">Your notes / choice</label>
+      <textarea id="notes-schema-open-ticks" class="notes-area" data-notes-for="schema-open-ticks" placeholder="Amend wording, Opus edge cases, Astra research scope…"></textarea>
+    </div>
+    <p class="cite">Cite: Schema Option 2 LOCKED · Big Decisions 04/09/2026 · overnight forge open ticks</p>
+  </div>
+</details>
+
+<details class="card" data-card-id="command-pr4" data-card-title="B. Command PR #4">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">B. Command PR #4</h2>
+      <p class="sum-meta">#hubs harden + PlanBot Today seed · PREVIEW 200 · CI green</p>
+    </span>
+    <span class="status" data-status-for="command-pr4">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>PR #4 is draft OPEN with CI green. PREVIEW face is up. Honesty CLEAN. Live Command merge waits on your GO.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>PREVIEW looks real but is not live Command. Phone Tailscale to <code>#hubs</code> often fails. Easy to merge without a clear GO.</div></div>
+    <div class="row"><span class="label">Ask</span><div>GO merge, HOLD, or Amend with a named change.</div></div>
+    <div class="row"><span class="label">Reality</span><div>PREVIEW door: tas-cmd-forge-preview.vercel.app. PR: github.com/tas-fdnxt/fdos-command/pull/4. Live Command = <code>#hubs</code> only after GO.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="pr4" value="GO"/> <b>GO merge</b>
+        <div class="gm"><span class="get">GET</span> Wave 1 lands; unlocks next overnight brick. <span class="miss">MISS</span> any PREVIEW quirk becomes live.</div></label>
+      <label class="opt"><input type="radio" name="pr4" value="HOLD"/> <b>HOLD</b>
+        <div class="gm"><span class="get">GET</span> keeps live Command safe. <span class="miss">MISS</span> next overnight brick stays blocked.</div></label>
+      <label class="opt"><input type="radio" name="pr4" value="AMEND"/> <b>Amend (comment what)</b>
+        <div class="gm"><span class="get">GET</span> you can name the fix before merge. <span class="miss">MISS</span> more PR churn; no merge today.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-command-pr4">Your notes / choice</label>
+      <textarea id="notes-command-pr4" class="notes-area" data-notes-for="command-pr4" placeholder="If Amend: name the change. If HOLD: why…"></textarea>
+    </div>
+    <p class="cite">Doors above · PREVIEW labelled PREVIEW · never bare /</p>
+  </div>
+</details>
+
+<details class="card" data-card-id="next-factory" data-card-title="C. Next factory + paperclip name">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">C. Next factory + paperclip name</h2>
+      <p class="sum-meta">Paperclip = factories under Option 2? · what is next</p>
+    </span>
+    <span class="status" data-status-for="next-factory">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>HAVE: overnight Cursor forge, Command PR pipeline, Sales live, China day-only dest-list, Skills GATE, QR tip send. THIN: Superwhisper (Mini GUI first-run). MISSING / deferred: Claudex hard-plan factory, Astra Voice product, generic Paperclip install.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Paperclip sounds like a buy or a new hub. It is meant as a name for reusable factories under Option 2.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Keep paperclip=factories, or pick a different word. Then name the next factory focus.</div></div>
+    <div class="row"><span class="label">Reality</span><div>Not a Paperclip buy. Not a new hub. Catalogue under Option 2 only.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <p class="opt-group-title">Paperclip word</p>
+      <label class="opt"><input type="radio" name="paperclip-word" value="YES"/> <b>Paperclip = factories YES</b>
+        <div class="gm"><span class="get">GET</span> one shared name for reusable factories. <span class="miss">MISS</span> word still sounds like a product buy to outsiders.</div></label>
+      <label class="opt"><input type="radio" name="paperclip-word" value="DIFF"/> <b>Different word</b>
+        <div class="gm"><span class="get">GET</span> clearer language if paperclip confuses. <span class="miss">MISS</span> rename churn across notes.</div></label>
+
+      <p class="opt-group-title">Next factory focus</p>
+      <label class="opt"><input type="radio" name="next-factory" value="COMMAND"/> <b>Command-only until happy</b>
+        <div class="gm"><span class="get">GET</span> finishes Wave 1 before new factory. <span class="miss">MISS</span> Claudex / Product wait.</div></label>
+      <label class="opt"><input type="radio" name="next-factory" value="CHINA"/> <b>Product / China day</b>
+        <div class="gm"><span class="get">GET</span> day work on China / product dest-list. <span class="miss">MISS</span> Command factory depth pauses.</div></label>
+      <label class="opt"><input type="radio" name="next-factory" value="WAVE4"/> <b>Wave 4 Cursor / Claude / Codex</b>
+        <div class="gm"><span class="get">GET</span> starts Claudex / multi-model factory path. <span class="miss">MISS</span> more surface before Command is settled.</div></label>
+      <label class="opt"><input type="radio" name="next-factory" value="INVENTORY"/> <b>Inventory next</b>
+        <div class="gm"><span class="get">GET</span> honest map of what exists before naming next factory. <span class="miss">MISS</span> no new build brick yet.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-next-factory">Your notes / choice</label>
+      <textarea id="notes-next-factory" class="notes-area" data-notes-for="next-factory" placeholder="If different word: propose it. If inventory: what to list first…"></textarea>
+    </div>
+  </div>
+</details>
+
+<details class="card hold" data-card-id="claudex-timing" data-card-title="D. Claudex timing">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">D. Claudex timing</h2>
+      <p class="sum-meta">Wave 4 sequenced vs Mon recipe (no install)</p>
+    </span>
+    <span class="status" data-status-for="claudex-timing">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Claudex seats exist as a converge target. Not a bulletproof anytime engine yet. Wave 4 is sequenced after Command happiness.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Wanting Claudex today without an install path that is ready.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Leave Wave 4 sequenced, or ask for a Mon recipe with no install.</div></div>
+    <div class="row"><span class="label">Reality</span><div>Recipe ≠ install. No hard-plan factory live yet.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="claudex" value="WAVE4"/> <b>Leave Wave 4 sequenced</b>
+        <div class="gm"><span class="get">GET</span> keeps clock honest; Command first. <span class="miss">MISS</span> no Claudex recipe today.</div></label>
+      <label class="opt"><input type="radio" name="claudex" value="RECIPE"/> <b>Want Mon recipe (no install)</b>
+        <div class="gm"><span class="get">GET</span> paper plan for later Wave 4. <span class="miss">MISS</span> still no running Claudex engine.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-claudex-timing">Your notes / choice</label>
+      <textarea id="notes-claudex-timing" class="notes-area" data-notes-for="claudex-timing" placeholder="Any must-have in a Mon recipe…"></textarea>
+    </div>
+  </div>
+</details>
+
+<p class="sec-label">2 · Superwhisper (before Greg if time)</p>
+
+<details class="card hold" data-card-id="superwhisper" data-card-title="E. Superwhisper">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">E. Superwhisper</h2>
+      <p class="sum-meta">Mini GUI first-run blocker · before / after Greg / hold day</p>
+    </span>
+    <span class="status" data-status-for="superwhisper">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>App 2.18.3 LIVE + Claude plugin LIVE. Modes dir ABSENT until you open Superwhisper on Mini once (sign-in + mic). Prompt pack HAVE on M6 under <code>…/2026-09-05_superwhisper-forge/</code>.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Cannot Mode A smoke until Mini GUI first-run is done by you.</div></div>
+    <div class="row"><span class="label">Ask</span><div>When do you do the Mini first-run: before Greg, after Greg, or hold the day?</div></div>
+    <div class="row"><span class="label">Reality</span><div>After modes appear: Ai_UPSKILL dest-lists → Prompt_bot Mode A smoke. Schema FIRST still wins the clock.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="superwhisper" value="BEFORE"/> <b>Before Greg</b>
+        <div class="gm"><span class="get">GET</span> Mode A path can start Mon AM. <span class="miss">MISS</span> eats time before 10:00.</div></label>
+      <label class="opt"><input type="radio" name="superwhisper" value="AFTER"/> <b>After Greg</b>
+        <div class="gm"><span class="get">GET</span> protects Greg 10:00. <span class="miss">MISS</span> Mode A slips later in the day.</div></label>
+      <label class="opt"><input type="radio" name="superwhisper" value="HOLD"/> <b>Hold day</b>
+        <div class="gm"><span class="get">GET</span> keeps Mon AM clean for Schema + Jack + Greg. <span class="miss">MISS</span> Superwhisper stays thin another day.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-superwhisper">Your notes / choice</label>
+      <textarea id="notes-superwhisper" class="notes-area" data-notes-for="superwhisper" placeholder="Mini sign-in notes, mic issues…"></textarea>
+    </div>
+  </div>
+</details>
+
+<p class="sec-label">3 · Jack / China (you SEND)</p>
+
+<details class="card hold" data-card-id="jack-china" data-card-title="F. Jack China">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">F. Jack China</h2>
+      <p class="sum-meta">You SEND · agents NEVER SEND · day only</p>
+    </span>
+    <span class="status" data-status-for="jack-china">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Dest-list HAVE 55 / MISSING 15. Wave3 receipt on M6 T_07. Confirm sheet DRAFT. jack_asks 6/6 open. Pulse STALE. Qty 120 vs ~50 conflict: do not invent.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Stale pulse and the 120 language fight. Easy for an agent to SEND by mistake.</div></div>
+    <div class="row"><span class="label">Ask</span><div>You SEND confirm today, prep only, or strike 120 language first.</div></div>
+    <div class="row"><span class="label">Reality</span><div>DAY ONLY. Agents NEVER SEND. You own the mail / confirm action.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="jack" value="SEND"/> <b>You SEND confirm today</b>
+        <div class="gm"><span class="get">GET</span> Jack gets a real confirm. <span class="miss">MISS</span> if 120 language is still wrong, you send a fight.</div></label>
+      <label class="opt"><input type="radio" name="jack" value="PREP"/> <b>Prep only</b>
+        <div class="gm"><span class="get">GET</span> sheet ready without sending. <span class="miss">MISS</span> Jack still waiting on confirm.</div></label>
+      <label class="opt"><input type="radio" name="jack" value="STRIKE120"/> <b>Strike 120 language first</b>
+        <div class="gm"><span class="get">GET</span> removes the qty conflict before any send. <span class="miss">MISS</span> confirm slips until language is fixed.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-jack-china">Your notes / choice</label>
+      <textarea id="notes-jack-china" class="notes-area" data-notes-for="jack-china" placeholder="Confirm wording, qty truth, who signs…"></textarea>
+    </div>
+    <p class="cite">Hard lock: agents NEVER SEND · no CRM / Zoho writes</p>
+  </div>
+</details>
+
+<p class="sec-label">4 · Greg 10:00 held</p>
+
+<details class="card ok info" data-card-id="greg-1000" data-card-title="G. Greg 10:00">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">G. Greg 10:00</h2>
+      <p class="sum-meta">Held · quote + marketing · confirm OK</p>
+    </span>
+    <span class="status info" data-status-for="greg-1000">HELD</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Greg Madeley is calendared at 10:00 for quote + marketing. Stays on clock.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Other forks try to jump the slot. Schema FIRST is the only block that may reshape the morning before him.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Confirm the hold is OK, or note a change.</div></div>
+    <div class="row"><span class="label">Reality</span><div>Informational card. Nothing jumps Greg except Schema FIRST block if still open.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="greg" value="OK"/> <b>Confirm OK · held at 10:00</b>
+        <div class="gm"><span class="get">GET</span> clock stays clean. <span class="miss">MISS</span> no alternate slot booked here.</div></label>
+      <label class="opt"><input type="radio" name="greg" value="NOTE"/> <b>Note a change (use notes)</b>
+        <div class="gm"><span class="get">GET</span> you can flag a move. <span class="miss">MISS</span> calendar still needs a manual update.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-greg-1000">Your notes / choice</label>
+      <textarea id="notes-greg-1000" class="notes-area" data-notes-for="greg-1000" placeholder="Any Greg prep notes…"></textarea>
+    </div>
+  </div>
+</details>
+
+<p class="sec-label">5 · Fable / Nick</p>
+
+<details class="card hold" data-card-id="fable-nick" data-card-title="H. Fable eval / Nick vault">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">H. Fable eval / Nick vault</h2>
+      <p class="sum-meta">Eval only · Nick vault parked after Greg</p>
+    </span>
+    <span class="status" data-status-for="fable-nick">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Fable 5.1 (if model) → Ai_UPSKILL eval only until Skills stamp. Nick vault STEAL → PARKED until Mon after Greg (Skills).</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Easy to mix Fable eval with Nick vault install work.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Confirm eval-only for Fable, and Nick vault stays parked after Greg.</div></div>
+    <div class="row"><span class="label">Reality</span><div>No install. Skills GATE before sendables. Eval ≠ vault.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="fable" value="EVAL"/> <b>Fable eval only OK</b>
+        <div class="gm"><span class="get">GET</span> keeps Skills gate honest. <span class="miss">MISS</span> no Fable install today.</div></label>
+      <label class="opt"><input type="radio" name="fable" value="COMMENT"/> <b>Comment (use notes)</b>
+        <div class="gm"><span class="get">GET</span> you can flag a different path. <span class="miss">MISS</span> still needs Skills stamp before sendables.</div></label>
+      <label class="opt"><input type="checkbox" name="nick-parked" value="YES"/> <b>Nick vault parked after Greg (confirm)</b>
+        <div class="gm"><span class="get">GET</span> vault work waits for Skills slot. <span class="miss">MISS</span> Nick vault stays closed Mon morning.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-fable-nick">Your notes / choice</label>
+      <textarea id="notes-fable-nick" class="notes-area" data-notes-for="fable-nick" placeholder="Fable eval scope, Nick vault timing…"></textarea>
+    </div>
+  </div>
+</details>
+
+<p class="sec-label">6 · Astra + MCP connectivity</p>
+
+<details class="card" data-card-id="astra-mcp-auth" data-card-title="I. Astra + MCP auth batch">
+  <summary class="card-sum">
+    <span class="chev" aria-hidden="true">+</span>
+    <span class="sum-main">
+      <h2 class="card-title">I. Astra + MCP auth batch</h2>
+      <p class="sum-meta">Connectivity prep · product still deferred</p>
+    </span>
+    <span class="status" data-status-for="astra-mcp-auth">PENDING</span>
+  </summary>
+  <div class="card-body">
+    <div class="row"><span class="label">Now</span><div>Vault dest-list locked. Overnight = inventory only. Connected: Gmail, Drive, Calendar, Composio, Zapier, Tavily, Supabase, Miro, Plaud, CF docs/bindings/obs. Tap auth Mon candidates: GitHub, GitLab, Vercel, Airtable, Outlook calendar, Cloudflare builds. Mini: 1Password CLI Allow if still open. Not MCP yet: Slack / Teams / Linear / Notion.</div></div>
+    <div class="row"><span class="label">Frustration</span><div>Auth batch can eat the morning. Product build must stay out.</div></div>
+    <div class="row"><span class="label">Ask</span><div>Full Mon auth, GitHub+Vercel only, or hold.</div></div>
+    <div class="row"><span class="label">Reality</span><div>Connectivity prep was GO'd. Astra Voice product remains DEFERRED. MCP plugin dead on Mini is not an overnight fix.</div></div>
+    <div class="opts">
+      <span class="label">Options</span>
+      <label class="opt"><input type="radio" name="mcp-auth" value="FULL"/> <b>Full Mon auth batch</b>
+        <div class="gm"><span class="get">GET</span> clears the tap-auth list in one pass. <span class="miss">MISS</span> heavy finger time vs Schema FIRST.</div></label>
+      <label class="opt"><input type="radio" name="mcp-auth" value="GHV"/> <b>GitHub + Vercel only</b>
+        <div class="gm"><span class="get">GET</span> unlocks PR / PREVIEW path with less load. <span class="miss">MISS</span> Airtable / Outlook / CF builds wait.</div></label>
+      <label class="opt"><input type="radio" name="mcp-auth" value="HOLD"/> <b>Hold</b>
+        <div class="gm"><span class="get">GET</span> protects Mon AM clock. <span class="miss">MISS</span> auth debt remains.</div></label>
+    </div>
+    <div class="notes-wrap">
+      <label class="label" for="notes-astra-mcp-auth">Your notes / choice</label>
+      <textarea id="notes-astra-mcp-auth" class="notes-area" data-notes-for="astra-mcp-auth" placeholder="Priority logins, Mini 1Password Allow…"></textarea>
+    </div>
+  </div>
+</details>
+
+<p class="sec-label">Out of scope until you name it</p>
+<div class="out-card">
+  <h2>Do not forge</h2>
+  <ul>
+    <li>Finance hub rewrite</li>
+    <li>Design hub</li>
+    <li>Mini-write converge</li>
+    <li>Live Command merge without PR #4 GO</li>
+    <li>QR living11 door</li>
+    <li>Half-door SEND</li>
+    <li>Astra Voice product build</li>
+    <li>Paperclip buy</li>
+    <li>Walker (no stamp)</li>
+    <li>Agent SEND mail / CRM / Zoho</li>
+  </ul>
 </div>
 
-<div class="card need">
-<span class="num">Decision 1 of 3 · first</span>
-<h2>Schema + Command PR #4</h2>
-<div class="row"><span class="lab">Now</span><p>Schema Option 2 hybrid is locked. PR #4 is draft, CI green, PREVIEW up, merge held.</p></div>
-<div class="row"><span class="lab">Frustration</span><p>Overnight forge cannot honestly continue past Wave 1 without your GO ticks.</p></div>
-<div class="row"><span class="lab">Ask</span><p>Confirm schema open ticks, then say merge, hold, or amend PR #4.</p></div>
-<div class="row"><span class="lab">Reality</span><p>Live Command stays #hubs until you merge. PREVIEW is not Command.</p></div>
-<div class="row"><span class="lab">Options</span>
-<button class="opt" type="button">Schema GO as locked + merge PR #4</button>
-<button class="opt" type="button">Schema GO · HOLD PR #4</button>
-<button class="opt" type="button">Amend (reply what to change)</button>
-</div>
+<div class="locks">
+  <strong>Hard locks</strong>
+  Command = #hubs only · PREVIEW ≠ Command · Skills GATE before sendables · no fan-out · NEVER SEND · wake overnight only if Mac/hub door dies.
 </div>
 
-<div class="card need">
-<span class="num">Decision 2 of 3</span>
-<h2>Next factory + paperclip name</h2>
-<div class="row"><span class="lab">Now</span><p>HAVE: overnight Cursor, Command PR pipe, Sales live, China day-only list, Skills GATE, QR tip. THIN: Superwhisper. MISSING: Claudex factory, Astra product.</p></div>
-<div class="row"><span class="lab">Frustration</span><p>You want engines you can use anytime, without old-way grinding.</p></div>
-<div class="row"><span class="lab">Ask</span><p>Confirm paperclip = reusable factories (not a buy). Pick what arms after Command.</p></div>
-<div class="row"><span class="lab">Reality</span><p>No new hub. Under Schema Option 2 only.</p></div>
-<div class="row"><span class="lab">Options</span>
-<button class="opt" type="button">Paperclip = factories YES · Command-only until happy</button>
-<button class="opt" type="button">YES · Product/China day next</button>
-<button class="opt" type="button">YES · Wave 4 Cursor/Claude/Codex next</button>
-<button class="opt" type="button">Different word for paperclip</button>
-</div>
+<footer>
+  Chief owns estate + forge gates. PlanBot = clock. Skills = stamp/GATE. Vault = logins. Ai_UPSKILL = eval. Master Builder = honesty when named.
+  Save key: <code>mon-am-decision-notes-2026-09-07</code>.
+  Files: <code>2026-09-07_MON_AM_DECISION_NOTES.json</code> / <code>.md</code>.
+</footer>
+
+</div><!-- /.wrap -->
+
+<div class="save-bar" role="region" aria-label="Save notes">
+  <div class="save-bar-inner">
+    <button type="button" id="btn-save">Save notes</button>
+    <button type="button" id="btn-save-md" class="secondary">Save markdown only</button>
+    <span class="save-status" id="save-status">Not saved yet</span>
+    <div class="save-tip" id="save-tip">If Save downloads a file, move it to Desktop (same name) so Chief can read it.</div>
+  </div>
 </div>
 
-<div class="card need">
-<span class="num">Decision 3 of 3</span>
-<h2>Superwhisper slot + MCP auth</h2>
-<div class="row"><span class="lab">Now</span><p>Superwhisper app live on Mini; modes folder missing until you open it once. MCP needsAuth: GitHub, GitLab, Vercel, Airtable, Outlook, Cloudflare builds.</p></div>
-<div class="row"><span class="lab">Frustration</span><p>Voice and tools feel disconnected from the stack.</p></div>
-<div class="row"><span class="lab">Ask</span><p>When do Mini first-run + auth taps happen relative to Greg 10:00?</p></div>
-<div class="row"><span class="lab">Reality</span><p>Astra product still deferred. Connectivity prep only. You must tap auth cards.</p></div>
-<div class="row"><span class="lab">Options</span>
-<button class="opt" type="button">Superwhisper + auth before Greg</button>
-<button class="opt" type="button">After Greg</button>
-<button class="opt" type="button">GitHub+Vercel only first · Superwhisper after</button>
-<button class="opt" type="button">Hold both today</button>
-</div>
-</div>
+<script>
+(function () {
+  const LS_KEY = 'mon-am-decision-notes-2026-09-07';
+  const JSON_NAME = '2026-09-07_MON_AM_DECISION_NOTES.json';
+  const MD_NAME = '2026-09-07_MON_AM_DECISION_NOTES.md';
 
-<div class="card ok">
-<span class="num">Also on the clock</span>
-<ul class="plain">
-<li>Greg 10:00 quote + marketing · held</li>
-<li>Jack confirm · you send only · prep or send today</li>
-<li>Fable eval only via Ai_UPSKILL · Nick vault parked after Greg</li>
-<li>Claudex: leave Wave 4 sequenced unless you want a Mon recipe</li>
-</ul>
-</div>
+  const statusEl = document.getElementById('save-status');
+  const tipEl = document.getElementById('save-tip');
+  const btnSave = document.getElementById('btn-save');
+  const btnMd = document.getElementById('btn-save-md');
 
-<div class="card out">
-<span class="num">Out of scope</span>
-<p><span class="chip out">Do not forge</span></p>
-<ul class="plain">
-<li>Finance · Design · Mini-write</li>
-<li>Live Command merge without PR #4 GO</li>
-<li>QR living11 · half-door send</li>
-<li>Astra Voice product build · Paperclip buy</li>
-<li>Agents sending mail / CRM / Zoho</li>
-</ul>
-</div>
+  function aestNow() {
+    try {
+      return new Intl.DateTimeFormat('en-AU', {
+        timeZone: 'Australia/Sydney',
+        year: 'numeric', month: '2-digit', day: '2-digit',
+        hour: '2-digit', minute: '2-digit', second: '2-digit',
+        hour12: false, timeZoneName: 'short'
+      }).format(new Date()) + ' (' + new Date().toISOString() + ')';
+    } catch (e) {
+      return new Date().toISOString();
+    }
+  }
 
-<p class="meta">Reply in Chief chat with your picks. PlanBot = clock. Skills = stamp. Vault = logins.</p>
+  function choiceSummary(card) {
+    const parts = [];
+    card.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(function (inp) {
+      if (!inp.checked) return;
+      const lab = inp.closest('label');
+      let text = '';
+      if (lab) {
+        text = lab.textContent.replace(/\s+/g, ' ').trim();
+        text = text.replace(/\s*GET.*$/i, '').trim();
+      }
+      parts.push((inp.name || 'opt') + '=' + inp.value + (text ? ' · ' + text.slice(0, 120) : ''));
+    });
+    return parts.join(' | ');
+  }
+
+  function collectSelections(card) {
+    const out = {};
+    card.querySelectorAll('input[type="radio"], input[type="checkbox"]').forEach(function (inp) {
+      if (!inp.name) return;
+      if (!out[inp.name]) out[inp.name] = [];
+      if (inp.checked) out[inp.name].push(inp.value);
+    });
+    return out;
+  }
+
+  function collectPayload() {
+    const cards = {};
+    document.querySelectorAll('[data-card-id]').forEach(function (card) {
+      const id = card.getAttribute('data-card-id');
+      const title = card.getAttribute('data-card-title') || (card.querySelector('.card-title') || {}).textContent || id;
+      const notesEl = card.querySelector('[data-notes-for="' + id + '"]');
+      cards[id] = {
+        title: title,
+        choice: choiceSummary(card),
+        selections: collectSelections(card),
+        notes: notesEl ? notesEl.value : '',
+        open: !!(card.tagName === 'DETAILS' && card.open)
+      };
+    });
+    return {
+      savedAt: aestNow(),
+      board: 'Mon AM Decision 07/09/2026',
+      provenance: 'Chief · LIVE WRK · 6-7 Sep 2026 · NEVER SEND · NO Zoho',
+      cards: cards
+    };
+  }
+
+  function toMarkdown(payload) {
+    const lines = [];
+    lines.push('# Mon AM Decision NOTES - 07/09/2026');
+    lines.push('');
+    lines.push('Saved: ' + payload.savedAt);
+    lines.push('Provenance: ' + (payload.provenance || ''));
+    lines.push('');
+    lines.push('## Decision cards');
+    Object.keys(payload.cards || {}).forEach(function (id) {
+      const c = payload.cards[id];
+      lines.push('');
+      lines.push('### ' + (c.title || id) + ' (`' + id + '`)');
+      lines.push('- **Choice:** ' + (c.choice || '_(none)_'));
+      lines.push('- **Notes:**');
+      lines.push('');
+      lines.push(c.notes ? c.notes : '_(blank)_');
+    });
+    lines.push('');
+    lines.push('## Clock order');
+    lines.push('Schema FIRST 07:00-09:30 → Superwhisper → Jack → Greg 10:00 → Fable');
+    lines.push('');
+    lines.push('## Out of scope');
+    lines.push('Finance · Design · Mini-write · live Command merge without GO · QR living11 · SEND · Astra product build · Paperclip buy');
+    lines.push('');
+    return lines.join('\n');
+  }
+
+  function persistLocal(payload) {
+    try {
+      localStorage.setItem(LS_KEY, JSON.stringify(payload));
+    } catch (e) { /* ignore quota */ }
+  }
+
+  function downloadBlob(filename, text, mime) {
+    const blob = new Blob([text], { type: mime || 'application/octet-stream' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(function () { URL.revokeObjectURL(url); }, 1500);
+  }
+
+  async function tryFileSystemWrite(filename, text) {
+    if (!window.showSaveFilePicker) return { ok: false, reason: 'no-fsapi' };
+    try {
+      const handle = await window.showSaveFilePicker({
+        suggestedName: filename,
+        types: [{
+          description: 'Notes',
+          accept: filename.endsWith('.md')
+            ? { 'text/markdown': ['.md'] }
+            : { 'application/json': ['.json'] }
+        }]
+      });
+      const writable = await handle.createWritable();
+      await writable.write(text);
+      await writable.close();
+      return { ok: true, method: 'fsapi' };
+    } catch (e) {
+      if (e && e.name === 'AbortError') return { ok: false, reason: 'abort' };
+      return { ok: false, reason: String(e && e.message || e) };
+    }
+  }
+
+  function setStatus(kind, text, showTip) {
+    statusEl.className = 'save-status' + (kind ? ' ' + kind : '');
+    statusEl.textContent = text;
+    tipEl.classList.toggle('show', !!showTip);
+  }
+
+  function updateCardStatuses() {
+    document.querySelectorAll('[data-card-id]').forEach(function (card) {
+      const id = card.getAttribute('data-card-id');
+      const badge = card.querySelector('[data-status-for="' + id + '"]');
+      if (!badge) return;
+      if (id === 'greg-1000') {
+        const picked = card.querySelector('input:checked');
+        if (picked) {
+          badge.textContent = 'OK';
+          badge.className = 'status picked';
+        } else {
+          badge.textContent = 'HELD';
+          badge.className = 'status info';
+        }
+        return;
+      }
+      const any = card.querySelector('input[type="radio"]:checked, input[type="checkbox"]:checked');
+      if (any) {
+        badge.textContent = 'PICKED';
+        badge.className = 'status picked';
+      } else {
+        badge.textContent = 'PENDING';
+        badge.className = 'status';
+      }
+    });
+  }
+
+  function applyPayload(payload) {
+    if (!payload) return;
+    const cards = payload.cards || {};
+    Object.keys(cards).forEach(function (id) {
+      const card = document.querySelector('[data-card-id="' + id + '"]');
+      const notesEl = document.querySelector('[data-notes-for="' + id + '"]');
+      if (notesEl && typeof cards[id].notes === 'string') notesEl.value = cards[id].notes;
+
+      const sels = cards[id].selections;
+      if (sels && typeof sels === 'object') {
+        Object.keys(sels).forEach(function (name) {
+          const vals = sels[name] || [];
+          document.querySelectorAll('[name="' + name + '"]').forEach(function (inp) {
+            inp.checked = vals.indexOf(inp.value) !== -1;
+          });
+        });
+      } else {
+        const choice = cards[id].choice || '';
+        choice.split('|').forEach(function (part) {
+          const m = part.trim().match(/^([^=]+)=([^\s·]+)/);
+          if (!m) return;
+          const name = m[1].trim();
+          const val = m[2].trim();
+          document.querySelectorAll('[name="' + name + '"]').forEach(function (inp) {
+            if (inp.value === val) inp.checked = true;
+          });
+        });
+      }
+
+      if (card && card.tagName === 'DETAILS' && cards[id].open) {
+        card.open = true;
+      }
+    });
+    updateCardStatuses();
+  }
+
+  function restoreFromLocal() {
+    try {
+      const raw = localStorage.getItem(LS_KEY);
+      if (!raw) return;
+      applyPayload(JSON.parse(raw));
+      setStatus('', 'Restored from local backup (not yet saved for Chief)', false);
+    } catch (e) {
+      setStatus('fail', 'localStorage restore failed', false);
+    }
+  }
+
+  function debounce(fn, ms) {
+    let t;
+    return function () {
+      clearTimeout(t);
+      const args = arguments;
+      t = setTimeout(function () { fn.apply(null, args); }, ms);
+    };
+  }
+
+  const autosaveLocal = debounce(function () {
+    const payload = collectPayload();
+    persistLocal(payload);
+    updateCardStatuses();
+  }, 400);
+
+  document.addEventListener('input', function (e) {
+    if (e.target && (e.target.matches('textarea, input'))) autosaveLocal();
+  });
+  document.addEventListener('change', function (e) {
+    if (e.target && (e.target.matches('input'))) {
+      updateCardStatuses();
+      autosaveLocal();
+    }
+  });
+
+  // Keep chevron readable
+  document.querySelectorAll('details.card').forEach(function (d) {
+    d.addEventListener('toggle', function () {
+      const chev = d.querySelector('.chev');
+      if (chev) chev.textContent = d.open ? '−' : '+';
+      autosaveLocal();
+    });
+  });
+
+  async function saveAll(includeMd) {
+    const payload = collectPayload();
+    persistLocal(payload);
+    const jsonText = JSON.stringify(payload, null, 2);
+    const mdText = toMarkdown(payload);
+    let usedDownload = false;
+    let aborted = false;
+
+    const j = await tryFileSystemWrite(JSON_NAME, jsonText);
+    if (j.reason === 'abort') aborted = true;
+    if (!j.ok && !aborted) {
+      downloadBlob(JSON_NAME, jsonText, 'application/json');
+      usedDownload = true;
+    }
+
+    if (includeMd !== false) {
+      const m = await tryFileSystemWrite(MD_NAME, mdText);
+      if (m.reason === 'abort') aborted = true;
+      if (!m.ok && m.reason !== 'abort') {
+        downloadBlob(MD_NAME, mdText, 'text/markdown');
+        usedDownload = true;
+      }
+    }
+
+    if (aborted && !usedDownload && !(j && j.ok)) {
+      setStatus('fail', 'Failed - save cancelled', false);
+      return;
+    }
+    if (usedDownload) {
+      setStatus('ok', 'Saved (download) - put on Desktop as ' + JSON_NAME, true);
+    } else {
+      setStatus('ok', 'Saved · ' + payload.savedAt, false);
+    }
+  }
+
+  async function saveMarkdownOnly() {
+    const payload = collectPayload();
+    persistLocal(payload);
+    const mdText = toMarkdown(payload);
+    const m = await tryFileSystemWrite(MD_NAME, mdText);
+    if (m.ok) {
+      setStatus('ok', 'Markdown saved · ' + payload.savedAt, false);
+      return;
+    }
+    if (m.reason === 'abort') {
+      setStatus('fail', 'Failed - save cancelled', false);
+      return;
+    }
+    downloadBlob(MD_NAME, mdText, 'text/markdown');
+    setStatus('ok', 'Markdown downloaded - move to Desktop if needed', true);
+  }
+
+  btnSave.addEventListener('click', function () { saveAll(true); });
+  btnMd.addEventListener('click', function () { saveMarkdownOnly(); });
+
+  updateCardStatuses();
+  restoreFromLocal();
+})();
+</script>
 </body>
 </html>
