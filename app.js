@@ -615,9 +615,7 @@ const DOOR_PAD_SPAN = 0.22;
  * Front-facing crop: subject (cabinet + lantern + a boom span) fills the
  * phone. Not living5 cabinet-only, not living4 full-pad speck.
  */
-const DOOR_SUBJECT_FILL = 0.56;
-/** Slight downward look so the identical mini army reads as a packed field. */
-const DOOR_FIELD_ELEV_DEG = -11;
+const DOOR_SUBJECT_FILL = 0.72;
 /** Extra ortho so the lantern housing clears the crop. */
 const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
@@ -1618,15 +1616,10 @@ function lockDoorCamera() {
       cy = THREE.MathUtils.lerp(cy, sc.y, 0.55);
     }
   }
-  // Slight downward look: lenses stay readable circles, the QR bits
-  // read as a dense identical PORTABOOM army (minion-crowd energy).
+  // Dead-on: camera Y = lens Y so the three lamps read as circles.
+  // QR_FORGE_LOCK: do not rewrite door camera for the mini field.
   const dist = Math.max(sy * 2.35, sx * 3.1, 1.55);
-  const elev = THREE.MathUtils.degToRad(DOOR_FIELD_ELEV_DEG);
-  doorCam.position.set(
-    cx,
-    lookY + dist * Math.sin(-elev),
-    cz + dist * Math.cos(-elev)
-  );
+  doorCam.position.set(cx, lookY, cz + dist);
   doorCam.lookAt(cx, lookY, cz);
   doorCam.updateProjectionMatrix();
 }

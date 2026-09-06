@@ -1,0 +1,30 @@
+# QR_FORGE_LOCK — living8 SoT process
+
+Honour this file before any edit. Chief / Fabian lock. Do not merge.
+
+## ALLOWED (only these)
+
+1. **Mini PORTABOOM field** — dense minion-crowd of **real miniature PORTABOOM cabinets** on the QR bits. Identical army. `miniHasTrafficLight=false`. No lanterns on the little ones. Prefer GLB cabinet clones / recognisable tiny cabinets. Not abstract boxes, not stripe towers, not sparse junk.
+2. **Showtime timing** — green **0.5s** → amber **1s** → red **0.5s** → **then boom comes down**. Then DEST.
+
+## FORBIDDEN
+
+- Do **not** rewrite the whole door.
+- Do **not** change camera / ortho crop / elevation / door pose unless a mini literally cannot exist without it (default: **no**).
+- Do **not** touch boom-ghost fixes, DEST, `dest-config`, hero plant, signal rig, living2 world default.
+- Do **not** WordPress. Do not merge — Chief merges.
+
+## FILES
+
+| Touch | Do not touch (unless a one-line hook for minis) |
+| --- | --- |
+| `living-qr.js` (field) | `lockDoorCamera`, `fitDoorOrtho`, `DOOR_*` crop |
+| `SHOWTIME_GREEN_S` / `AMBER` / `RED_HOLD` | `beginCloseSequence` DEST leave |
+| Cache-bust / send QR if field or timing changes | WordPress, twin plaza, print READY |
+
+## GATE
+
+- `miniHasTrafficLight=false`
+- Timing measured ~0.5 / 1.0 / 0.5 then boom lower; then DEST
+- Single boom; living2 regression if cheap
+- `?v=living8&showtime=1`

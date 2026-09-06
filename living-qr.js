@@ -298,8 +298,8 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   const scales = new Float32Array(count);
   // Identical army: pack by cabinet FACE width so every QR bit is the
   // same little PORTABOOM, shoulder-to-shoulder like the minion crowd.
-  const armyScale = (cell * 0.94) / Math.max(size.x, 1e-4);
-  const faceTilt = -0.18;
+  const armyScale = (cell * 1.08) / Math.max(size.x, 1e-4);
+  const faceTilt = 0;
 
   const makeField = (geometry, material, name) => {
     const mesh = new THREE.InstancedMesh(geometry, material, count);
