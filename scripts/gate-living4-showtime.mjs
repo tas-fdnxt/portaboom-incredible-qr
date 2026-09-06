@@ -1,7 +1,8 @@
 /**
- * GATE living5 showtime — ICQR door first (close twin), then transform, then DEST.
- * First paint must be the QR-matrix aesthetic with PORTABOOM in the field
- * (not the living2/3d plaza twin-as-website). Tap or door-beat starts
+ * GATE living6 showtime — ICQR door first (unit + signal + boom), then DEST.
+ * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
+ * and a visible boom span (not living5 cabinet-only, not living4 speck,
+ * not the living2/3d plaza twin-as-website). Tap or door-beat starts
  * amber → red, boom 100→0 (~7s), then leave to configured DEST.
  * Stationary send QR encodes the living showtime URL, never DEST.
  */
@@ -212,9 +213,11 @@ function doorVision(buf) {
     && darkRatio < 0.62
     && chromaRatio > 0.05;
   const portaboomInField = orange > 8000 && blob.pixels > 4000;
-  const portaboomLargeEnough = blob.heightFrac >= 0.22
-    && blob.areaFrac >= 0.06
-    && blob.pixels > 12000;
+  const portaboomLargeEnough = blob.heightFrac >= 0.16
+    && blob.heightFrac < 0.48
+    && blob.areaFrac >= 0.035
+    && blob.pixels > 7000;
+  const cabinetNotDominating = blob.heightFrac < 0.48;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -238,6 +241,7 @@ function doorVision(buf) {
     looksLikeQrField,
     portaboomInField,
     portaboomLargeEnough,
+    cabinetNotDominating,
     looksLikeWebsiteTwin,
     looksLikeFlatBWQR,
     looksLikeNormalQR: looksLikeQrField && looksLikeFlatBWQR,
@@ -351,7 +355,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living5&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living6&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -387,15 +391,24 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living5-icqr-door"
+    && doorSnap?.product === "living6-icqr-door"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.40
-    && vision.orangeBlob.heightFrac >= 0.28
-    && doorSnap?.doorBoomHidden === true
+    && vision.cabinetNotDominating === true
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.22
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.42
+    && vision.orangeBlob.heightFrac >= 0.20
+    && vision.orangeBlob.heightFrac < 0.48
+    && doorSnap?.doorBoomHidden === false
+    && doorSnap?.doorBoomVisible === true
+    && doorSnap?.doorSignalInFrame === true
+    && doorSnap?.doorBoomInFrame === true
+    && (doorSnap?.doorSignalFrame?.heightFrac ?? 0) >= 0.07
+    && (doorSnap?.doorSignalFrame?.overflowY ?? 1) <= 0.08
+    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.16
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -505,7 +518,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living5&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living6&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -540,7 +553,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living5`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living6`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -564,7 +577,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living5/.test(qrProof.clean.decoded || "");
+    && /v=living6/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -588,7 +601,13 @@ async function run() {
         doorOrthoWorldH: doorSnap?.doorOrthoWorldH ?? null,
         doorHeroFrame: doorSnap?.doorHeroFrame ?? null,
         doorCabinetFrame: doorSnap?.doorCabinetFrame ?? null,
+        doorSignalFrame: doorSnap?.doorSignalFrame ?? null,
+        doorBoomFrame: doorSnap?.doorBoomFrame ?? null,
+        doorSubjectFrame: doorSnap?.doorSubjectFrame ?? null,
         doorBoomHidden: doorSnap?.doorBoomHidden ?? null,
+        doorBoomVisible: doorSnap?.doorBoomVisible ?? null,
+        doorSignalInFrame: doorSnap?.doorSignalInFrame ?? null,
+        doorBoomInFrame: doorSnap?.doorBoomInFrame ?? null,
       },
       chrome: doorChrome,
       vision,

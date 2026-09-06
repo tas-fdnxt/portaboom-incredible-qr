@@ -16,8 +16,8 @@
   "vision": {
     "width": 780,
     "height": 1688,
-    "orange": 95354,
-    "greenLed": 7897,
+    "orange": 95366,
+    "greenLed": 7896,
     "orangeRatio": 0.0724,
     "chromaRatio": 0.2093,
     "bwish": 0.3646,

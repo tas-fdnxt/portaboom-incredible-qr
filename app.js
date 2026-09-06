@@ -608,9 +608,17 @@ const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
  */
 const SHOWTIME_DOOR_S = 2.6;
 /** Fallback door crop if the cabinet bbox is not ready. Living4 width-fit the whole pad. */
-const DOOR_PAD_SPAN = 0.18;
-/** Cabinet should fill this much of the phone height on the door. */
-const DOOR_CABINET_FILL = 0.52;
+const DOOR_PAD_SPAN = 0.22;
+/**
+ * Cabinet fill of phone height. Living5 used 0.52 (too big, clipped signal).
+ * Pull back a bit so the traffic light and a boom span read, without
+ * falling back to living4's full-pad speck.
+ */
+const DOOR_CABINET_FILL = 0.32;
+/** Extra ortho so the lantern housing clears the crop. */
+const DOOR_SIGNAL_PAD = 1.22;
+/** World units of boom kept in the look-at subject — tip may trim. */
+const DOOR_BOOM_KEEP = 0.62;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -1325,9 +1333,53 @@ function doorCabinetBox() {
   return null;
 }
 
+function findBoomArm(root) {
+  if (!root) return null;
+  return root.getObjectByName("BoomPivot")
+    || root.getObjectByName("HeroBoomArm")
+    || root.userData?.heroArm
+    || null;
+}
+
+/** Near boom only — enough striped arm to read, not the whole 4 m tip. */
+function doorBoomClipBox() {
+  const arm = findBoomArm(boom);
+  if (!arm) return null;
+  const box = worldBox(arm);
+  if (box.isEmpty()) return null;
+  const cab = doorCabinetBox();
+  if (cab && !cab.isEmpty()) {
+    const keep = DOOR_BOOM_KEEP;
+    const cabH = cab.getSize(new THREE.Vector3()).y;
+    box.max.y = Math.min(box.max.y, cab.max.y + keep);
+    box.min.y = Math.max(box.min.y, cab.min.y + cabH * 0.28);
+  }
+  if (box.max.y <= box.min.y) return null;
+  return box;
+}
+
 /**
- * Frame the portable cabinet, not the 4 m boom and not the whole QR pad.
- * Fabian: unit itself is the subject; boom may be cropped or hidden.
+ * Door subject = portable unit + traffic light + a meaningful boom span.
+ * Fabian living6: not cabinet-only, not the full-pad speck.
+ */
+function doorSubjectBox() {
+  const box = new THREE.Box3();
+  const cab = doorCabinetBox();
+  if (cab && !cab.isEmpty()) box.union(cab);
+  const signal = boom ? findSignalHead(boom) : null;
+  if (signal) {
+    const sig = worldBox(signal);
+    if (!sig.isEmpty()) box.union(sig);
+  }
+  const boomClip = doorBoomClipBox();
+  if (boomClip && !boomClip.isEmpty()) box.union(boomClip);
+  if (box.isEmpty() && boom) return gatherHeroBox(boom);
+  return box;
+}
+
+/**
+ * Size the door from the cabinet, then pad so the traffic light fits.
+ * Do not let the 4 m boom drive the crop (that recreates living4 speck).
  */
 function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
@@ -1337,7 +1389,7 @@ function fitDoorOrtho() {
   let span = living.padSize * DOOR_PAD_SPAN;
   if (box && !box.isEmpty()) {
     const size = box.getSize(new THREE.Vector3());
-    span = Math.max(size.y / DOOR_CABINET_FILL, size.x * 2.15, 0.42);
+    span = Math.max(size.y / DOOR_CABINET_FILL, size.x * 2.25, 0.72) * DOOR_SIGNAL_PAD;
   }
   let worldW;
   let worldH;
@@ -1382,6 +1434,8 @@ function projectBoxViewportFrac(box, cam) {
     maxY = Math.max(maxY, p.y);
   }
   if (!Number.isFinite(minX) || maxX <= minX) return null;
+  const overflowX = Math.max(0, -1 - minX, maxX - 1);
+  const overflowY = Math.max(0, -1 - minY, maxY - 1);
   const x0 = Math.max(-1, Math.min(1, minX));
   const x1 = Math.max(-1, Math.min(1, maxX));
   const y0 = Math.max(-1, Math.min(1, minY));
@@ -1392,6 +1446,10 @@ function projectBoxViewportFrac(box, cam) {
     widthFrac: +widthFrac.toFixed(4),
     heightFrac: +heightFrac.toFixed(4),
     areaFrac: +(widthFrac * heightFrac).toFixed(4),
+    overflowX: +overflowX.toFixed(4),
+    overflowY: +overflowY.toFixed(4),
+    fullyIn: overflowX <= 0.02 && overflowY <= 0.02,
+    mostlyIn: overflowX <= 0.18 && overflowY <= 0.18,
   };
 }
 
@@ -1416,18 +1474,56 @@ function measureDoorCabinetFrame() {
   return projectBoxViewportFrac(worldBox(cab), doorCam);
 }
 
-/** Hide the long boom arm on the door so the cabinet can fill the frame. */
-function setDoorBoomArm(visible) {
-  if (!boom) return;
-  const pivot = boom.getObjectByName("BoomPivot");
-  if (pivot) pivot.visible = visible;
-  const heroArm = boom.getObjectByName("HeroBoomArm") || boom.userData?.heroArm;
-  if (heroArm && heroArm !== pivot) heroArm.visible = visible;
+function doorSignalLanternBox() {
+  const head = boom ? findSignalHead(boom) : null;
+  if (!head) return null;
+  const box = new THREE.Box3();
+  let any = false;
+  head.traverse((o) => {
+    if (!o.isMesh || !isVisibleInTree(o)) return;
+    const n = ancestorBlob(o);
+    if (!/HeroLens|SignalLens|HeroSignalHead|灯罩|灯壳|Lens_/i.test(n)) return;
+    box.union(new THREE.Box3().setFromObject(o));
+    any = true;
+  });
+  return any ? box : worldBox(head);
+}
+
+function measureDoorSignalFrame() {
+  if (!boom || viewMode !== "door") return null;
+  const box = doorSignalLanternBox();
+  if (!box || box.isEmpty()) return null;
+  return projectBoxViewportFrac(box, doorCam);
+}
+
+function measureDoorBoomFrame() {
+  if (!boom || viewMode !== "door") return null;
+  const arm = findBoomArm(boom);
+  if (!arm || arm.visible === false) return null;
+  return projectBoxViewportFrac(worldBox(arm), doorCam);
+}
+
+function measureDoorSubjectFrame() {
+  if (!boom || viewMode !== "door") return null;
+  return projectBoxViewportFrac(doorSubjectBox(), doorCam);
 }
 
 /**
- * Face the portable cabinet. Boom stays hidden/cropped — not a plaza hero.
- * QR modules remain around the unit.
+ * living6: boom stays in the QR field on first paint.
+ * Camera crop may trim the far tip; never hide BoomPivot.
+ */
+function setDoorBoomArm(visible = true) {
+  if (!boom) return;
+  const show = visible !== false;
+  const pivot = boom.getObjectByName("BoomPivot");
+  if (pivot) pivot.visible = show;
+  const heroArm = boom.getObjectByName("HeroBoomArm") || boom.userData?.heroArm;
+  if (heroArm && heroArm !== pivot) heroArm.visible = show;
+}
+
+/**
+ * Face the cabinet, bias toward the traffic light so the lantern stays in.
+ * Boom stays visible and may trim at the top. Not a plaza hero.
  */
 function lockDoorCamera() {
   fitDoorOrtho();
@@ -1436,18 +1532,28 @@ function lockDoorCamera() {
   let cy = 0.48;
   let cz = 0.12;
   let sy = 0.72;
-  const box = doorCabinetBox();
-  if (box && !box.isEmpty()) {
-    const c = box.getCenter(new THREE.Vector3());
-    const s = box.getSize(new THREE.Vector3());
+  const cab = doorCabinetBox();
+  if (cab && !cab.isEmpty()) {
+    const c = cab.getCenter(new THREE.Vector3());
+    const s = cab.getSize(new THREE.Vector3());
     if (Number.isFinite(c.x)) cx = c.x;
     if (Number.isFinite(c.y)) cy = c.y;
     if (Number.isFinite(c.z)) cz = c.z;
     if (Number.isFinite(s.y) && s.y > 0.2) sy = s.y;
   }
-  // ~58° from vertical: cabinet face + PORTABOOM read; field still a QR.
-  doorCam.position.set(cx + sy * 0.16, cy + sy * 0.58, cz + sy * 1.42);
-  doorCam.lookAt(cx, cy - sy * 0.06, cz);
+  let lookY = cy - sy * 0.02;
+  const lantern = doorSignalLanternBox();
+  if (lantern && !lantern.isEmpty()) {
+    const sc = lantern.getCenter(new THREE.Vector3());
+    if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.30);
+    if (Number.isFinite(sc.y)) {
+      cy = THREE.MathUtils.lerp(cy, sc.y, 0.18);
+      lookY = THREE.MathUtils.lerp(lookY, sc.y, 0.28);
+    }
+  }
+  // Steeper than living5's face-on closeup so the lantern roof and boom read.
+  doorCam.position.set(cx + sy * 0.14, cy + sy * 0.88, cz + sy * 1.70);
+  doorCam.lookAt(cx, lookY, cz);
   doorCam.updateProjectionMatrix();
 }
 
@@ -1674,7 +1780,7 @@ function applyDoorPose() {
     controls.object = doorCam;
   }
   placeTwinInLivingWorld();
-  setDoorBoomArm(showtimePhase === "playing" || showtimePhase === "settled");
+  setDoorBoomArm(true);
   lockDoorCamera();
   if (showtimeHudHidden()) setStatus("PORTABOOM");
   syncModeHud();
@@ -2881,7 +2987,7 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living5-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living6-icqr-door" : "living2-brand-world",
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
@@ -2909,9 +3015,24 @@ window.__iqr = {
       doorOrthoWorldH: viewMode === "door" ? +(doorCam.top - doorCam.bottom).toFixed(4) : null,
       doorHeroFrame: measureDoorHeroFrame(),
       doorCabinetFrame: measureDoorCabinetFrame(),
+      doorSignalFrame: measureDoorSignalFrame(),
+      doorBoomFrame: measureDoorBoomFrame(),
+      doorSubjectFrame: measureDoorSubjectFrame(),
       doorBoomHidden: (() => {
         const p = boom?.getObjectByName?.("BoomPivot");
         return !!(p && p.visible === false);
+      })(),
+      doorBoomVisible: (() => {
+        const p = findBoomArm(boom);
+        return !!(p && p.visible === true && isVisibleInTree(p));
+      })(),
+      doorSignalInFrame: (() => {
+        const f = measureDoorSignalFrame();
+        return !!(f && f.heightFrac >= 0.06 && (f.mostlyIn || f.heightFrac >= 0.10));
+      })(),
+      doorBoomInFrame: (() => {
+        const f = measureDoorBoomFrame();
+        return !!(f && f.heightFrac >= 0.12);
       })(),
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
