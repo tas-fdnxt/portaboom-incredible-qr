@@ -1,16 +1,41 @@
 {
   "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
-  "livingUrl": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3c&showtime=1",
+  "destDefault": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+  "destConfigurable": true,
+  "livingUrl": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3d&showtime=1",
   "errors": [],
+  "parseProof": {
+    "omitted": true,
+    "empty": true,
+    "query": true,
+    "encoded": true,
+    "rejectJs": true
+  },
+  "parseOk": true,
+  "destOverride": {
+    "dest": "https://example.com/portaboom-gate-dest",
+    "config": {
+      "leaveDest": "https://example.com/portaboom-gate-dest",
+      "leaveDestSource": "query",
+      "leaveDestDefault": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/"
+    },
+    "leave": {
+      "dest": "https://example.com/portaboom-gate-dest",
+      "reason": "showtime-complete",
+      "source": "query",
+      "at": 18317.900000000023
+    },
+    "ok": true
+  },
   "qr": {
-    "url": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3c&showtime=1",
+    "url": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3d&showtime=1",
     "ecc": "H",
     "version": 8,
     "size": 49,
-    "dark": 1198,
+    "dark": 1210,
     "clean": {
       "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
-      "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3c&showtime=1",
+      "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3d&showtime=1",
       "match": true
     },
     "livingMatrix": {
@@ -40,16 +65,16 @@
     "redLampOn": true,
     "lowered": true,
     "hudHiddenWhilePlaying": true,
-    "playDurationS": 5.128,
-    "amberHeldS": 2.562,
-    "elapsedAtEnd": 6.143,
+    "playDurationS": 5.489,
+    "amberHeldS": 1.972,
+    "elapsedAtEnd": 6.085,
     "longerThanTeaser": true,
     "naturalPace": true,
-    "sampleCount": 21
+    "sampleCount": 24
   },
   "samples": [
     {
-      "t": 0.009,
+      "t": 0.012,
       "showtimePhase": "pending",
       "showtimeElapsed": 0,
       "signalAspect": "green",
@@ -70,10 +95,12 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 0.142,
+      "t": 0.152,
       "showtimePhase": "pending",
       "showtimeElapsed": 0,
       "signalAspect": "green",
@@ -94,36 +121,14 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 0.285,
-      "showtimePhase": "pending",
-      "showtimeElapsed": 0,
-      "signalAspect": "green",
-      "showMode": "up",
-      "boomPct": 100,
-      "boomTarget": 100,
-      "boomAngle": 1.12,
-      "lampIntensity": {
-        "red": 0.08,
-        "amber": 0.08,
-        "green": 8.8
-      },
-      "viewMode": "world",
-      "usingGlb": false,
-      "defaultShowsTwin": true,
-      "showtimeHudHidden": true,
-      "liveDockHidden": true,
-      "cameraIsPerspective": true,
-      "destLeft": false,
-      "destLeaveUrl": null,
-      "destLeaveReason": null
-    },
-    {
-      "t": 1.504,
+      "t": 0.899,
       "showtimePhase": "playing",
-      "showtimeElapsed": 0,
+      "showtimeElapsed": 0.185,
       "signalAspect": "amber",
       "showMode": "amber",
       "boomPct": 100,
@@ -142,17 +147,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.16,
+      "t": 2.295,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.562,
+      "showtimeElapsed": 1.972,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 89.18688866899214,
-      "boomTarget": 89.18688866899214,
-      "boomAngle": 2.947293447564168,
+      "boomPct": 97.68261361497923,
+      "boomTarget": 97.68261361497923,
+      "boomAngle": 3.080743982950331,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -166,17 +173,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.305,
+      "t": 2.441,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.805,
+      "showtimeElapsed": 2.136,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 84.26451936397838,
-      "boomTarget": 84.26451936397838,
-      "boomAngle": 2.8699730513297323,
+      "boomPct": 95.8781728720983,
+      "boomTarget": 95.8781728720983,
+      "boomAngle": 3.0523998940419665,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -190,17 +199,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.484,
+      "t": 2.566,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.029,
+      "showtimeElapsed": 2.136,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 79.14924178506072,
-      "boomTarget": 79.14924178506072,
-      "boomAngle": 2.7896224590147307,
+      "boomPct": 95.8781728720983,
+      "boomTarget": 95.8781728720983,
+      "boomAngle": 3.0523998940419665,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -214,17 +225,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.613,
+      "t": 2.711,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.029,
+      "showtimeElapsed": 2.136,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 79.14924178506072,
-      "boomTarget": 79.14924178506072,
-      "boomAngle": 2.7896224590147307,
+      "boomPct": 95.8781728720983,
+      "boomTarget": 95.8781728720983,
+      "boomAngle": 3.0523998940419665,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -238,17 +251,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.757,
+      "t": 2.844,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.029,
+      "showtimeElapsed": 2.529,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 79.14924178506072,
-      "boomTarget": 79.14924178506072,
-      "boomAngle": 2.7896224590147307,
+      "boomPct": 89.80043803221801,
+      "boomTarget": 89.80043803221801,
+      "boomAngle": 2.9569310584247934,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -262,17 +277,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 3.897,
+      "t": 2.99,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.476,
+      "showtimeElapsed": 2.691,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 67.64896297042607,
-      "boomTarget": 67.64896297042607,
-      "boomAngle": 2.6089765018232782,
+      "boomPct": 86.67153495909598,
+      "boomTarget": 86.67153495909598,
+      "boomAngle": 2.9077823638832196,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -286,17 +303,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 5.347,
+      "t": 3.173,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.905,
+      "showtimeElapsed": 2.879,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 27.50781287889026,
-      "boomTarget": 27.50781287889026,
-      "boomAngle": 1.9784407906522072,
+      "boomPct": 82.62744864742805,
+      "boomTarget": 82.62744864742805,
+      "boomAngle": 2.844258004647125,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -310,17 +329,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 5.551,
+      "t": 3.346,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.104,
+      "showtimeElapsed": 3.052,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 22.465721496820954,
-      "boomTarget": 22.465721496820954,
-      "boomAngle": 1.8992398044290204,
+      "boomPct": 78.58872932499972,
+      "boomTarget": 78.58872932499972,
+      "boomAngle": 2.7808179498808645,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -334,17 +355,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 5.675,
+      "t": 3.521,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.104,
+      "showtimeElapsed": 3.229,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 22.465721496820954,
-      "boomTarget": 22.465721496820954,
-      "boomAngle": 1.8992398044290204,
+      "boomPct": 74.17743262226355,
+      "boomTarget": 74.17743262226355,
+      "boomAngle": 2.711525463310261,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -358,17 +381,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 5.813,
+      "t": 4.742,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.104,
+      "showtimeElapsed": 4.445,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 22.465721496820954,
-      "boomTarget": 22.465721496820954,
-      "boomAngle": 1.8992398044290204,
+      "boomPct": 40.1036517735126,
+      "boomTarget": 40.1036517735126,
+      "boomAngle": 2.176295765337938,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -382,17 +407,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 5.949,
+      "t": 4.943,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.526,
+      "showtimeElapsed": 4.615,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 12.991970266242447,
-      "boomTarget": 12.991970266242447,
-      "boomAngle": 1.750426468089407,
+      "boomPct": 35.32466018843168,
+      "boomTarget": 35.32466018843168,
+      "boomAngle": 2.1012275410616494,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -406,17 +433,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 6.073,
+      "t": 5.068,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.526,
+      "showtimeElapsed": 4.615,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 12.991970266242447,
-      "boomTarget": 12.991970266242447,
-      "boomAngle": 1.750426468089407,
+      "boomPct": 35.32466018843168,
+      "boomTarget": 35.32466018843168,
+      "boomAngle": 2.1012275410616494,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -430,17 +459,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 6.21,
+      "t": 5.199,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.712,
+      "showtimeElapsed": 4.615,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 9.458200000000005,
-      "boomTarget": 9.458200000000005,
-      "boomAngle": 1.6949181345499005,
+      "boomPct": 35.32466018843168,
+      "boomTarget": 35.32466018843168,
+      "boomAngle": 2.1012275410616494,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -454,17 +485,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 6.37,
+      "t": 5.339,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.929,
+      "showtimeElapsed": 4.987,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 5.940312291033479,
-      "boomTarget": 5.940312291033479,
-      "boomAngle": 1.6396592836366852,
+      "boomPct": 25.408648297264136,
+      "boomTarget": 25.408648297264136,
+      "boomAngle": 1.9454671905106447,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -478,17 +511,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 6.497,
+      "t": 5.466,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.929,
+      "showtimeElapsed": 5.156,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 5.940312291033479,
-      "boomTarget": 5.940312291033479,
-      "boomAngle": 1.6396592836366852,
+      "boomPct": 21.220676318122443,
+      "boomTarget": 21.220676318122443,
+      "boomAngle": 1.8796826804950875,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -502,17 +537,19 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 6.632,
+      "t": 5.662,
       "showtimePhase": "playing",
-      "showtimeElapsed": 6.143,
+      "showtimeElapsed": 5.348,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 3.1985170726446466,
-      "boomTarget": 3.1985170726446466,
-      "boomAngle": 1.5965912650579952,
+      "boomPct": 16.7736808519792,
+      "boomTarget": 16.7736808519792,
+      "boomAngle": 1.8098294390601737,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -526,12 +563,118 @@
       "cameraIsPerspective": true,
       "destLeft": false,
       "destLeaveUrl": null,
-      "destLeaveReason": null
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     },
     {
-      "t": 8.115,
+      "t": 5.842,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.548,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 12.53924888217599,
+      "boomTarget": 12.53924888217599,
+      "boomAngle": 1.7433151372178761,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true,
+      "destLeft": false,
+      "destLeaveUrl": null,
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
+    },
+    {
+      "t": 6.021,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.723,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 9.258418470266882,
+      "boomTarget": 9.258418470266882,
+      "boomAngle": 1.691779973619238,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true,
+      "destLeft": false,
+      "destLeaveUrl": null,
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
+    },
+    {
+      "t": 6.2,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 5.9,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 6.372325898953113,
+      "boomTarget": 6.372325898953113,
+      "boomAngle": 1.646445337521141,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true,
+      "destLeft": false,
+      "destLeaveUrl": null,
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
+    },
+    {
+      "t": 6.388,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 6.085,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 3.8630163265360395,
+      "boomTarget": 3.8630163265360395,
+      "boomAngle": 1.6070291949297009,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true,
+      "destLeft": false,
+      "destLeaveUrl": null,
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
+    },
+    {
+      "t": 7.645,
       "showtimePhase": "settled",
-      "showtimeElapsed": 7.276,
+      "showtimeElapsed": 7.168,
       "signalAspect": "red",
       "showMode": "down",
       "boomPct": 0,
@@ -548,9 +691,11 @@
       "showtimeHudHidden": true,
       "liveDockHidden": true,
       "cameraIsPerspective": true,
-      "destLeft": true,
-      "destLeaveUrl": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
-      "destLeaveReason": "showtime-complete"
+      "destLeft": false,
+      "destLeaveUrl": null,
+      "destLeaveReason": null,
+      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+      "leaveDestSource": "default"
     }
   ],
   "settle": {
@@ -559,7 +704,7 @@
     "signalAspect": "red",
     "viewMode": "world",
     "usingGlb": true,
-    "elapsed": 7.276,
+    "elapsed": 7.168,
     "budget": 7.1000000000000005,
     "ok": true
   },
@@ -568,7 +713,7 @@
       {
         "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
         "reason": "showtime-complete",
-        "at": 12389.100000000006
+        "at": 8636.099999999977
       }
     ],
     "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
@@ -576,7 +721,7 @@
     "ok": true,
     "stayedOnLivingForProof": true,
     "navigations": [
-      "http://127.0.0.1:8767/?v=living3c&showtime=1"
+      "http://127.0.0.1:8767/?v=living3d&showtime=1"
     ]
   },
   "hud": {
@@ -604,6 +749,9 @@
     "destLeft": true,
     "destLeaveUrl": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
     "destLeaveReason": "showtime-complete",
+    "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "leaveDestSource": "default",
+    "leaveDestDefault": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
     "defaultShowsTwin": true,
     "product": "living2-brand-world",
     "showtimeBudget": 7.1000000000000005,
