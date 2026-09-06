@@ -48,9 +48,12 @@ body.scan-open #status{display:block}
 #fail{display:none;position:fixed;inset:0;place-items:center;background:var(--soft);color:#fff;padding:28px;text-align:center;z-index:20}
 #fail.show{display:grid}
 body.showtime #liveDock,
-body.showtime #moreDock{display:none !important}
-body.showtime #status{display:none !important}
-body.showtime .badge{opacity:.55}
+body.showtime #moreDock,
+body.showtime #hud,
+body.showtime #status,
+body.showtime .vig{display:none !important}
+body.showtime{background:#f4efe6}
+body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
 @media (max-width:480px){
   .dock{gap:7px}
   .btn{padding:12px 14px;font-size:12px;flex:1 1 calc(50% - 8px)}
@@ -84,10 +87,14 @@ body.showtime .badge{opacity:.55}
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 }}
 </script>
-<!-- Living3 showtime door. Historical: living2 world, archive/overnight1/, archive/twin-tidy5/. -->
+<!-- Living4 ICQR showtime door. Historical: living3d plaza-hero, living2 world. -->
 <script>
-if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) document.body.classList.add("showtime");
+if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) {
+  document.body.classList.add("showtime");
+  document.documentElement.style.background = "#f4efe6";
+  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");
+}
 </script>
-<script type="module" src="./app.js?v=living3d"></script>
+<script type="module" src="./app.js?v=living4"></script>
 </body>
 </html>

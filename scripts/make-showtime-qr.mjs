@@ -1,7 +1,8 @@
 /**
  * Stationary send QR for Fabian.
- * Encodes the living Incredible QR page (showtime=1). Animation happens after scan.
- * Clean ECC-H PNG — phone cameras open the living world, not DEST directly.
+ * Encodes the living Incredible QR page (showtime=1 / living4).
+ * Phone cameras open the ICQR door (QR field + PORTABOOM), then transform, then DEST.
+ * Do not encode DEST directly.
  */
 import { writeFile, mkdir, copyFile } from "node:fs/promises";
 import { existsSync } from "node:fs";
