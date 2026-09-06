@@ -461,9 +461,9 @@ async function run() {
 
   const started = await page.evaluate(() => window.__iqr.startShowtime());
   if (!started) {
-    throw new Error(`startShowtime failed (phase=${(await page.evaluate(() => window.__iqr?.snap?.showtimePhase))})`);
+    throw new Error(`startShowtime failed (phase=${(await page.evaluate(() => window.__iqr?.showtimeTick?.showtimePhase))})`);
   }
-  await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "playing", { timeout: 8000 });
+  await page.waitForFunction(() => window.__iqr?.showtimeTick?.showtimePhase === "playing", { timeout: 8000 });
 
   const samples = [];
   const t0 = Date.now();

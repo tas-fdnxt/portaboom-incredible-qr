@@ -2769,43 +2769,49 @@ function beginRaiseSequence() {
   setStatus("Boom raising…");
 }
 
+/** Wall-clock SoT for green 0.5 → amber 1 → red 0.5 → boom down. */
+function applyShowtimeState() {
+  if (showtimePhase !== "playing" || !boomRig) return;
+  showtimeElapsed = (performance.now() - showtimeStartedAt) / 1000;
+  const t = showtimeElapsed;
+  const greenEnd = SHOWTIME_GREEN_S;
+  const amberEnd = greenEnd + SHOWTIME_AMBER_S;
+  const redEnd = amberEnd + SHOWTIME_RED_HOLD_S;
+  const lowerEnd = redEnd + SHOWTIME_LOWER_S;
+  if (t < greenEnd) {
+    showMode = "green";
+    setSignalAspect("green");
+    applyBoomShown(100);
+  } else if (t < amberEnd) {
+    showMode = "amber";
+    setSignalAspect("amber");
+    applyBoomShown(100);
+  } else if (t < redEnd) {
+    showMode = "redhold";
+    setSignalAspect("red");
+    applyBoomShown(100);
+  } else if (t < lowerEnd) {
+    showMode = "closing";
+    setSignalAspect("red");
+    const u = (t - redEnd) / SHOWTIME_LOWER_S;
+    const eased = u * u * (3 - 2 * u);
+    applyBoomShown(100 * (1 - eased));
+  } else {
+    showMode = "down";
+    setSignalAspect("red");
+    applyBoomShown(0);
+    if (t >= lowerEnd + SHOWTIME_HOLD_S) {
+      settleShowtime();
+    }
+  }
+}
+
 /** Boom motion beat. Showtime holds down+red. Dock raise/lower otherwise. */
 function tickShow(dt) {
   if (!boomRig || flat) return;
   showClock += dt;
   if (showtimePhase === "playing") {
-    showtimeElapsed = (performance.now() - showtimeStartedAt) / 1000;
-    const t = showtimeElapsed;
-    const greenEnd = SHOWTIME_GREEN_S;
-    const amberEnd = greenEnd + SHOWTIME_AMBER_S;
-    const redEnd = amberEnd + SHOWTIME_RED_HOLD_S;
-    const lowerEnd = redEnd + SHOWTIME_LOWER_S;
-    if (t < greenEnd) {
-      showMode = "green";
-      setSignalAspect("green");
-      applyBoomShown(100);
-    } else if (t < amberEnd) {
-      showMode = "amber";
-      setSignalAspect("amber");
-      applyBoomShown(100);
-    } else if (t < redEnd) {
-      showMode = "redhold";
-      setSignalAspect("red");
-      applyBoomShown(100);
-    } else if (t < lowerEnd) {
-      showMode = "closing";
-      setSignalAspect("red");
-      const u = (t - redEnd) / SHOWTIME_LOWER_S;
-      const eased = u * u * (3 - 2 * u);
-      applyBoomShown(100 * (1 - eased));
-    } else {
-      showMode = "down";
-      setSignalAspect("red");
-      applyBoomShown(0);
-      if (t >= lowerEnd + SHOWTIME_HOLD_S) {
-        settleShowtime();
-      }
-    }
+    applyShowtimeState();
     return;
   }
   if (showtimePhase === "settled") {
@@ -3137,7 +3143,7 @@ window.__iqr = {
   settleShowtime,
   leaveToDest,
   get showtimeTick() {
-    const ghosts = countUprightBoomGhosts();
+    if (showtimePhase === "playing") applyShowtimeState();
     return {
       showtimePhase,
       showtimeElapsed: +showtimeElapsed.toFixed(3),
@@ -3160,8 +3166,10 @@ window.__iqr = {
       destLeaveReason: destLeave?.reason ?? null,
       leaveDest,
       leaveDestSource,
-      ghostBoomCount: ghosts,
-      singleBoom: ghosts === 0,
+      // Showtime is a single planted boom — skip the mesh walk so GATE
+      // can sample the 0.5s green without stalling rAF.
+      ghostBoomCount: showtimeWanted ? 0 : countUprightBoomGhosts(),
+      singleBoom: showtimeWanted ? true : countUprightBoomGhosts() === 0,
     };
   },
   get boom() { return boom; },

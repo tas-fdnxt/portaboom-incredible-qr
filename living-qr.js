@@ -374,12 +374,16 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   }
 
   living.syncMiniLife = (t, amp) => {
+    // Door / parked: do not rewrite 1258×3 instance matrices every frame.
+    // That hitch was eating the 0.5s green beat.
+    if (!amp && living._miniLifeParked) return;
     living.mods.forEach((m, i) => {
       const y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
       m.position.y = y;
       writeInstance(i, m.position.x, y, m.position.z, scales[i]);
     });
     for (const field of fields) field.instanceMatrix.needsUpdate = true;
+    living._miniLifeParked = !amp;
   };
 
   living.setMiniChromeVisible = (on) => {
