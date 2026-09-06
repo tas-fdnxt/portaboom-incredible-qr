@@ -1,10 +1,9 @@
 /**
- * GATE living3c showtime → DEST proof.
+ * GATE living3d showtime → configurable DEST proof.
  * ?showtime=1 starts the world, hides the dock, amber → red, boom lowers ~7s.
- * Must beat Fabian’s living2 teaser GIF loop (~3.58–3.6s, 43 frames @ ~12fps).
- * After settle/hold, the page must leave to DEST (hooked location.assign).
+ * After settle/hold, the page leaves to configured DEST (default or ?dest=).
  * Stationary send QR encodes the living showtime URL, never DEST.
- * Tap-to-scan still decodes DEST.
+ * Tap-to-scan still decodes the baked default product matrix.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir, copyFile } from "node:fs/promises";
@@ -13,7 +12,8 @@ import { extname, join, resolve } from "node:path";
 import { PNG } from "pngjs";
 import jsQR from "jsqr";
 import { makeShowtimeQr } from "./make-showtime-qr.mjs";
-import { DEST, LIVING_SHOWTIME_URL } from "./showtime-url.mjs";
+import { DEST, GATE_TEST_DEST, LIVING_SHOWTIME_URL } from "./showtime-url.mjs";
+import { resolveLeaveDest, SHOWTIME_DEST_DEFAULT } from "../dest-config.mjs";
 
 const ROOT = resolve(import.meta.dirname, "..");
 const OUT = resolve(ROOT, "gate-artifacts");
@@ -21,6 +21,7 @@ const ART = "/opt/cursor/artifacts";
 const MIME = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
+  ".mjs": "text/javascript; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".png": "image/png",
   ".glb": "model/gltf-binary",
@@ -187,7 +188,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living3c&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living3d&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
 
   const samples = [];
@@ -225,6 +226,8 @@ async function run() {
       destLeft: snap?.destLeft ?? null,
       destLeaveUrl: snap?.destLeaveUrl ?? null,
       destLeaveReason: snap?.destLeaveReason ?? null,
+      leaveDest: snap?.leaveDest ?? null,
+      leaveDestSource: snap?.leaveDestSource ?? null,
     };
     samples.push(row);
     if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
@@ -269,15 +272,67 @@ async function run() {
   const destLeave = destLeaves[0] || (snapEnd?.destLeave ?? null);
   const destLeaveOk = !!destLeave
     && destLeave.dest === DEST
+    && destLeave.dest === SHOWTIME_DEST_DEFAULT
     && destLeave.reason === "showtime-complete"
+    && snapEnd?.leaveDest === DEST
+    && snapEnd?.leaveDestSource === "default"
     && !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
+
+  const destHook = () => {
+    window.__iqrDestLeaves = [];
+    window.__iqrOnLeaveToDest = (info) => {
+      window.__iqrDestLeaves.push({
+        dest: info?.dest || null,
+        reason: info?.reason || null,
+        source: info?.source || null,
+        at: info?.at || Date.now(),
+      });
+    };
+  };
+
+  const overridePage = await browser.newPage({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+  });
+  overridePage.on("pageerror", (e) => errors.push(String(e)));
+  await overridePage.addInitScript(destHook);
+  const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
+  await overridePage.goto(
+    `http://127.0.0.1:${port}/?v=living3d&showtime=1&${overrideQuery}`,
+    { waitUntil: "networkidle" },
+  );
+  await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
+  const overrideCfg = await overridePage.evaluate(() => ({
+    leaveDest: window.__iqr.snap.leaveDest,
+    leaveDestSource: window.__iqr.snap.leaveDestSource,
+    leaveDestDefault: window.__iqr.snap.leaveDestDefault,
+  }));
+  await overridePage.evaluate(() => window.__iqr.settleShowtime());
+  await overridePage.waitForFunction(() => window.__iqr?.snap?.destLeft === true, { timeout: 4000 }).catch(() => {});
+  const overrideLeave = (await overridePage.evaluate(() => window.__iqrDestLeaves || []))[0]
+    || (await overridePage.evaluate(() => window.__iqr?.snap?.destLeave));
+  const overrideOk = overrideCfg.leaveDest === GATE_TEST_DEST
+    && overrideCfg.leaveDestSource === "query"
+    && overrideCfg.leaveDestDefault === SHOWTIME_DEST_DEFAULT
+    && overrideLeave?.dest === GATE_TEST_DEST
+    && overrideLeave?.dest !== DEST;
+  await overridePage.close();
+
+  const parseProof = {
+    omitted: resolveLeaveDest(null) === SHOWTIME_DEST_DEFAULT,
+    empty: resolveLeaveDest("") === SHOWTIME_DEST_DEFAULT,
+    query: resolveLeaveDest(GATE_TEST_DEST) === GATE_TEST_DEST,
+    encoded: resolveLeaveDest(decodeURIComponent(encodeURIComponent(GATE_TEST_DEST))) === GATE_TEST_DEST,
+    rejectJs: resolveLeaveDest("javascript:alert(1)") === SHOWTIME_DEST_DEFAULT,
+  };
+  const parseOk = Object.values(parseProof).every(Boolean);
 
   const scanPage = await browser.newPage({
     viewport: { width: 390, height: 844 },
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living3c`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living3d`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -304,8 +359,18 @@ async function run() {
 
   const report = {
     dest: DEST,
+    destDefault: SHOWTIME_DEST_DEFAULT,
+    destConfigurable: true,
     livingUrl: LIVING_SHOWTIME_URL,
     errors,
+    parseProof,
+    parseOk,
+    destOverride: {
+      dest: GATE_TEST_DEST,
+      config: overrideCfg,
+      leave: overrideLeave || null,
+      ok: overrideOk,
+    },
     qr: qrProof,
     timeline,
     samples,
@@ -347,6 +412,9 @@ async function run() {
       destLeft: snapEnd?.destLeft ?? null,
       destLeaveUrl: snapEnd?.destLeaveUrl ?? null,
       destLeaveReason: snapEnd?.destLeaveReason ?? null,
+      leaveDest: snapEnd?.leaveDest ?? null,
+      leaveDestSource: snapEnd?.leaveDestSource ?? null,
+      leaveDestDefault: snapEnd?.leaveDestDefault ?? null,
       defaultShowsTwin: snapEnd?.defaultShowsTwin,
       product: snapEnd?.product,
       showtimeBudget: snapEnd?.showtimeBudget,
@@ -383,6 +451,8 @@ async function run() {
 
   const ok = qrIsLiving
     && destLeaveOk
+    && parseOk
+    && overrideOk
     && timeline.sawAmber
     && timeline.sawRed
     && timeline.amberLampOn

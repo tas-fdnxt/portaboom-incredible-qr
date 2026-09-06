@@ -4,6 +4,11 @@ import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
 import { buildLivingQr } from "./living-qr.js";
+import {
+  SHOWTIME_DEST_DEFAULT,
+  parseHttpUrl,
+  resolveLeaveDest,
+} from "./dest-config.mjs";
 
 const NAVY = 0x1b2a4a;
 const ORANGE = 0xee7202;
@@ -580,6 +585,10 @@ const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const showtimeWanted = pageParams.get("showtime") === "1";
+const destParam = pageParams.get("dest");
+const destParsed = parseHttpUrl(destParam);
+const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAULT);
+const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
  * Showtime must be longer than that loop — do not lock to ~3s.
@@ -1360,7 +1369,12 @@ function startShowtime() {
 
 function leaveToDest(reason = "showtime-complete") {
   if (destLeave) return destLeave;
-  destLeave = { dest: DEST, reason, at: performance.now() };
+  destLeave = {
+    dest: leaveDest,
+    reason,
+    at: performance.now(),
+    source: leaveDestSource,
+  };
   const hook = typeof window.__iqrOnLeaveToDest === "function"
     ? window.__iqrOnLeaveToDest
     : null;
@@ -1368,7 +1382,7 @@ function leaveToDest(reason = "showtime-complete") {
     hook(destLeave);
     return destLeave;
   }
-  location.assign(DEST);
+  location.assign(leaveDest);
   return destLeave;
 }
 
@@ -2612,6 +2626,10 @@ window.__iqr = {
       scanOpen,
       living: true,
       dest: DEST,
+      leaveDest,
+      leaveDestDefault: SHOWTIME_DEST_DEFAULT,
+      leaveDestSource,
+      destParam,
       ecc: ECC,
       matrixN: destQr.size,
       qrVersion: destQr.version,
