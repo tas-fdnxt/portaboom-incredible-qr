@@ -12,11 +12,11 @@ Cache-bust: `app.js?v=living10`
 
 Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
-Send QR (after Chief merge): `fabian-showtime-qr.png` → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
+Send still (after Chief merge): `fabian-showtime-qr.png` — Magic Tree living field (PORTABOOM geometry **in** the QR, not a B&W card / not a PR#28 border sticker) → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
 
 ## How to scan
 
-1. Phone camera on the stationary send QR opens this living **QR door** (elevated 3D field, cabinet + signal + one boom).
+1. Phone camera on the stationary send still (`fabian-showtime-qr.png`) opens this living **QR door** (elevated 3D field, cabinet + traffic light + one boom). The send file is the living field, not a novel B&W QR and not DEST.
 2. Tap / wait one beat. Green 0.5s → amber 1s → red 0.5s → boom down. After the boom drop, the page automatically opens DEST (default product page, or `?dest=` if set).
 3. On the default living page (no `showtime=`), tap the scene or **Tap to scan**, then point a phone at the field (baked product matrix).
 4. Drag to orbit in the world. Print PNG is a paper export only.

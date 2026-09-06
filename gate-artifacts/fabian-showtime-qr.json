@@ -4,14 +4,79 @@
   "version": 8,
   "size": 49,
   "dark": 1244,
+  "style": "magic-tree-living-field",
+  "rejected": {
+    "paintClean": "novel B&W QR — fixture only",
+    "paintLivingMatrix": "flat coloured cubes",
+    "pr28Sticker": "PORTABOOM / chrome outside QR border",
+    "destInSend": "send file must not encode DEST"
+  },
   "clean": {
     "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
     "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
-    "match": true
+    "match": true,
+    "how": "native"
+  },
+  "paintClean": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr-paint-clean.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "note": "regression fixture only — not the tip send file"
   },
   "livingMatrix": {
     "file": "/workspace/gate-artifacts/fabian-showtime-qr-living-matrix.png",
     "decoded": null,
-    "match": false
+    "match": false,
+    "note": "rejected flat-cube painter — not the send file"
+  },
+  "livingStill": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
+    "root": "/workspace/fabian-showtime-qr.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "how": "native",
+    "look": {
+      "orange": 3570,
+      "orangeInField": 3570,
+      "orangeOutside": 0,
+      "stripe": 12206,
+      "led": 1990,
+      "cream": 166525,
+      "ink": 62471,
+      "chromeQuiet": 0,
+      "uniqueish": 15,
+      "samples": 267289,
+      "heroInField": true,
+      "chromeOutsideBorder": false,
+      "sticker": false,
+      "notFlatBW": true,
+      "livingPalette": true,
+      "notPaintClean": true,
+      "geometryInField": true
+    },
+    "hero": {
+      "cabX": 472,
+      "cabY": 436,
+      "cabW": 90,
+      "cabH": 108,
+      "cabRight": 562,
+      "cabBottom": 544,
+      "boomTop": 238,
+      "tlTop": 384,
+      "insideField": true
+    },
+    "field": {
+      "left": 76,
+      "right": 958,
+      "top": 76,
+      "bottom": 958
+    }
+  },
+  "phoneScan": {
+    "how": "Point a phone camera at fabian-showtime-qr.png. It must open the living10 showtime door URL, never DEST.",
+    "jsQR": true,
+    "downscale800": true,
+    "downscaleDecoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "notDest": true
   }
 }
