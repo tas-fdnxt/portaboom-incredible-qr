@@ -47,7 +47,7 @@ Open `/?v=motion2` (or `preview-motion/tip-motion2.html`). No required first tap
 | --- | --- |
 | Pages is `text/html` | document content-type |
 | First paint is hero-lock, not ICQR door | `__iqr.snap.viewMode === "motion2"` · `product === "motion2-hero-lock"` · `cameraIsPerspective === true` |
-| Left boom-down framed | `motion2FramedLeft === true` · `motion2BoomInFrame === true` · boom width/height frac larger than motion1 door crop |
+| Left boom-down framed | `motion2FramedLeft === true` · `motion2HeroLeft === true` · `motion2BoomDownFrame` span **>** motion1 `doorBoomFrame` |
 | Auto showtime | door beat **0.35s** then green 0.5 → amber 1 → red 0.5 → boom down. No tap required |
 | LED SoT | green when raised-at-rest · red flash ~640ms when moving-or-down · no invented amber face LEDs |
 | Flatten after boom | `magicPhase === "hold"` · `modulesStable === true` after ≥500ms · `scanOpen === true` |

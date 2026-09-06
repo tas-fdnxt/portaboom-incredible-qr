@@ -628,6 +628,8 @@ const DOOR_SUBJECT_FILL = 0.44;
 const DOOR_SIGNAL_PAD = 1.10;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.62;
+/** motion2 camera only — yaw 0 puts boom-down to screen-right, unit LEFT. living10/motion1 keep planted π. */
+const MOTION2_YAW = 0;
 // Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
 let showtimePhase = (showtimeWanted || motion2Wanted) ? "door" : "off";
 let showtimeStartedAt = 0;
@@ -997,6 +999,12 @@ bindGroups(boom);
 applyCoreShowConfig(boom);
 placeTwinInLivingWorld();
 initOrbit(boom);
+let usingGlb = false;
+let baseScale = 1;
+let flat = false;
+let flatT = 0;
+let boomRig = null;
+let unitHomeCaptured = false;
 if (motion2Wanted) {
   applyMotion2Pose();
   showtimePhase = "door";
@@ -1014,12 +1022,6 @@ if (motion2Wanted) {
   applyWorldPose();
 }
 if (canvas) canvas.dataset.iqrReady = "1";
-let usingGlb = false;
-let baseScale = 1;
-let flat = false;
-let flatT = 0;
-let boomRig = null;
-let unitHomeCaptured = false;
 
 function setStatus(text) {
   statusEl.textContent = text;
@@ -1108,10 +1110,16 @@ function lockHeroCamera(root) {
 }
 
 /**
- * motion2 only — front/left hero lock so boom-down reads on a phone.
- * Planted yaw stays twin SoT (π). Subject includes the lowered boom,
- * so more arm is in frame than motion1's door crop (DOOR_BOOM_KEEP).
+ * motion2 only — unit on the LEFT of a phone frame, boom-down across the right.
+ * Yaw 0 (motion2 camera only; living10/motion1 keep planted π) so local +X
+ * boom-down reads to screen-right. Subject includes the lowered boom.
  */
+function plantMotion2Yaw(root) {
+  if (!root) return;
+  root.rotation.y = MOTION2_YAW;
+  root.userData.plantedYaw = MOTION2_YAW;
+}
+
 function motion2SubjectBox(root) {
   const box = new THREE.Box3();
   const hero = gatherHeroBox(root);
@@ -1133,6 +1141,7 @@ function motion2SubjectBox(root) {
 function lockMotion2Camera(root) {
   if (!root) return;
   camera = unitCam;
+  plantMotion2Yaw(root);
   const box = motion2SubjectBox(root);
   const hero = gatherHeroBox(root);
   const size = box.getSize(new THREE.Vector3());
@@ -1140,28 +1149,29 @@ function lockMotion2Camera(root) {
   const heroC = hero && !hero.isEmpty()
     ? hero.getCenter(new THREE.Vector3())
     : center.clone();
-  const yaw = root.userData.plantedYaw ?? root.rotation.y ?? Math.PI;
+  const yaw = MOTION2_YAW;
   const face = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
   const right = new THREE.Vector3(face.z, 0, -face.x);
-  const left = right.clone().multiplyScalar(-1);
-  unitCam.fov = 32;
+  unitCam.fov = 36;
   unitCam.near = 0.05;
   unitCam.far = 80;
   unitCam.updateProjectionMatrix();
   const fov = THREE.MathUtils.degToRad(unitCam.fov);
   const aspect = Math.max(0.42, unitCam.aspect || 0.46);
-  const distH = (size.y * 1.52) / (2 * Math.tan(fov / 2));
-  const distW = (Math.max(size.x, size.z) * 2.08) / (2 * Math.tan(fov / 2) * aspect);
-  const dist = Math.max(distH, distW, 2.45);
+  const distH = (size.y * 1.28) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 1.55) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 2.05);
+  // Front with a little boom-side (screen-right) so the down arm reads.
   unitCam.position.set(
-    center.x + face.x * dist * 0.72 + left.x * dist * 0.54,
-    center.y + size.y * 0.20,
-    center.z + face.z * dist * 0.72 + left.z * dist * 0.54
+    center.x + face.x * dist * 0.90 + right.x * dist * 0.22,
+    center.y + size.y * 0.22,
+    center.z + face.z * dist * 0.90 + right.z * dist * 0.22
   );
+  // Look toward the boom so the cabinet sits LEFT and more arm is in frame.
   const look = new THREE.Vector3(
-    THREE.MathUtils.lerp(heroC.x, center.x, 0.68),
-    center.y - size.y * 0.02,
-    THREE.MathUtils.lerp(heroC.z, center.z, 0.48)
+    THREE.MathUtils.lerp(heroC.x, center.x, 0.78),
+    Math.max(heroC.y - size.y * 0.08, center.y - size.y * 0.12),
+    THREE.MathUtils.lerp(heroC.z, center.z, 0.35)
   );
   unitCam.lookAt(look);
   unitCam.updateProjectionMatrix();
@@ -1178,6 +1188,19 @@ function measureMotion2BoomFrame() {
   const arm = findBoomArm(boom);
   if (!arm || arm.visible === false) return null;
   return projectBoxViewportFrac(worldBox(arm), camera);
+}
+
+function measureMotion2BoomDownFrame() {
+  if (!boom || viewMode !== "motion2") return null;
+  const arm = findBoomArm(boom);
+  if (!arm) return null;
+  const saved = boomRig?.shownPct;
+  if (boomRig) applyBoomShown(0);
+  boom.updateMatrixWorld(true);
+  const frame = projectBoxViewportFrac(worldBox(arm), unitCam);
+  if (boomRig && saved != null) applyBoomShown(saved);
+  boom.updateMatrixWorld(true);
+  return frame;
 }
 
 /** Twin plant: wheels on ground, face camera, then hero-lock on cabinet + signal. */
@@ -2047,7 +2070,10 @@ function applyMotion2Pose() {
   placeTwinInLivingWorld();
   setDoorBoomArm(true);
   if (brandBack) brandBack.visible = false;
-  if (boom) lockMotion2Camera(boom);
+  if (boom) {
+    plantMotion2Yaw(boom);
+    lockMotion2Camera(boom);
+  }
   setStatus("MOTION2");
   syncModeHud();
 }
@@ -3523,9 +3549,10 @@ window.__iqr = {
       motion2AutoFlow: motion2Wanted,
       motion2HeroFrame: measureMotion2HeroFrame(),
       motion2BoomFrame: measureMotion2BoomFrame(),
+      motion2BoomDownFrame: measureMotion2BoomDownFrame(),
       motion2BoomInFrame: (() => {
-        const f = measureMotion2BoomFrame();
-        return !!(f && (f.widthFrac >= 0.22 || f.heightFrac >= 0.16));
+        const f = measureMotion2BoomDownFrame() || measureMotion2BoomFrame();
+        return !!(f && (f.widthFrac >= 0.28 || f.heightFrac >= 0.16));
       })(),
       motion2HeroLeft: (() => {
         const f = measureMotion2HeroFrame();

@@ -111,8 +111,10 @@ async function main() {
     const idle = await page.evaluate(() => window.__iqr.snap);
     await page.screenshot({ path: join(OUT, "smoke-motion2-hero.png"), type: "png" });
 
-    await waitSnap(page, (s) => s.showtimePhase === "playing" || s.showtimePhase === "settled" || s.magicPhase === "hold", 8000);
+    await waitSnap(page, (s) => s.showtimePhase === "playing", 8000);
+    await waitSnap(page, (s) => s.showtimePhase === "playing" && s.boomPct != null && s.boomPct < 70 && s.boomPct > 8, 8000);
     const playing = await page.evaluate(() => window.__iqr.snap);
+    await page.screenshot({ path: join(OUT, "smoke-motion2-boom-down.png"), type: "png" });
 
     await waitSnap(page, (s) => s.magicPhase === "hold" && s.scanOpen === true, 12000);
     await page.waitForTimeout(520);
@@ -123,9 +125,9 @@ async function main() {
     const left = await page.evaluate(() => ({ snap: window.__iqr.snap, left: window.__left }));
 
     const m1Boom = report.motion1.doorBoomFrame;
-    const m2Boom = idle.motion2BoomFrame;
-    const m1BoomSpan = m1Boom ? (m1Boom.widthFrac || 0) + (m1Boom.heightFrac || 0) : 0;
-    const m2BoomSpan = m2Boom ? (m2Boom.widthFrac || 0) + (m2Boom.heightFrac || 0) : 0;
+    const m2Boom = idle.motion2BoomDownFrame || idle.motion2BoomFrame;
+    const m1BoomSpan = m1Boom ? Math.max(m1Boom.widthFrac || 0, m1Boom.heightFrac || 0) : 0;
+    const m2BoomSpan = m2Boom ? Math.max(m2Boom.widthFrac || 0, m2Boom.heightFrac || 0) : 0;
 
     report.motion2 = {
       idleProduct: idle.product,
@@ -158,7 +160,8 @@ async function main() {
         && hold.scanOpen === true
         && left.snap.destLeft === true
         && (left.snap.destLeaveReason === "motion2-flatten-hold")
-        && String(left.snap.destLeaveUrl || left.left?.dest || "").includes("portaboom-pb4000-series"),
+        && String(left.snap.destLeaveUrl || left.left?.dest || "").includes("portaboom-pb4000-series")
+        && m2BoomSpan >= m1BoomSpan,
     };
     const destPage = await browser.newPage({ viewport: { width: 390, height: 844 } });
     destPage.on("pageerror", (e) => console.warn("motion2 dest", e.message));

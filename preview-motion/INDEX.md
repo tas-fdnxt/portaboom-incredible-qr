@@ -40,7 +40,7 @@ Short HTML door:
 
 Auto flow on open (no required first tap):
 
-1. First paint — `lockMotion2Camera` · planted yaw · unit/hero front-left · boom-down in frame (more boom than motion1 door crop)
+1. First paint — `lockMotion2Camera` · motion2 yaw 0 (living10/motion1 keep planted π) · unit LEFT · boom-down across the right (more boom than motion1 door crop)
 2. Cycle — twin LED SoT (green raised-at-rest / red flash ~640ms moving-or-down) · showtime 0.5 + 1 + 0.5 + boom
 3. Morph flatten to QR · modules stable ≥500ms
 4. `location.assign` DEST (default PB4000 product page, or existing `?dest=` override)
