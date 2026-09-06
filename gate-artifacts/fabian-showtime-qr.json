@@ -1,0 +1,17 @@
+{
+  "url": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1",
+  "ecc": "H",
+  "version": 8,
+  "size": 49,
+  "dark": 1208,
+  "clean": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1",
+    "match": true
+  },
+  "livingMatrix": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr-living-matrix.png",
+    "decoded": null,
+    "match": false
+  }
+}

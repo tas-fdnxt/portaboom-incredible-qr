@@ -1,0 +1,162 @@
+{
+  "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+  "livingUrl": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1",
+  "errors": [],
+  "qr": {
+    "url": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1",
+    "ecc": "H",
+    "version": 8,
+    "size": 49,
+    "dark": 1208,
+    "clean": {
+      "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
+      "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3&showtime=1",
+      "match": true
+    },
+    "livingMatrix": {
+      "file": "/workspace/gate-artifacts/fabian-showtime-qr-living-matrix.png",
+      "decoded": null,
+      "match": false
+    }
+  },
+  "timeline": {
+    "aspects": [
+      "amber",
+      "red"
+    ],
+    "phases": [
+      "playing",
+      "settled"
+    ],
+    "boomStart": 100,
+    "boomEnd": 0,
+    "boomMin": 0,
+    "boomMax": 100,
+    "sawAmber": true,
+    "sawRed": true,
+    "amberLampOn": true,
+    "redLampOn": true,
+    "lowered": true,
+    "hudHiddenWhilePlaying": true,
+    "playDurationS": 2.123,
+    "sampleCount": 4
+  },
+  "samples": [
+    {
+      "t": 0.623,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 0.611,
+      "signalAspect": "amber",
+      "showMode": "amber",
+      "boomPct": 100,
+      "boomTarget": 100,
+      "boomAngle": 3.117145403163882,
+      "lampIntensity": {
+        "red": 0.07,
+        "amber": 8.8,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 1.805,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 2.403,
+      "signalAspect": "red",
+      "showMode": "closing",
+      "boomPct": 30.295652173915066,
+      "boomTarget": 30.295652173915066,
+      "boomAngle": 2.0222320678954016,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 2.746,
+      "showtimePhase": "playing",
+      "showtimeElapsed": 3.344,
+      "signalAspect": "red",
+      "showMode": "down",
+      "boomPct": 0,
+      "boomTarget": 0,
+      "boomAngle": 1.5463490763689856,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": true,
+      "liveDockHidden": true,
+      "cameraIsPerspective": true
+    },
+    {
+      "t": 3.913,
+      "showtimePhase": "settled",
+      "showtimeElapsed": 3.492,
+      "signalAspect": "red",
+      "showMode": "down",
+      "boomPct": 0,
+      "boomTarget": 0,
+      "boomAngle": 1.5463490763689856,
+      "lampIntensity": {
+        "red": 8.8,
+        "amber": 0.07,
+        "green": 0.07
+      },
+      "viewMode": "world",
+      "usingGlb": true,
+      "defaultShowsTwin": true,
+      "showtimeHudHidden": false,
+      "liveDockHidden": false,
+      "cameraIsPerspective": true
+    }
+  ],
+  "settle": {
+    "phase": "settled",
+    "boomPct": 0,
+    "signalAspect": "red",
+    "viewMode": "world",
+    "usingGlb": true,
+    "ok": true
+  },
+  "hud": {
+    "duringPlayHidden": true,
+    "after": {
+      "hidden": false,
+      "bodyShowtime": false,
+      "life": "Life ON",
+      "scan": "Tap to scan"
+    },
+    "restored": true
+  },
+  "smoke": {
+    "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "match": true,
+    "how": "native",
+    "from": "Tap to scan after showtime settle"
+  },
+  "snapEnd": {
+    "viewMode": "world",
+    "showtimePhase": "settled",
+    "boomPct": 0,
+    "signalAspect": "red",
+    "defaultShowsTwin": true,
+    "product": "living2-brand-world"
+  }
+}

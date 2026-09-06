@@ -106,6 +106,16 @@ function summarizeTimeline(samples) {
   const boomMax = Math.max(...samples.map((s) => s.boomPct ?? 0));
   const sawAmber = samples.some((s) => s.signalAspect === "amber");
   const sawRed = samples.some((s) => s.signalAspect === "red");
+  const amberLampOn = samples.some((s) =>
+    s.signalAspect === "amber"
+    && (s.lampIntensity?.amber || 0) > 4
+    && (s.lampIntensity?.amber || 0) > (s.lampIntensity?.red || 0)
+  );
+  const redLampOn = samples.some((s) =>
+    s.signalAspect === "red"
+    && (s.lampIntensity?.red || 0) > 4
+    && (s.lampIntensity?.red || 0) > (s.lampIntensity?.amber || 0)
+  );
   const lowered = boomStart != null && boomEnd != null && boomStart > 80 && boomEnd < 15;
   const hudHiddenWhilePlaying = samples
     .filter((s) => s.showtimePhase === "playing")
@@ -123,6 +133,8 @@ function summarizeTimeline(samples) {
     boomMax,
     sawAmber,
     sawRed,
+    amberLampOn,
+    redLampOn,
     lowered,
     hudHiddenWhilePlaying,
     playDurationS: +duration.toFixed(3),
@@ -150,19 +162,22 @@ async function run() {
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(`http://127.0.0.1:${port}/?v=living3&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
-  await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 });
-  await page.waitForFunction(() => {
-    const p = window.__iqr?.snap?.showtimePhase;
-    return p === "playing" || p === "settled";
-  }, { timeout: 12000 });
 
   const samples = [];
   const t0 = Date.now();
   let snappedAmber = false;
   let snappedLower = false;
   let snappedDown = false;
-  for (let i = 0; i < 24; i += 1) {
-    const snap = await page.evaluate(() => window.__iqr?.snap);
+  while (Date.now() - t0 < 14000) {
+    const pack = await page.evaluate(() => {
+      const snap = window.__iqr?.snap;
+      let world = null;
+      if (snap?.showtimePhase === "playing" && snap?.signalAspect === "amber") {
+        world = window.__iqr.captureWorld();
+      }
+      return { snap, world };
+    });
+    const snap = pack.snap;
     const t = (Date.now() - t0) / 1000;
     const row = {
       t: +t.toFixed(3),
@@ -173,6 +188,7 @@ async function run() {
       boomPct: snap?.boomPct ?? null,
       boomTarget: snap?.boomTarget ?? null,
       boomAngle: snap?.boomAngle ?? null,
+      lampIntensity: snap?.lampIntensity ?? null,
       viewMode: snap?.viewMode ?? null,
       usingGlb: snap?.usingGlb ?? null,
       defaultShowsTwin: snap?.defaultShowsTwin ?? null,
@@ -181,11 +197,12 @@ async function run() {
       cameraIsPerspective: snap?.cameraIsPerspective ?? null,
     };
     samples.push(row);
-    if (!snappedAmber && row.signalAspect === "amber") {
+    if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
+      if (pack.world) await writeFile(join(OUT, "showtime-amber-webgl.png"), dataUrlToBuf(pack.world));
       await page.screenshot({ path: join(OUT, "showtime-amber.png"), type: "png" });
       snappedAmber = true;
     }
-    if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 70 && row.boomPct > 20) {
+    if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
       await page.screenshot({ path: join(OUT, "showtime-lowering.png"), type: "png" });
       snappedLower = true;
     }
@@ -193,8 +210,8 @@ async function run() {
       await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
       snappedDown = true;
     }
-    if (row.showtimePhase === "settled" && i > 4) break;
-    await page.waitForTimeout(180);
+    if (row.showtimePhase === "settled" && row.usingGlb && snappedAmber && row.boomPct <= 5) break;
+    await page.waitForTimeout(120);
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
@@ -273,6 +290,7 @@ async function run() {
     await mkdir(ART, { recursive: true });
     for (const name of [
       "showtime-amber.png",
+      "showtime-amber-webgl.png",
       "showtime-lowering.png",
       "showtime-down.png",
       "showtime-settled.png",
@@ -295,6 +313,8 @@ async function run() {
   const ok = qrProof.clean.match
     && timeline.sawAmber
     && timeline.sawRed
+    && timeline.amberLampOn
+    && timeline.redLampOn
     && timeline.lowered
     && timeline.hudHiddenWhilePlaying
     && settleOk

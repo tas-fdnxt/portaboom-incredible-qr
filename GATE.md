@@ -17,9 +17,9 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` opens world with twin | GREEN — `viewMode=world`, `usingGlb=true`, `defaultShowsTwin=true` |
-| Auto choreography ~3.0–3.5s | GREEN — amber hold 0.65s, boom lower 2.45s, red hold 0.25s. Samples: amber then red; `boomPct` 100 → ~0 |
+| Auto choreography ~3.0–3.5s | GREEN — wall-clock 0.8s amber + 2.3s lower + 0.25s hold. Settle `showtimeElapsed=3.49s`. `boomPct` 100 → 0. Amber lamp 8.8 / red 0.07, then red 8.8 / amber 0.07 |
 | During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
-| After down = red held | GREEN — `showtimePhase=settled`, `signalAspect=red`, `boomPct<8`. No auto-raise |
+| After down = red held | GREEN — `showtimePhase=settled`, `signalAspect=red`, `boomPct=0`. No auto-raise |
 | Minimal HUD during showtime | GREEN — `#liveDock` hidden while `playing` / `pending` |
 | After showtime, living controls | GREEN — Life ON + Tap to scan restored |
 | Tap to scan → DEST | GREEN — `captureScan()` native jsQR → DEST |

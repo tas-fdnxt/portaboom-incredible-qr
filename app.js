@@ -581,8 +581,8 @@ const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const showtimeWanted = pageParams.get("showtime") === "1";
 /** Amber hold + boom drop + brief red hold ≈ 3.3s. */
-const SHOWTIME_AMBER_S = 0.65;
-const SHOWTIME_LOWER_S = 2.45;
+const SHOWTIME_AMBER_S = 0.8;
+const SHOWTIME_LOWER_S = 2.3;
 const SHOWTIME_HOLD_S = 0.25;
 let showtimePhase = showtimeWanted ? "pending" : "off";
 let showtimeStartedAt = 0;
@@ -1331,9 +1331,7 @@ function startShowtime() {
   if (!showtimeWanted || !boomRig) return false;
   if (scanOpen) applyWorldPose();
   boomRig.speed = 100 / SHOWTIME_LOWER_S;
-  boomRig.shownPct = 100;
-  boomRig.targetPct = 100;
-  tickBoom(0);
+  applyBoomShown(100);
   showtimePhase = "playing";
   showtimeStartedAt = performance.now();
   showtimeElapsed = 0;
@@ -1352,9 +1350,7 @@ function settleShowtime() {
   showtimePhase = "settled";
   showMode = "down";
   showClock = 0;
-  boomRig.shownPct = 0;
-  boomRig.targetPct = 0;
-  tickBoom(0);
+  applyBoomShown(0);
   setSignalAspect("red");
   document.body.classList.remove("showtime");
   if (controls && !scanOpen) controls.enabled = true;
@@ -1685,8 +1681,19 @@ function setBoomPct(pct) {
   boomRig.targetPct = Math.max(0, Math.min(100, pct));
 }
 
+function applyBoomShown(pct) {
+  if (!boomRig) return;
+  const p = Math.max(0, Math.min(100, pct));
+  boomRig.shownPct = p;
+  boomRig.targetPct = p;
+  if (!boomRig.pivot) return;
+  const u = p / 100;
+  boomRig.pivot.rotation.z = boomRig.drop + (boomRig.rest - boomRig.drop) * u;
+}
+
 function tickBoom(dt) {
   if (!boomRig || !boomRig.pivot) return;
+  if (showtimePhase === "playing") return;
   const d = boomRig.targetPct - boomRig.shownPct;
   const rate = boomRig.speed || 56;
   const step = Math.min(Math.abs(d), rate * dt);
@@ -2210,19 +2217,22 @@ function tickShow(dt) {
   showClock += dt;
   if (showtimePhase === "playing") {
     showtimeElapsed = (performance.now() - showtimeStartedAt) / 1000;
-    if (showMode === "amber") {
+    if (showtimeElapsed < SHOWTIME_AMBER_S) {
+      showMode = "amber";
       setSignalAspect("amber");
-      if (showClock > SHOWTIME_AMBER_S) beginCloseSequence();
-    } else if (showMode === "closing") {
+      applyBoomShown(100);
+    } else if (showtimeElapsed < SHOWTIME_AMBER_S + SHOWTIME_LOWER_S) {
+      showMode = "closing";
       setSignalAspect("red");
-      if (boomRig.shownPct <= 1.5) {
-        showMode = "down";
-        showClock = 0;
+      const u = (showtimeElapsed - SHOWTIME_AMBER_S) / SHOWTIME_LOWER_S;
+      applyBoomShown(100 * (1 - u));
+    } else {
+      showMode = "down";
+      setSignalAspect("red");
+      applyBoomShown(0);
+      if (showtimeElapsed >= SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S) {
+        settleShowtime();
       }
-    } else if (showMode === "down") {
-      setSignalAspect("red");
-      setBoomPct(0);
-      if (showClock >= SHOWTIME_HOLD_S) settleShowtime();
     }
     return;
   }
@@ -2579,6 +2589,11 @@ window.__iqr = {
       showtimeElapsed: +showtimeElapsed.toFixed(3),
       showtimeHudHidden: showtimeHudHidden(),
       boomAngle: boomRig?.pivot?.rotation?.z ?? null,
+      lampIntensity: {
+        red: lampMats.red?.emissiveIntensity ?? null,
+        amber: lampMats.amber?.emissiveIntensity ?? null,
+        green: lampMats.green?.emissiveIntensity ?? null,
+      },
       cameraIsPerspective: camera.isPerspectiveCamera === true,
       cameraIsOrtho: camera.isOrthographicCamera === true,
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
