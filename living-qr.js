@@ -1,29 +1,41 @@
 /**
- * Living2 PORTABOOM QR — ICQR Magic Tree *pattern* only.
+ * Living QR field — a heap of miniature PORTABOOM cabinets.
  *
- * Dark modules are raised brand sculptures on an XZ plaza (landscape).
- * Default camera is a perspective hero of the PB4000 standing in that field.
- * A tap glides to a top-down scan pose of the dark caps. Not a cherry tree.
- * No ICQR shop packs. Not a textured qr.png quad.
+ * Dark modules are tiny cabinets (powder orange, navy band, wordmark).
+ * Tiny ones do NOT grow traffic lights or boom arms — those belong only
+ * to the planted twin. Finder / timing / alignment keep a dark scan cap
+ * so tap-to-scan still reads as a QR. Not a cherry tree. Not stripe towers.
  */
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
 
 export const CELL = 0.068;
-export const MODULE_FILL = 0.96;
+export const MODULE_FILL = 0.86;
 
-function makeStripeTex(THREE) {
+function makeMiniLogoTex(THREE) {
   const c = document.createElement("canvas");
-  c.width = 64;
-  c.height = 16;
+  c.width = 256;
+  c.height = 180;
   const ctx = c.getContext("2d");
-  for (let i = 0; i < 8; i += 1) {
-    ctx.fillStyle = i % 2 ? "#c01421" : "#f0f1f3";
-    ctx.fillRect(i * 8, 0, 8, 16);
+  ctx.clearRect(0, 0, 256, 180);
+  ctx.fillStyle = "#1b1e24";
+  ctx.font = "900 54px Arial Black, Arial, sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("PORTA", 128, 50);
+  ctx.fillText("BOOM", 128, 104);
+  ctx.fillStyle = "#c01421";
+  for (let i = 0; i < 4; i += 1) {
+    const x = 78 + i * 28;
+    ctx.beginPath();
+    ctx.moveTo(x, 138);
+    ctx.lineTo(x + 14, 138);
+    ctx.lineTo(x + 6, 162);
+    ctx.lineTo(x - 8, 162);
+    ctx.closePath();
+    ctx.fill();
   }
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(2, 1);
   tex.anisotropy = 4;
   return tex;
 }
@@ -43,13 +55,12 @@ function powder(THREE, hex) {
 }
 
 function heightFor(vocab) {
-  if (vocab === "finder") return 0.34;
-  if (vocab === "head") return 0.24;
-  if (vocab === "cabinet") return 0.2;
-  if (vocab === "boom") return 0.22;
-  if (vocab === "led") return 0.16;
-  if (vocab === "timing") return 0.1;
-  return 0.17;
+  if (vocab === "finder") return 0.22;
+  if (vocab === "cabinet") return 0.18;
+  if (vocab === "head") return 0.16;
+  if (vocab === "led") return 0.15;
+  if (vocab === "timing") return 0.13;
+  return 0.16;
 }
 
 /**
@@ -62,7 +73,6 @@ export function buildLivingQr(THREE, spec) {
   const n = matrix.length;
   const cell = spec.cell ?? CELL;
   const livery = spec.livery;
-  const kindcol = spec.kindcol;
   const dest = spec.dest;
 
   const group = new THREE.Group();
@@ -83,52 +93,43 @@ export function buildLivingQr(THREE, spec) {
     toneMapped: false,
   });
   const cabMat = powder(THREE, livery.Y);
-  const darkMat = new THREE.MeshStandardMaterial({
-    color: livery.K,
-    metalness: 0.14,
-    roughness: 0.52,
+  const cabDeepMat = powder(THREE, 0xc45a10);
+  const cabFinderMat = new THREE.MeshStandardMaterial({
+    color: 0x2a2e34,
+    metalness: 0.16,
+    roughness: 0.48,
     envMapIntensity: 0.7,
-  });
-  const steelMat = new THREE.MeshStandardMaterial({
-    color: livery.S,
-    metalness: 0.9,
-    roughness: 0.28,
-    envMapIntensity: 1.15,
   });
   const navyMat = new THREE.MeshStandardMaterial({
     color: 0x1b2a4a,
     metalness: 0.12,
     roughness: 0.44,
   });
-  const stripeMat = new THREE.MeshStandardMaterial({
-    map: makeStripeTex(THREE),
-    roughness: 0.32,
-    metalness: 0.12,
+  const wheelMat = new THREE.MeshStandardMaterial({
+    color: livery.K,
+    metalness: 0.18,
+    roughness: 0.62,
+  });
+  const logoMat = new THREE.MeshBasicMaterial({
+    map: makeMiniLogoTex(THREE),
+    transparent: true,
+    depthWrite: false,
     toneMapped: false,
   });
-  const ledFaceMat = new THREE.MeshStandardMaterial({
-    color: 0x062c10,
-    emissive: kindcol.green,
-    emissiveIntensity: 1.15,
-    roughness: 0.2,
-    metalness: 0.04,
+  const logoFinderMat = new THREE.MeshBasicMaterial({
+    map: logoMat.map,
+    transparent: true,
+    depthWrite: false,
     toneMapped: false,
-  });
-  const ledRedMat = new THREE.MeshStandardMaterial({
-    color: 0x3a0000,
-    emissive: kindcol.red,
-    emissiveIntensity: 0.55,
-    roughness: 0.2,
-    metalness: 0.04,
-    toneMapped: false,
+    color: 0xd8dde6,
   });
 
   const fill = cell * MODULE_FILL;
-  const capGeo = new THREE.BoxGeometry(fill, cell * 0.07, fill);
-  const bodyGeo = new THREE.BoxGeometry(fill * 0.9, 1, fill * 0.9);
-  const bandGeo = new THREE.BoxGeometry(fill * 0.92, fill * 0.16, fill * 0.92);
-  const rimGeo = new THREE.BoxGeometry(fill * 0.98, cell * 0.04, fill * 0.98);
-  const lensGeo = new THREE.CircleGeometry(cell * 0.16, 20);
+  const capGeo = new THREE.BoxGeometry(cell * 0.98, cell * 0.08, cell * 0.98);
+  const bodyGeo = new THREE.BoxGeometry(fill * 0.92, 1, fill * 0.72);
+  const bandGeo = new THREE.BoxGeometry(fill * 0.94, fill * 0.07, fill * 0.74);
+  const wheelGeo = new THREE.CylinderGeometry(fill * 0.10, fill * 0.10, fill * 0.07, 10);
+  const logoGeo = new THREE.PlaneGeometry(fill * 0.7, fill * 0.48);
   const lightGeo = new THREE.BoxGeometry(fill, cell * 0.02, fill);
 
   const origin = (n - 1) / 2;
@@ -156,39 +157,41 @@ export function buildLivingQr(THREE, spec) {
       const g = new THREE.Group();
       g.name = `QrMod_${r}_${c}`;
       const bodyH = heightFor(vocab);
+      const finderish = kind === "finder" || kind === "alignment";
+      const bodyMat = finderish
+        ? cabFinderMat
+        : ((r + c) % 3 === 0 ? cabDeepMat : cabMat);
 
-      const body = new THREE.Mesh(bodyGeo, pickBodyMat(vocab, {
-        cabMat, darkMat, navyMat, stripeMat,
-      }));
+      const body = new THREE.Mesh(bodyGeo, bodyMat);
+      body.name = "MiniCabinet";
       body.scale.y = bodyH;
       body.position.y = bodyH * 0.5;
       body.castShadow = true;
       body.receiveShadow = true;
       g.add(body);
 
-      if (vocab === "cabinet" || vocab === "finder") {
-        const band = new THREE.Mesh(bandGeo, navyMat);
-        band.position.y = bodyH * 0.62;
-        g.add(band);
+      const band = new THREE.Mesh(bandGeo, navyMat);
+      band.name = "MiniBand";
+      band.position.y = bodyH * 0.62;
+      g.add(band);
+
+      for (const wz of [-fill * 0.22, fill * 0.22]) {
+        const wheel = new THREE.Mesh(wheelGeo, wheelMat);
+        wheel.name = "MiniWheel";
+        wheel.rotation.z = Math.PI / 2;
+        wheel.position.set(0, fill * 0.11, wz);
+        g.add(wheel);
       }
-      if (vocab === "finder") {
-        const rim = new THREE.Mesh(rimGeo, steelMat);
-        rim.position.y = bodyH + cell * 0.01;
-        g.add(rim);
-      }
+
+      const logo = new THREE.Mesh(logoGeo, finderish ? logoFinderMat : logoMat);
+      logo.name = "MiniLogo";
+      logo.position.set(0, bodyH * 0.42, fill * 0.33);
+      g.add(logo);
 
       const cap = new THREE.Mesh(capGeo, capMat);
       cap.name = "QrModTop";
-      cap.position.y = bodyH + cell * 0.03;
+      cap.position.y = bodyH + fill * 0.08;
       g.add(cap);
-
-      if (vocab === "finder" || vocab === "led" || vocab === "head") {
-        const ledMat = vocab === "head" ? ledFaceMat : ((r + c) % 5 === 0 ? ledRedMat : ledFaceMat);
-        const lens = new THREE.Mesh(lensGeo, ledMat);
-        lens.position.set(0, bodyH * 0.55, fill * 0.46);
-        g.add(lens);
-        if (vocab === "finder" || vocab === "led") ledMats.push(ledMat);
-      }
 
       g.position.set(x, 0, z);
       g.userData = {
@@ -198,6 +201,8 @@ export function buildLivingQr(THREE, spec) {
         vocab,
         baseY: 0,
         bodyH,
+        miniCabinet: true,
+        hasTrafficLight: false,
         phase: ((r * 17 + c * 13) % 1000) / 1000 * Math.PI * 2,
       };
       group.add(g);
@@ -253,9 +258,11 @@ export function buildLivingQr(THREE, spec) {
     kinds,
     vocabs,
     texturedQuad: false,
-    product: "living2-brand-world",
+    product: "living7-mini-cabinets",
     plane: "xz",
     cameraHint: "perspective-world / ortho-scan",
+    miniHasTrafficLight: false,
+    stripeModules: 0,
   };
 
   return {
@@ -275,14 +282,9 @@ export function buildLivingQr(THREE, spec) {
     kinds,
     vocabs,
     darkCount: mods.length,
+    miniHasTrafficLight: false,
+    stripeModules: 0,
   };
-}
-
-function pickBodyMat(vocab, mats) {
-  if (vocab === "boom" || vocab === "timing") return mats.stripeMat;
-  if (vocab === "head") return mats.darkMat;
-  if (vocab === "led") return mats.navyMat;
-  return mats.cabMat;
 }
 
 export function livingExtent(living) {

@@ -1,9 +1,11 @@
 /**
- * GATE living6 showtime — ICQR door first (unit + signal + boom), then DEST.
+ * GATE living7 showtime — ICQR door first (straight-on, one boom,
+ * mini PORTABOOM field, brand back), then DEST.
  * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
  * and a visible boom span (not living5 cabinet-only, not living4 speck,
- * not the living2/3d plaza twin-as-website). Tap or door-beat starts
- * amber → red, boom 100→0 (~7s), then leave to configured DEST.
+ * not the living2/3d plaza twin-as-website, not living6 steep tilt).
+ * Tap or door-beat starts green 1s → amber 1s → red 1s → boom down 1s (~4s),
+ * then leave to configured DEST.
  * Stationary send QR encodes the living showtime URL, never DEST.
  */
 import { createServer } from "node:http";
@@ -271,34 +273,56 @@ function summarizeTimeline(samples) {
   const boomEnd = samples[samples.length - 1]?.boomPct ?? null;
   const boomMin = Math.min(...samples.map((s) => s.boomPct ?? 100));
   const boomMax = Math.max(...samples.map((s) => s.boomPct ?? 0));
-  const sawAmber = samples.some((s) => s.signalAspect === "amber");
-  const sawRed = samples.some((s) => s.signalAspect === "red");
-  const amberLampOn = samples.some((s) =>
+  const playing = samples.filter((s) => s.showtimePhase === "playing");
+  const sawGreen = playing.some((s) => s.signalAspect === "green");
+  const sawAmber = playing.some((s) => s.signalAspect === "amber");
+  const sawRed = playing.some((s) => s.signalAspect === "red");
+  const greenLampOn = playing.some((s) =>
+    s.signalAspect === "green"
+    && (s.lampIntensity?.green || 0) > 4
+    && (s.lampIntensity?.green || 0) > (s.lampIntensity?.amber || 0)
+  );
+  const amberLampOn = playing.some((s) =>
     s.signalAspect === "amber"
     && (s.lampIntensity?.amber || 0) > 4
     && (s.lampIntensity?.amber || 0) > (s.lampIntensity?.red || 0)
   );
-  const redLampOn = samples.some((s) =>
+  const redLampOn = playing.some((s) =>
     s.signalAspect === "red"
     && (s.lampIntensity?.red || 0) > 4
     && (s.lampIntensity?.red || 0) > (s.lampIntensity?.amber || 0)
   );
   const lowered = boomStart != null && boomEnd != null && boomStart > 80 && boomEnd < 8;
-  const hudHiddenWhilePlaying = samples
-    .filter((s) => s.showtimePhase === "playing")
+  const hudHiddenWhilePlaying = playing
     .every((s) => s.showtimeHudHidden === true && s.liveDockHidden === true);
   const stayedOnDoor = samples.every((s) => s.viewMode === "door");
   const noStudio = samples.every((s) => s.studioVisible === false);
-  const playing = samples.filter((s) => s.showtimePhase === "playing");
   const duration = playing.length
     ? (playing[playing.length - 1].t - playing[0].t)
     : 0;
-  const firstRed = samples.find((s) => s.signalAspect === "red" && s.showtimePhase === "playing");
+  const firstAmber = playing.find((s) => s.signalAspect === "amber");
+  const firstRed = playing.find((s) => s.signalAspect === "red");
+  const firstLower = playing.find((s) => s.signalAspect === "red" && (s.boomPct ?? 100) < 92);
   const lastPlay = [...playing].reverse().find(Boolean);
-  const amberHeldS = firstRed?.showtimeElapsed ?? 0;
-  const elapsedAtEnd = lastPlay?.showtimeElapsed
+  const settled = [...samples].reverse().find((s) => s.showtimePhase === "settled");
+  const greenHeldS = firstAmber?.showtimeElapsed ?? 0;
+  const amberHeldS = firstRed && firstAmber
+    ? firstRed.showtimeElapsed - firstAmber.showtimeElapsed
+    : 0;
+  const redHoldS = firstLower && firstRed
+    ? firstLower.showtimeElapsed - firstRed.showtimeElapsed
+    : 0;
+  const elapsedAtEnd = settled?.showtimeElapsed
+    ?? lastPlay?.showtimeElapsed
     ?? samples[samples.length - 1]?.showtimeElapsed
     ?? 0;
+  const lowerS = firstLower ? elapsedAtEnd - firstLower.showtimeElapsed : 0;
+  const ghosts = samples.map((s) => s.ghostBoomCount ?? 0);
+  const ghostMax = ghosts.length ? Math.max(...ghosts) : 99;
+  const singleBoomDuringLower = playing
+    .filter((s) => (s.boomPct ?? 100) < 85)
+    .every((s) => (s.ghostBoomCount ?? 0) === 0 && s.singleBoom !== false);
+  const beat = (v) => v >= 0.7 && v <= 1.45;
   return {
     aspects,
     phases,
@@ -306,8 +330,10 @@ function summarizeTimeline(samples) {
     boomEnd,
     boomMin,
     boomMax,
+    sawGreen,
     sawAmber,
     sawRed,
+    greenLampOn,
     amberLampOn,
     redLampOn,
     lowered,
@@ -315,10 +341,16 @@ function summarizeTimeline(samples) {
     stayedOnDoor,
     noStudio,
     playDurationS: +duration.toFixed(3),
+    greenHeldS: +greenHeldS.toFixed(3),
     amberHeldS: +amberHeldS.toFixed(3),
+    redHoldS: +redHoldS.toFixed(3),
+    lowerS: +lowerS.toFixed(3),
     elapsedAtEnd: +elapsedAtEnd.toFixed(3),
     longerThanTeaser: elapsedAtEnd > 3.6,
-    naturalPace: amberHeldS >= 1.2 && elapsedAtEnd > 3.6,
+    naturalPace: beat(greenHeldS) && beat(amberHeldS) && beat(redHoldS) && elapsedAtEnd >= 3.7 && elapsedAtEnd <= 5.2,
+    timingBeat: "1+1+1+1",
+    ghostMax,
+    singleBoomDuringLower,
     sampleCount: samples.length,
   };
 }
@@ -355,7 +387,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living6&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living7&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -391,24 +423,32 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living6-icqr-door"
+    && doorSnap?.product === "living7-icqr-door"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
     && vision.portaboomInField === true
     && vision.portaboomLargeEnough === true
     && vision.cabinetNotDominating === true
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.22
-    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.42
-    && vision.orangeBlob.heightFrac >= 0.20
-    && vision.orangeBlob.heightFrac < 0.48
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.16
+    && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.48
+    && vision.orangeBlob.heightFrac >= 0.16
+    && vision.orangeBlob.heightFrac < 0.55
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
     && doorSnap?.doorSignalInFrame === true
     && doorSnap?.doorBoomInFrame === true
     && (doorSnap?.doorSignalFrame?.heightFrac ?? 0) >= 0.07
-    && (doorSnap?.doorSignalFrame?.overflowY ?? 1) <= 0.08
-    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.16
+    && (doorSnap?.doorSignalFrame?.overflowY ?? 1) <= 0.12
+    && (doorSnap?.doorBoomFrame?.heightFrac ?? 0) >= 0.12
+    && doorSnap?.doorCamFrontFacing === true
+    && (doorSnap?.doorCamElevationDeg ?? -90) > -18
+    && doorSnap?.singleBoom === true
+    && (doorSnap?.ghostBoomCount ?? 99) === 0
+    && doorSnap?.miniHasTrafficLight === false
+    && (doorSnap?.miniTrafficLights ?? 99) === 0
+    && (doorSnap?.stripeModules ?? 99) === 0
+    && doorSnap?.backLogoVisible === true
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
 
@@ -423,7 +463,8 @@ async function run() {
   let snappedAmber = false;
   let snappedLower = false;
   let snappedDown = false;
-  while (Date.now() - t0 < 18000) {
+  let snappedGreen = false;
+  while (Date.now() - t0 < 8000) {
     const snap = await page.evaluate(() => window.__iqr?.snap);
     const t = (Date.now() - t0) / 1000;
     const row = {
@@ -450,23 +491,26 @@ async function run() {
       destLeaveReason: snap?.destLeaveReason ?? null,
       leaveDest: snap?.leaveDest ?? null,
       leaveDestSource: snap?.leaveDestSource ?? null,
+      ghostBoomCount: snap?.ghostBoomCount ?? null,
+      singleBoom: snap?.singleBoom ?? null,
+      signalAspectSnap: snap?.signalAspect ?? null,
     };
     samples.push(row);
-    if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
+    if (!snappedGreen && row.signalAspect === "green" && row.showtimePhase === "playing") {
+      await page.screenshot({ path: join(OUT, "showtime-green.png"), type: "png" });
+      snappedGreen = true;
+    } else if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
       await page.screenshot({ path: join(OUT, "showtime-amber.png"), type: "png" });
-      await page.screenshot({ path: join(OUT, "showtime-amber-webgl.png"), type: "png" });
       snappedAmber = true;
-    }
-    if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
+    } else if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
       await page.screenshot({ path: join(OUT, "showtime-lowering.png"), type: "png" });
       snappedLower = true;
-    }
-    if (!snappedDown && row.boomPct != null && row.boomPct <= 5 && row.signalAspect === "red") {
+    } else if (!snappedDown && row.boomPct != null && row.boomPct <= 5 && row.signalAspect === "red") {
       await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
       snappedDown = true;
     }
-    if (row.showtimePhase === "settled" && row.usingGlb && snappedAmber && row.boomPct <= 5) break;
-    await page.waitForTimeout(120);
+    if (row.showtimePhase === "settled" && row.usingGlb && row.boomPct <= 5) break;
+    await page.waitForTimeout(70);
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
@@ -518,7 +562,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living6&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living7&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -553,7 +597,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living6`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living7`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -571,13 +615,13 @@ async function run() {
     && snapEnd?.signalAspect === "red"
     && snapEnd?.viewMode === "door"
     && settleElapsed > 3.6
-    && settleElapsed >= 6
-    && settleElapsed <= 8.5;
+    && settleElapsed >= 3.7
+    && settleElapsed <= 5.2;
   const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living6/.test(qrProof.clean.decoded || "");
+    && /v=living7/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -608,6 +652,13 @@ async function run() {
         doorBoomVisible: doorSnap?.doorBoomVisible ?? null,
         doorSignalInFrame: doorSnap?.doorSignalInFrame ?? null,
         doorBoomInFrame: doorSnap?.doorBoomInFrame ?? null,
+        doorCamElevationDeg: doorSnap?.doorCamElevationDeg ?? null,
+        doorCamFrontFacing: doorSnap?.doorCamFrontFacing ?? null,
+        singleBoom: doorSnap?.singleBoom ?? null,
+        ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
+        miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
+        backLogoVisible: doorSnap?.backLogoVisible ?? null,
+        backLogoInFrame: doorSnap?.backLogoInFrame ?? null,
       },
       chrome: doorChrome,
       vision,
@@ -682,6 +733,7 @@ async function run() {
     for (const name of [
       "showtime-door.png",
       "showtime-door-webgl.png",
+      "showtime-green.png",
       "showtime-amber.png",
       "showtime-amber-webgl.png",
       "showtime-lowering.png",
@@ -708,14 +760,20 @@ async function run() {
     && destLeaveOk
     && parseOk
     && overrideOk
+    && timeline.sawGreen
     && timeline.sawAmber
     && timeline.sawRed
+    && timeline.greenLampOn
     && timeline.amberLampOn
     && timeline.redLampOn
     && timeline.lowered
     && timeline.naturalPace
     && timeline.longerThanTeaser
-    && timeline.amberHeldS >= 1.2
+    && timeline.greenHeldS >= 0.7
+    && timeline.amberHeldS >= 0.7
+    && timeline.redHoldS >= 0.7
+    && timeline.singleBoomDuringLower
+    && timeline.ghostMax === 0
     && timeline.stayedOnDoor
     && timeline.noStudio
     && (snapEnd?.longerThanTeaser === true)
