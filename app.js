@@ -601,16 +601,23 @@ const SHOWTIME_HOLD_S = 0.4;
 /** Short beat after boom fully down, then leave to DEST. */
 const SHOWTIME_LEAVE_S = 0.4;
 const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
+/**
+ * First paint stays on the QR-matrix door so the scan does not open
+ * looking like a twin-site 3/4 product hero. Tap starts transform;
+ * if nobody taps, this beat still auto-plays for phone-scan UX.
+ */
+const SHOWTIME_DOOR_S = 2.6;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
-let showtimePhase = showtimeWanted ? "pending" : "off";
+let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
 let destLeave = null;
 let destLeaveTimer = 0;
+let doorBeatTimer = 0;
 if (showtimeWanted) document.body.classList.add("showtime");
-let viewMode = "world"; // world = ICQR default 3D · scan = tap-to-scan pose
+let viewMode = showtimeWanted ? "door" : "world"; // door = ICQR QR-field · world = living2 plaza · scan = tap-to-scan
 let scanOpen = false;
 let lifeOn = !reduced;
 
@@ -657,6 +664,8 @@ const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
 const scanCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
+/** Steep ortho of the living QR field with the unit still planted in it. */
+const doorCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
 /** Dead-on +Y ortho of the XZ caps. OrbitControls must not own this camera. */
 const SCAN_POSE = {
   pos: new THREE.Vector3(0, 8, 0.0001),
@@ -665,7 +674,7 @@ const SCAN_POSE = {
 scanCam.position.copy(SCAN_POSE.pos);
 scanCam.up.set(0, 0, -1);
 scanCam.lookAt(SCAN_POSE.tgt);
-let camera = unitCam;
+let camera = showtimeWanted ? doorCam : unitCam;
 
 scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -899,7 +908,12 @@ bindGroups(boom);
 applyCoreShowConfig(boom);
 placeTwinInLivingWorld();
 initOrbit(boom);
-applyWorldPose();
+if (showtimeWanted) {
+  applyDoorPose();
+  armDoorBeat();
+} else {
+  applyWorldPose();
+}
 if (canvas) canvas.dataset.iqrReady = "1";
 let usingGlb = false;
 let baseScale = 1;
@@ -1300,6 +1314,60 @@ function fitScanOrtho() {
   scanCam.updateProjectionMatrix();
 }
 
+/** QR field fills phone width. Quiet cream above/below — not a 3/4 product frame. */
+function fitDoorOrtho() {
+  const w = Math.max(1, canvas.clientWidth || innerWidth);
+  const h = Math.max(1, canvas.clientHeight || innerHeight);
+  const aspect = w / h;
+  const padSize = living.padSize;
+  const fracW = 0.84;
+  const worldW = padSize / fracW;
+  const worldH = worldW / aspect;
+  doorCam.left = -worldW / 2;
+  doorCam.right = worldW / 2;
+  doorCam.top = worldH / 2;
+  doorCam.bottom = -worldH / 2;
+  doorCam.near = 0.05;
+  doorCam.far = 80;
+  doorCam.updateProjectionMatrix();
+}
+
+/**
+ * Steep look-down so the 49×49 towers read as a QR matrix.
+ * Slight +Z tilt (cabinet face) so PORTABOOM has volume in the field.
+ * Not lockWorldCamera's 3/4 plaza hero.
+ */
+function lockDoorCamera() {
+  fitDoorOrtho();
+  const pad = living.padSize;
+  doorCam.up.set(0, 1, 0);
+  // ~38° from vertical: QR finders still lock the read; cabinet orange + boom read as PORTABOOM.
+  doorCam.position.set(pad * 0.14, 4.15, pad * 0.88);
+  doorCam.lookAt(0, 0.28, 0);
+  doorCam.updateProjectionMatrix();
+}
+
+function setLivingCaps(visible) {
+  for (const m of mods) {
+    const cap = m.getObjectByName("QrModTop");
+    if (cap) cap.visible = visible;
+  }
+}
+
+/** Door: keep finder/timing/align black so it still reads as a QR; hide data caps so livery shows. */
+function setDoorModuleLook(on) {
+  for (const m of mods) {
+    const cap = m.getObjectByName("QrModTop");
+    if (!cap) continue;
+    if (!on) {
+      cap.visible = true;
+      continue;
+    }
+    const kind = m.userData.kind;
+    cap.visible = kind === "finder" || kind === "timing" || kind === "alignment";
+  }
+}
+
 function placeTwinInLivingWorld() {
   if (!boom) return;
   // Center of the branded field. Wheels on the plaza; boom reaches over the towers.
@@ -1349,9 +1417,28 @@ function showtimeHudHidden() {
   return !!showtimeWanted;
 }
 
+function clearDoorBeat() {
+  if (doorBeatTimer) {
+    window.clearTimeout(doorBeatTimer);
+    doorBeatTimer = 0;
+  }
+}
+
+function armDoorBeat() {
+  if (!showtimeWanted) return;
+  clearDoorBeat();
+  doorBeatTimer = window.setTimeout(() => {
+    doorBeatTimer = 0;
+    if (showtimePhase === "door") startShowtime();
+  }, Math.round(SHOWTIME_DOOR_S * 1000));
+}
+
 function startShowtime() {
   if (!showtimeWanted || !boomRig) return false;
-  if (scanOpen) applyWorldPose();
+  if (showtimePhase === "settled") return false;
+  if (showtimePhase === "playing") return true;
+  clearDoorBeat();
+  applyDoorPose();
   boomRig.speed = 100 / SHOWTIME_LOWER_S;
   applyBoomShown(100);
   showtimePhase = "playing";
@@ -1416,6 +1503,7 @@ function applyWorldPose() {
   if (living.scanPad) living.scanPad.visible = false;
   if (living.apron) living.apron.visible = true;
   if (living.ring) living.ring.visible = true;
+  setLivingCaps(true);
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -1455,6 +1543,37 @@ function applyWorldPose() {
   syncModeHud();
 }
 
+/**
+ * Showtime first paint: living ICQR — pixelated QR field with PORTABOOM
+ * standing in the matrix. No studio cyclorama, no plaza apron, no HUD chrome.
+ */
+function applyDoorPose() {
+  scanOpen = false;
+  viewMode = "door";
+  camera = doorCam;
+  if (boom) boom.visible = true;
+  studioGroup.visible = false;
+  grid.visible = true;
+  if (living.scanPad) living.scanPad.visible = false;
+  if (living.apron) living.apron.visible = false;
+  if (living.ring) living.ring.visible = false;
+  setDoorModuleLook(true);
+  if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
+  scene.background.setHex(0xf4efe6);
+  renderer.setClearColor(0xf4efe6, 1);
+  if (controls) {
+    controls.enabled = false;
+    controls.autoRotate = false;
+    controls.object = doorCam;
+  }
+  placeTwinInLivingWorld();
+  lockDoorCamera();
+  if (showtimeHudHidden()) setStatus("PORTABOOM");
+  syncModeHud();
+}
+
 function applyScanPose() {
   scanOpen = true;
   viewMode = "scan";
@@ -1464,6 +1583,7 @@ function applyScanPose() {
   if (living.scanPad) living.scanPad.visible = true;
   if (living.apron) living.apron.visible = false;
   if (living.ring) living.ring.visible = false;
+  setLivingCaps(true);
   if (paperMat?.color) paperMat.color.setHex(0xffffff);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.12;
@@ -2330,12 +2450,10 @@ setSignType("round");
 addLogoDecal(boom);
 setSignalAspect("green");
 if (showtimeWanted) {
-  showtimePhase = "pending";
+  showtimePhase = "door";
   document.body.classList.add("showtime");
+  applyDoorPose();
   syncModeHud();
-  setTimeout(() => {
-    if (showtimePhase === "pending") startShowtime();
-  }, 8000);
 }
 
 const loader = new GLTFLoader();
@@ -2373,10 +2491,18 @@ function mountCad(gltf, label) {
     applyCoreShowConfig(boom);
     boom.visible = true;
     placeTwinInLivingWorld();
-    applyWorldPose();
     if (showtimeWanted && showtimePhase !== "settled") {
-      startShowtime();
+      applyDoorPose();
+      if (showtimePhase === "playing") {
+        boomRig.speed = 100 / SHOWTIME_LOWER_S;
+      } else {
+        showtimePhase = "door";
+        applyBoomShown(100);
+        setSignalAspect("green");
+        armDoorBeat();
+      }
     } else {
+      applyWorldPose();
       showMode = "up";
       showClock = 0;
       setSignalAspect("green");
@@ -2464,6 +2590,10 @@ function syncModeHud() {
 }
 
 function setViewMode(next) {
+  if (showtimeWanted) {
+    applyDoorPose();
+    return;
+  }
   if (next === "scan") applyScanPose();
   else applyWorldPose();
 }
@@ -2474,7 +2604,8 @@ function resize() {
   renderer.setSize(w, h, false);
   unitCam.aspect = w / h;
   unitCam.updateProjectionMatrix();
-  if (scanOpen) fitScanOrtho();
+  if (viewMode === "door") fitDoorOrtho();
+  else if (scanOpen) fitScanOrtho();
   else camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
@@ -2488,8 +2619,10 @@ function tick() {
   const t = clock.elapsedTime;
   tickCamGlide(dt);
   grid.visible = true;
-  studioGroup.visible = !scanOpen;
+  studioGroup.visible = !scanOpen && !showtimeWanted;
   if (boom) boom.visible = !scanOpen;
+  if (showtimeWanted && living.apron) living.apron.visible = false;
+  if (showtimeWanted && living.ring) living.ring.visible = false;
   if (lifeOn && !reduced && !scanOpen) {
     const amp = living.cell * 0.01;
     for (const m of mods) {
@@ -2535,6 +2668,10 @@ if (canvas) {
   canvas.addEventListener("pointerup", (ev) => {
     if (performance.now() - tapStart > 280) return;
     if (Math.hypot(ev.clientX - tapX, ev.clientY - tapY) > 10) return;
+    if (showtimePhase === "door") {
+      startShowtime();
+      return;
+    }
     toggleScan();
   });
 }
@@ -2625,6 +2762,7 @@ window.__iqr = {
       viewMode,
       scanOpen,
       living: true,
+      icqrDoor: viewMode === "door",
       dest: DEST,
       leaveDest,
       leaveDestDefault: SHOWTIME_DEST_DEFAULT,
@@ -2637,9 +2775,10 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: "living2-brand-world",
+      product: showtimeWanted ? "living4-icqr-door" : "living2-brand-world",
       showtime: showtimeWanted,
       showtimePhase,
+      showtimeDoorS: SHOWTIME_DOOR_S,
       showtimeElapsed: +showtimeElapsed.toFixed(3),
       showtimeBudget: SHOWTIME_TOTAL_S,
       showtimeAmberS: SHOWTIME_AMBER_S,
@@ -2662,6 +2801,11 @@ window.__iqr = {
       cameraIsOrtho: camera.isOrthographicCamera === true,
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
+      twinInQrField: !!(boom && boom.visible && viewMode === "door"),
+      studioVisible: !!studioGroup.visible,
+      apronVisible: !!(living.apron && living.apron.visible),
+      websiteChrome: !showtimeHudHidden(),
+      icqrFirstPaint: showtimeWanted && viewMode === "door" && showtimePhase === "door",
       flattenBtnPresent: !!document.getElementById("flattenBtn"),
       unitDockPresent: !!document.getElementById("unitDock"),
       primaryControls: document.querySelectorAll("#liveDock .btn").length,
@@ -2787,8 +2931,18 @@ window.__iqr = {
     };
   },
   captureWorld() {
+    if (showtimeWanted) {
+      if (viewMode !== "door") applyDoorPose();
+      renderer.render(scene, camera);
+      return canvas.toDataURL("image/png");
+    }
     if (scanOpen) applyWorldPose();
     renderer.render(scene, unitCam);
+    return canvas.toDataURL("image/png");
+  },
+  captureDoor() {
+    applyDoorPose();
+    renderer.render(scene, doorCam);
     return canvas.toDataURL("image/png");
   },
   captureScan() {
@@ -2802,6 +2956,11 @@ window.__iqr = {
     return true;
   },
   exitScan() {
+    if (showtimeWanted) {
+      applyDoorPose();
+      renderer.render(scene, doorCam);
+      return true;
+    }
     applyWorldPose();
     renderer.render(scene, unitCam);
     return true;
