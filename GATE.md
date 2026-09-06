@@ -10,7 +10,7 @@ SoT: **ICQR-first door** — dense 3D QR field of cuboid minions around the hero
 **living8 + living9 are REJECTED** (Fabian HARD): camera/crop + all-orange instanced strip flattened the door into a 2D poster (big PORTA BOOM logo, TL, boom, orange cabinet footer). living10 restores the last GOOD 3D field (living5 composition / living7 structure) and only then lightly dresses cabinet modules.
 
 Proof runner: `node scripts/gate-living4-showtime.mjs` (Playwright + jsQR).
-Send file: `fabian-showtime-qr.png` (also `gate-artifacts/` + `/opt/cursor/artifacts/`).
+Send file: `fabian-showtime-qr.png` — **living-still** of the ICQR door field (elevated 3D cuboid crowd + hero PORTABOOM), ECC H, jsQR = living10 showtime URL (never DEST). Not a plain novel B&W QR. Not wordmark-only colored modules. Builder: `node scripts/make-showtime-qr.mjs`. `gate-artifacts/fabian-showtime-qr-paint-clean.png` is a regression fixture only. Copies: `gate-artifacts/` + `/opt/cursor/artifacts/`.
 Living2 regression: `node scripts/gate-living2.mjs` (no `showtime=` → boom up / green, Life + Tap to scan).
 
 Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
@@ -41,7 +41,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
 | After down = leave configured DEST (override) | `?dest=` URL-encoded test site → leave that URL, not the default |
 | Zero website chrome on the door | `#hud` `display:none` for the whole showtime path |
-| Stationary send QR | jsQR decodes living showtime URL `?v=living10&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
+| Stationary send QR | jsQR decodes living showtime URL `?v=living10&showtime=1` from living-still `fabian-showtime-qr.png` (not DEST). Visual: 3D cuboid field + hero PORTABOOM, not flat B&W novel QR |
 | Tap to scan → baked product matrix | default living page `captureScan()` native jsQR → default product URL |
 
 ## STRESS
@@ -72,9 +72,11 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 ## How to scan (Fabian send)
 
-1. Point a phone at **`fabian-showtime-qr.png`** (stationary).
-2. Camera opens the living Incredible QR **door** — elevated 3D field of cuboid minions around the hero (cabinet + traffic light + one boom).
-3. Tap (or wait one beat). Watch green 0.5s → amber 1s → red 0.5s → boom down **on that QR world**.
+1. Point a phone at **`fabian-showtime-qr.png`** (stationary living-still). The PNG itself should read as the living door: dense cuboid field + hero PORTABOOM (cabinet / green face LEDs / traffic light / one striped boom / STOP). It is not a plain novel QR.
+2. Phone camera / jsQR must open `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1` — never DEST.
+3. Living door (tip stays living10): elevated 3D field of cuboid minions around the hero. Tap (or wait one beat). Watch green 0.5s → amber 1s → red 0.5s → boom down **on that QR world**.
 4. After the boom is fully down, the page goes to DEST (default product link, or `?dest=` if the living URL includes one).
+
+**Phone-scan proof:** `node scripts/make-showtime-qr.mjs` writes the tip PNG and fail-closes unless jsQR (native + 800px downscale) equals `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1` and never DEST. Latest builder proof: version **8** / **49×49** / **1244** dark / ECC **H**; `livingStill.match=true` `how=native`; `phoneScan.downscale800=true`; look `notFlatBW` + `heroReadable` + `livingPalette`. Point a phone at the same PNG to confirm the camera opens that URL.
 
 Do not merge. Chief delivers the PNG after merge.

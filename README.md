@@ -12,7 +12,7 @@ Cache-bust: `app.js?v=living10`
 
 Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
-Send QR (after Chief merge): `fabian-showtime-qr.png` → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
+Send QR (after Chief merge): `fabian-showtime-qr.png` is a **living-still** of the door field (3D cuboid crowd + hero PORTABOOM), ECC H, encoding `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1` — never DEST. Rebuild: `node scripts/make-showtime-qr.mjs`.
 
 ## How to scan
 

@@ -4,14 +4,43 @@
   "version": 8,
   "size": 49,
   "dark": 1244,
+  "style": "living-still-cuboid-field",
   "clean": {
     "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
     "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
-    "match": true
+    "match": true,
+    "how": "native"
   },
-  "livingMatrix": {
-    "file": "/workspace/gate-artifacts/fabian-showtime-qr-living-matrix.png",
-    "decoded": null,
-    "match": false
+  "paintClean": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr-paint-clean.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "note": "regression fixture only — not the tip send file"
+  },
+  "livingStill": {
+    "file": "/workspace/gate-artifacts/fabian-showtime-qr.png",
+    "root": "/workspace/fabian-showtime-qr.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "how": "native",
+    "look": {
+      "orange": 21445,
+      "stripe": 2411,
+      "led": 814,
+      "cream": 202772,
+      "ink": 61358,
+      "uniqueish": 16,
+      "samples": 308880,
+      "notFlatBW": true,
+      "heroReadable": true,
+      "livingPalette": true
+    }
+  },
+  "phoneScan": {
+    "how": "Point a phone camera at fabian-showtime-qr.png. It must open the living10 showtime door URL, never DEST.",
+    "jsQR": true,
+    "downscale800": true,
+    "downscaleDecoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "notDest": true
   }
 }
