@@ -63,6 +63,10 @@ body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
 #motionHint{display:none;position:fixed;left:50%;bottom:calc(var(--sab)+18px);transform:translateX(-50%);z-index:5;pointer-events:none;font:800 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:#9A3F00;background:rgba(244,239,230,.92);border:1px solid rgba(238,114,2,.35);border-radius:999px;padding:8px 12px;white-space:nowrap}
 body.motion1 #motionHint{display:block}
 body.motion1.scan-open #motionHint{display:none}
+body.motion2 #motionHint{display:block}
+body.motion2.scan-open #motionHint{display:none}
+body.motion2{background:#0d0d12}
+body.motion2 canvas#stage:not([data-iqr-ready]){background:#0d0d12}
 @media (max-width:480px){
   .dock{gap:7px}
   .btn{padding:12px 14px;font-size:12px;flex:1 1 calc(50% - 8px)}
@@ -102,14 +106,21 @@ body.motion1.scan-open #motionHint{display:none}
 (function () {
   const q = new URLSearchParams(location.search);
   const motion1 = q.get("v") === "motion1";
-  const showtime = q.get("showtime") === "1" || q.get("v") === "preview5" || motion1;
+  const motion2 = q.get("v") === "motion2";
+  const showtime = q.get("showtime") === "1" || q.get("v") === "preview5" || motion1 || motion2;
   if (showtime) {
     document.body.classList.add("showtime");
-    document.documentElement.style.background = "#f4efe6";
-    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");
+    const doorBg = motion2 ? "#0d0d12" : "#f4efe6";
+    document.documentElement.style.background = doorBg;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", doorBg);
   }
   if (motion1) document.body.classList.add("motion1");
-  const src = motion1 ? "./app.js?v=motion1" : "./app.js?v=living10";
+  if (motion2) {
+    document.body.classList.add("motion2");
+    const hint = document.getElementById("motionHint");
+    if (hint) hint.textContent = "PREVIEW · auto showtime";
+  }
+  const src = motion2 ? "./app.js?v=motion2" : motion1 ? "./app.js?v=motion1" : "./app.js?v=living10";
   const s = document.createElement("script");
   s.type = "module";
   s.src = src;

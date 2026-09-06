@@ -586,6 +586,7 @@ const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
 const preview5Wanted = pageParams.get("v") === "preview5";
 const motion1Wanted = pageParams.get("v") === "motion1";
+const motion2Wanted = pageParams.get("v") === "motion2";
 const showtimeWanted = pageParams.get("showtime") === "1" || preview5Wanted;
 const destParam = pageParams.get("dest");
 const destParsed = parseHttpUrl(destParam);
@@ -610,7 +611,7 @@ const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD
  * looking like a twin-site 3/4 product hero. Tap starts transform;
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
-const SHOWTIME_DOOR_S = motion1Wanted ? 6.0 : (preview5Wanted ? 0.85 : 2.6);
+const SHOWTIME_DOOR_S = motion2Wanted ? 0.35 : (motion1Wanted ? 6.0 : (preview5Wanted ? 0.85 : 2.6));
 /** Magic Tree tap door — modules must sit still this long for Camera. motion1 only. */
 const MAGIC_HOLD_MS = 500;
 /** Idle bob of raised dark modules. living10 showtime stays frozen. */
@@ -628,7 +629,7 @@ const DOOR_SIGNAL_PAD = 1.10;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.62;
 // Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
-let showtimePhase = showtimeWanted ? "door" : "off";
+let showtimePhase = (showtimeWanted || motion2Wanted) ? "door" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
 let destLeave = null;
@@ -638,8 +639,8 @@ let magicPhase = motion1Wanted ? "idle" : "off"; // off | idle | flattening | ho
 let magicHoldStartedAt = 0;
 let magicHoldMs = 0;
 let magicModulesStable = false;
-if (showtimeWanted || motion1Wanted) document.body.classList.add("showtime");
-let viewMode = (showtimeWanted || motion1Wanted) ? "door" : "world"; // door = ICQR QR-field · world = living2 plaza · scan = tap-to-scan
+if (showtimeWanted || motion1Wanted || motion2Wanted) document.body.classList.add("showtime");
+let viewMode = motion2Wanted ? "motion2" : ((showtimeWanted || motion1Wanted) ? "door" : "world"); // door = ICQR QR-field · world = living2 plaza · scan = tap-to-scan · motion2 = left hero-lock
 let scanOpen = false;
 let lifeOn = !reduced;
 
@@ -696,7 +697,7 @@ const SCAN_POSE = {
 scanCam.position.copy(SCAN_POSE.pos);
 scanCam.up.set(0, 0, -1);
 scanCam.lookAt(SCAN_POSE.tgt);
-let camera = (showtimeWanted || motion1Wanted) && !preview5Wanted ? doorCam : unitCam;
+let camera = motion2Wanted ? unitCam : ((showtimeWanted || motion1Wanted) && !preview5Wanted ? doorCam : unitCam);
 
 scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -996,7 +997,11 @@ bindGroups(boom);
 applyCoreShowConfig(boom);
 placeTwinInLivingWorld();
 initOrbit(boom);
-if (motion1Wanted) {
+if (motion2Wanted) {
+  applyMotion2Pose();
+  showtimePhase = "door";
+  armDoorBeat();
+} else if (motion1Wanted) {
   applyDoorPose();
   if (showtimeWanted) {
     showtimePhase = "door";
@@ -1100,6 +1105,79 @@ function lockHeroCamera(root) {
   );
   camera.lookAt(center.x, center.y + size.y * 0.02, center.z);
   camera.updateProjectionMatrix();
+}
+
+/**
+ * motion2 only — front/left hero lock so boom-down reads on a phone.
+ * Planted yaw stays twin SoT (π). Subject includes the lowered boom,
+ * so more arm is in frame than motion1's door crop (DOOR_BOOM_KEEP).
+ */
+function motion2SubjectBox(root) {
+  const box = new THREE.Box3();
+  const hero = gatherHeroBox(root);
+  if (hero && !hero.isEmpty()) box.union(hero);
+  const arm = findBoomArm(root);
+  if (arm) {
+    const saved = boomRig?.shownPct;
+    const poseDown = !!(boomRig && showtimePhase !== "playing" && showtimePhase !== "settled");
+    if (poseDown) applyBoomShown(0);
+    root.updateMatrixWorld(true);
+    const boomBox = worldBox(arm);
+    if (boomBox && !boomBox.isEmpty()) box.union(boomBox);
+    if (poseDown && saved != null) applyBoomShown(saved);
+    root.updateMatrixWorld(true);
+  }
+  return box.isEmpty() && root ? gatherHeroBox(root) : box;
+}
+
+function lockMotion2Camera(root) {
+  if (!root) return;
+  camera = unitCam;
+  const box = motion2SubjectBox(root);
+  const hero = gatherHeroBox(root);
+  const size = box.getSize(new THREE.Vector3());
+  const center = box.getCenter(new THREE.Vector3());
+  const heroC = hero && !hero.isEmpty()
+    ? hero.getCenter(new THREE.Vector3())
+    : center.clone();
+  const yaw = root.userData.plantedYaw ?? root.rotation.y ?? Math.PI;
+  const face = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
+  const right = new THREE.Vector3(face.z, 0, -face.x);
+  const left = right.clone().multiplyScalar(-1);
+  unitCam.fov = 32;
+  unitCam.near = 0.05;
+  unitCam.far = 80;
+  unitCam.updateProjectionMatrix();
+  const fov = THREE.MathUtils.degToRad(unitCam.fov);
+  const aspect = Math.max(0.42, unitCam.aspect || 0.46);
+  const distH = (size.y * 1.52) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 2.08) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 2.45);
+  unitCam.position.set(
+    center.x + face.x * dist * 0.72 + left.x * dist * 0.54,
+    center.y + size.y * 0.20,
+    center.z + face.z * dist * 0.72 + left.z * dist * 0.54
+  );
+  const look = new THREE.Vector3(
+    THREE.MathUtils.lerp(heroC.x, center.x, 0.68),
+    center.y - size.y * 0.02,
+    THREE.MathUtils.lerp(heroC.z, center.z, 0.48)
+  );
+  unitCam.lookAt(look);
+  unitCam.updateProjectionMatrix();
+  unitCam.userData.motion2Look = look;
+}
+
+function measureMotion2HeroFrame() {
+  if (!boom || viewMode !== "motion2") return null;
+  return projectBoxViewportFrac(gatherHeroBox(boom), unitCam);
+}
+
+function measureMotion2BoomFrame() {
+  if (!boom || (viewMode !== "motion2" && viewMode !== "scan")) return null;
+  const arm = findBoomArm(boom);
+  if (!arm || arm.visible === false) return null;
+  return projectBoxViewportFrac(worldBox(arm), camera);
 }
 
 /** Twin plant: wheels on ground, face camera, then hero-lock on cabinet + signal. */
@@ -1541,6 +1619,8 @@ function projectBoxViewportFrac(box, cam) {
     overflowY: +overflowY.toFixed(4),
     fullyIn: overflowX <= 0.02 && overflowY <= 0.02,
     mostlyIn: overflowX <= 0.18 && overflowY <= 0.18,
+    midX: +((x0 + x1) / 2).toFixed(4),
+    midY: +((y0 + y1) / 2).toFixed(4),
   };
 }
 
@@ -1725,7 +1805,7 @@ function lockWorldCamera() {
 }
 
 function showtimeHudHidden() {
-  return !!showtimeWanted || motion1Wanted;
+  return !!showtimeWanted || motion1Wanted || motion2Wanted;
 }
 
 function clearDoorBeat() {
@@ -1737,7 +1817,7 @@ function clearDoorBeat() {
 
 function armDoorBeat() {
   if (motion1Wanted && pageParams.get("showtime") !== "1") return;
-  if (!showtimeWanted && !motion1Wanted) return;
+  if (!showtimeWanted && !motion1Wanted && !motion2Wanted) return;
   clearDoorBeat();
   doorBeatTimer = window.setTimeout(() => {
     doorBeatTimer = 0;
@@ -1750,7 +1830,7 @@ function armDoorBeat() {
 
 function startShowtime() {
   if (!boomRig) return false;
-  if (!showtimeWanted && !motion1Wanted) return false;
+  if (!showtimeWanted && !motion1Wanted && !motion2Wanted) return false;
   if (showtimePhase === "settled") return false;
   if (showtimePhase === "playing") return true;
   if (motion1Wanted) {
@@ -1762,7 +1842,8 @@ function startShowtime() {
   }
   clearDoorBeat();
   showtimePhase = "playing";
-  applyDoorPose();
+  if (motion2Wanted) applyMotion2Pose();
+  else applyDoorPose();
   setDoorBoomArm(true);
   boomRig.speed = 100 / SHOWTIME_LOWER_S;
   applyBoomShown(100);
@@ -1809,6 +1890,10 @@ function settleShowtime() {
   if (controls) controls.enabled = false;
   setStatus("Showtime");
   syncModeHud();
+  if (motion2Wanted) {
+    beginMotion2FlattenThenDest();
+    return;
+  }
   if (!destLeave && !destLeaveTimer) {
     destLeaveTimer = window.setTimeout(() => {
       destLeaveTimer = 0;
@@ -1937,9 +2022,61 @@ function endMagicHold() {
   return true;
 }
 
+function applyMotion2Pose() {
+  scanOpen = false;
+  viewMode = "motion2";
+  camera = unitCam;
+  if (boom) boom.visible = true;
+  studioGroup.visible = false;
+  grid.visible = false;
+  if (living.scanPad) living.scanPad.visible = false;
+  if (living.apron) living.apron.visible = false;
+  if (living.ring) living.ring.visible = false;
+  setScanModuleLook(false);
+  setDoorModuleLook(true);
+  if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  scene.background = new THREE.Color(0x0d0d12);
+  renderer.setClearColor(0x0d0d12, 1);
+  if (controls) {
+    controls.enabled = false;
+    controls.autoRotate = false;
+    controls.object = unitCam;
+  }
+  placeTwinInLivingWorld();
+  setDoorBoomArm(true);
+  if (brandBack) brandBack.visible = false;
+  if (boom) lockMotion2Camera(boom);
+  setStatus("MOTION2");
+  syncModeHud();
+}
+
+function beginMotion2FlattenThenDest() {
+  magicPhase = "flattening";
+  freezeLivingModules();
+  applyScanPose();
+  magicHoldStartedAt = performance.now();
+  magicHoldMs = 0;
+  magicModulesStable = false;
+  magicPhase = "hold";
+  setStatus("Hold · Camera");
+  syncModeHud();
+  if (!destLeave && !destLeaveTimer) {
+    destLeaveTimer = window.setTimeout(() => {
+      destLeaveTimer = 0;
+      leaveToDest("motion2-flatten-hold");
+    }, MAGIC_HOLD_MS);
+  }
+}
+
 function applyDoorPose() {
   if (preview5Wanted) {
     applyPreview5Pose();
+    return;
+  }
+  if (motion2Wanted) {
+    applyMotion2Pose();
     return;
   }
   scanOpen = false;
@@ -2955,7 +3092,13 @@ rigTrafficLamps(boom);
 setSignType("round");
 addLogoDecal(boom);
 setSignalAspect("green");
-if (motion1Wanted) {
+if (motion2Wanted) {
+  document.body.classList.add("showtime");
+  applyMotion2Pose();
+  showtimePhase = "door";
+  armDoorBeat();
+  syncModeHud();
+} else if (motion1Wanted) {
   magicPhase = "idle";
   document.body.classList.add("showtime");
   applyDoorPose();
@@ -3009,7 +3152,20 @@ function mountCad(gltf, label) {
     placeTwinInLivingWorld();
     if (scanOpen) setScanModuleLook(true);
     else setDoorModuleLook(true);
-    if (motion1Wanted) {
+    if (motion2Wanted) {
+      applyBoomShown(100);
+      setSignalAspect("green");
+      if (magicPhase === "hold" || showtimePhase === "settled") {
+        beginMotion2FlattenThenDest();
+      } else if (showtimePhase === "playing") {
+        applyMotion2Pose();
+        boomRig.speed = 100 / SHOWTIME_LOWER_S;
+      } else {
+        applyMotion2Pose();
+        showtimePhase = "door";
+        armDoorBeat();
+      }
+    } else if (motion1Wanted) {
       applyBoomShown(100);
       setSignalAspect("green");
       if (magicPhase === "hold") {
@@ -3120,6 +3276,10 @@ function syncModeHud() {
 }
 
 function setViewMode(next) {
+  if (motion2Wanted) {
+    applyMotion2Pose();
+    return;
+  }
   if (motion1Wanted) {
     if (magicPhase === "hold") beginMagicHold();
     else applyDoorPose();
@@ -3140,7 +3300,11 @@ function resize() {
   unitCam.aspect = w / h;
   unitCam.updateProjectionMatrix();
   if (viewMode === "door") fitDoorOrtho();
-  else if (viewMode === "preview5") {
+  else if (viewMode === "motion2") {
+    unitCam.aspect = w / h;
+    unitCam.updateProjectionMatrix();
+    if (boom) lockMotion2Camera(boom);
+  } else if (viewMode === "preview5") {
     unitCam.aspect = w / h;
     unitCam.updateProjectionMatrix();
     if (boom) lockHeroCamera(boom);
@@ -3157,12 +3321,12 @@ function tick() {
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
   tickCamGlide(dt);
-  grid.visible = viewMode !== "preview5";
-  studioGroup.visible = !scanOpen && !showtimeWanted && !motion1Wanted;
+  grid.visible = viewMode !== "preview5" && viewMode !== "motion2";
+  studioGroup.visible = !scanOpen && !showtimeWanted && !motion1Wanted && !motion2Wanted;
   if (boom) boom.visible = !scanOpen;
-  if ((showtimeWanted || motion1Wanted) && living.apron) living.apron.visible = false;
-  if ((showtimeWanted || motion1Wanted) && living.ring) living.ring.visible = false;
-  if (motion1Wanted && magicPhase === "hold") {
+  if ((showtimeWanted || motion1Wanted || motion2Wanted) && living.apron) living.apron.visible = false;
+  if ((showtimeWanted || motion1Wanted || motion2Wanted) && living.ring) living.ring.visible = false;
+  if ((motion1Wanted || motion2Wanted) && magicPhase === "hold") {
     magicHoldMs = performance.now() - magicHoldStartedAt;
     magicModulesStable = magicHoldMs >= MAGIC_HOLD_MS;
     freezeLivingModules();
@@ -3170,6 +3334,7 @@ function tick() {
   const fieldLife = lifeOn && !reduced && !scanOpen
     && magicPhase !== "hold" && magicPhase !== "flattening"
     && showtimePhase !== "playing" && showtimePhase !== "settled"
+    && !motion2Wanted
     && (!showtimeWanted || motion1Wanted);
   if (fieldLife) {
     const amp = living.cell * (motion1Wanted ? MOTION1_AMP_CELL : 0.01);
@@ -3221,6 +3386,10 @@ if (canvas) {
   canvas.addEventListener("pointerup", (ev) => {
     if (performance.now() - tapStart > 280) return;
     if (Math.hypot(ev.clientX - tapX, ev.clientY - tapY) > 10) return;
+    if (motion2Wanted) {
+      if (showtimePhase === "door") startShowtime();
+      return;
+    }
     if (motion1Wanted) {
       if (showtimePhase === "playing" || showtimePhase === "settled") return;
       if (magicPhase === "hold") {
@@ -3288,6 +3457,8 @@ window.__iqr = {
   leaveToDest,
   beginMagicHold,
   endMagicHold,
+  beginMotion2FlattenThenDest,
+  applyMotion2Pose,
   get boom() { return boom; },
   get camera() {
     return {
@@ -3339,13 +3510,28 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: motion1Wanted
-        ? "motion1-icqr-door"
-        : preview5Wanted
-          ? "preview5-hero-lock"
-          : (showtimeWanted ? "living10-icqr-door" : "living2-brand-world"),
+      product: motion2Wanted
+        ? "motion2-hero-lock"
+        : motion1Wanted
+          ? "motion1-icqr-door"
+          : preview5Wanted
+            ? "preview5-hero-lock"
+            : (showtimeWanted ? "living10-icqr-door" : "living2-brand-world"),
       preview5: preview5Wanted,
       motion1: motion1Wanted,
+      motion2: motion2Wanted,
+      motion2AutoFlow: motion2Wanted,
+      motion2HeroFrame: measureMotion2HeroFrame(),
+      motion2BoomFrame: measureMotion2BoomFrame(),
+      motion2BoomInFrame: (() => {
+        const f = measureMotion2BoomFrame();
+        return !!(f && (f.widthFrac >= 0.22 || f.heightFrac >= 0.16));
+      })(),
+      motion2HeroLeft: (() => {
+        const f = measureMotion2HeroFrame();
+        return !!(f && f.midX != null && f.midX <= 0.18);
+      })(),
+      motion2FramedLeft: motion2Wanted && viewMode === "motion2",
       magicPhase,
       magicHoldMs: magicPhase === "hold"
         ? +(Math.max(magicHoldMs, performance.now() - magicHoldStartedAt)).toFixed(1)
@@ -3358,7 +3544,7 @@ window.__iqr = {
         : 0,
       fieldMotionOn: motion1Wanted && magicPhase === "idle" && !scanOpen,
       fieldMotionAmpCell: motion1Wanted ? MOTION1_AMP_CELL : 0.01,
-      scanHoldPayload: motion1Wanted ? DEST : null,
+      scanHoldPayload: (motion1Wanted || motion2Wanted) ? DEST : null,
       miniCabinetSource: living.miniCabinetSource ?? null,
       miniClonedFromTwin: living.miniClonedFromTwin === true,
       miniFieldKind: living.miniFieldKind ?? living.group?.userData?.miniFieldKind ?? null,
@@ -3625,6 +3811,11 @@ window.__iqr = {
     return true;
   },
   exitScan() {
+    if (motion2Wanted) {
+      applyMotion2Pose();
+      renderer.render(scene, unitCam);
+      return true;
+    }
     if (showtimeWanted) {
       applyDoorPose();
       renderer.render(scene, doorCam);
