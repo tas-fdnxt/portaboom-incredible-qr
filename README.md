@@ -14,7 +14,7 @@ Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
 MOTION PREVIEW (not READY): `preview-motion/` → https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/
 
-Sendable tip (PREVIEW): `/?v=motion1` — living field first-paint. MOTION2 harden (PREVIEW, not READY): `/?v=motion2` — left hero-lock, auto showtime → flatten ≥500ms → DEST. Static OPTION 1–4 stay under `preview-options/` and are **not** the product.
+Sendable tip (PREVIEW): `/?v=motion1` — living field first-paint. P113 MOTION3 (PREVIEW, not READY, do not send): `/?v=motion3` — Magic Tree living tip; same field flattens in place → hold ≥500ms → DEST. Twin SoT: https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off. **motion2 REJECTED / not sendable.** Static OPTION 1–4 stay under `preview-options/` and are **not** the product.
 
 Send still (after Chief merge): `fabian-showtime-qr.png` — Magic Tree living field (PORTABOOM geometry **in** the QR, not a B&W card / not a PR#28 border sticker) → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
 

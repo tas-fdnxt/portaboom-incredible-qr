@@ -67,6 +67,9 @@ body.motion2 #motionHint{display:block}
 body.motion2.scan-open #motionHint{display:none}
 body.motion2{background:#0d0d12}
 body.motion2 canvas#stage:not([data-iqr-ready]){background:#0d0d12}
+body.motion3 #motionHint{display:block}
+body.motion3{background:#f4efe6}
+body.motion3 canvas#stage:not([data-iqr-ready]){background:#f4efe6}
 @media (max-width:480px){
   .dock{gap:7px}
   .btn{padding:12px 14px;font-size:12px;flex:1 1 calc(50% - 8px)}
@@ -107,7 +110,8 @@ body.motion2 canvas#stage:not([data-iqr-ready]){background:#0d0d12}
   const q = new URLSearchParams(location.search);
   const motion1 = q.get("v") === "motion1";
   const motion2 = q.get("v") === "motion2";
-  const showtime = q.get("showtime") === "1" || q.get("v") === "preview5" || motion1 || motion2;
+  const motion3 = q.get("v") === "motion3";
+  const showtime = q.get("showtime") === "1" || q.get("v") === "preview5" || motion1 || motion2 || motion3;
   if (showtime) {
     document.body.classList.add("showtime");
     const doorBg = motion2 ? "#0d0d12" : "#f4efe6";
@@ -120,7 +124,12 @@ body.motion2 canvas#stage:not([data-iqr-ready]){background:#0d0d12}
     const hint = document.getElementById("motionHint");
     if (hint) hint.textContent = "PREVIEW · auto showtime";
   }
-  const src = motion2 ? "./app.js?v=motion2" : motion1 ? "./app.js?v=motion1" : "./app.js?v=living10";
+  if (motion3) {
+    document.body.classList.add("motion3");
+    const hint = document.getElementById("motionHint");
+    if (hint) hint.textContent = "PREVIEW · living field";
+  }
+  const src = motion3 ? "./app.js?v=motion3" : motion2 ? "./app.js?v=motion2" : motion1 ? "./app.js?v=motion1" : "./app.js?v=living10";
   const s = document.createElement("script");
   s.type = "module";
   s.src = src;

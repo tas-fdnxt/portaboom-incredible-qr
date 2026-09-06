@@ -26,28 +26,40 @@ Short HTML door (iframe of the tip):
 
 `https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/tip.html`
 
-## MOTION2 harden (additive — do not break living10 or motion1)
+## P113 LOCK · MOTION3 living Incredible tip (Magic Tree)
 
-Not READY. Do not merge as product. New tip path only.
+Not READY. Do not send. Do not merge. New `?v=motion3` only.
 
-Sendable (tip URL, not a sticker):
+**Morph** = same living field flattens in place → hold ≥500ms → DEST.
 
-`https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion2`
+**Flow** = field moves ≤3s → cycle boom/LED still in field → morph in place → DEST.
+
+**Twin SoT:** https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off
+
+**motion2 REJECTED / not sendable.** Do not revive the fail set (separate-frame QR after showtime · black-studio center · static PNG DONE · unit still centered when left asked · `applyScanPose` full-screen commodity QR · hero-then-different-QR-screen · black studio void replacing field).
+
+PREVIEW tip URL (not a sticker, not READY):
+
+`https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion3`
+
+Receipt: `preview-motion/RECEIPT_MOTION3.md` · `RECEIPT_MOTION3.json`
 
 Short HTML door:
 
-`https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/tip-motion2.html`
+`https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/tip-motion3.html`
 
 Auto flow on open (no required first tap):
 
-1. First paint — `lockMotion2Camera` · motion2 yaw 0 (living10/motion1 keep planted π) · unit LEFT · boom-down across the right (more boom than motion1 door crop)
-2. Cycle — twin LED SoT (green raised-at-rest / red flash ~640ms moving-or-down) · showtime 0.5 + 1 + 0.5 + boom
-3. Morph flatten to QR · modules stable ≥500ms
+1. First paint — living ICQR field present (cream, raised modules / mini boom field). Unit **LEFT**. Field moves ≤3s (door beat **2.5s**).
+2. Cycle **still in that field** — twin LED SoT (green raised-at-rest / red flash ~640ms moving-or-down) · showtime 0.5 + 1 + 0.5 + boom
+3. Morph **in place** — same doorCam / same field. Modules flatten and hold ≥500ms. `scanOpen === false`. Not `applyScanPose`.
 4. `location.assign` DEST (default PB4000 product page, or existing `?dest=` override)
 
-Motion visible ≤3s (door beat **0.35s**; boom lower starts at ~2.35s).
-
 `?dest=` uses the same `dest-config.mjs` parser as living10. Invalid / non-http falls back to the default product URL.
+
+## MOTION2 (REJECTED — left in tree, do not ship)
+
+`/?v=motion2` remains on origin as the rejected cutaway / hero-lock experiment. Not this tip. Do not treat it as the product.
 
 ## Intended Pages (after a safe additive merge)
 
@@ -57,9 +69,11 @@ Motion visible ≤3s (door beat **0.35s**; boom lower starts at ~2.35s).
 | M1 tip | Three.js living field (HAVE) | `/?v=motion1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1` |
 | M1 tip+show | same tip + auto showtime | `/?v=motion1&showtime=1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1&showtime=1` |
 | M1 short | HTML door | `preview-motion/tip.html` | `…/preview-motion/tip.html` |
-| MOTION2 | MOTION2 harden · left boom-down + auto flow | `preview-motion/MOTION2_PREVIEW.html` | `…/preview-motion/MOTION2_PREVIEW.html` |
-| MOTION2 tip | hero-lock auto showtime → flatten → DEST | `/?v=motion2` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion2` |
-| MOTION2 short | HTML door | `preview-motion/tip-motion2.html` | `…/preview-motion/tip-motion2.html` |
+| MOTION3 | P113 · living Incredible tip | `preview-motion/MOTION3_PREVIEW.html` | `…/preview-motion/MOTION3_PREVIEW.html` |
+| MOTION3 tip | field → cycle in field → flatten in place → DEST | `/?v=motion3` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion3` |
+| MOTION3 receipt | P113 proof | `preview-motion/RECEIPT_MOTION3.md` | `…/preview-motion/RECEIPT_MOTION3.md` |
+| MOTION3 short | HTML door | `preview-motion/tip-motion3.html` | `…/preview-motion/tip-motion3.html` |
+| MOTION2 | REJECTED / not sendable | `preview-motion/MOTION2_PREVIEW.html` | `…/preview-motion/MOTION2_PREVIEW.html` |
 | M2 | OPTION M2 · PREVIEW — animated sendable | `preview-motion/OPTION_M2_PREVIEW.html` | `…/preview-motion/OPTION_M2_PREVIEW.html` |
 | M2 loop | GIF / WebP / MP4 | `preview-motion/living-field.gif` · `.webp` · `.mp4` | `…/preview-motion/living-field.gif` |
 | M2 decode | honest jsQR note | `preview-motion/DECODE.json` | `…/preview-motion/DECODE.json` |
@@ -93,3 +107,4 @@ Leave-after-showtime / flatten payload:
 - No new QR lib deps
 - living10 `/?v=living10&showtime=1` and `fabian-showtime-qr.png` untouched
 - motion1 `/?v=motion1` unchanged (tap flatten still required; 6s showtime beat only with `?showtime=1`)
+- motion2 REJECTED — not revived, not “fixed”
