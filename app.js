@@ -830,24 +830,24 @@ let brandBack = null;
 function makeBrandWordmarkTex() {
   const c = document.createElement("canvas");
   c.width = 2048;
-  c.height = 560;
+  c.height = 512;
   const ctx = c.getContext("2d");
-  ctx.clearRect(0, 0, 2048, 560);
+  ctx.clearRect(0, 0, 2048, 512);
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  ctx.font = "900 228px Arial Black, Arial, sans-serif";
+  ctx.font = "900 210px Arial Black, Arial, sans-serif";
   ctx.fillStyle = "#1b2a4a";
-  ctx.fillText("PORTA", 620, 230);
+  ctx.fillText("PORTA", 620, 210);
   ctx.fillStyle = "#1b1e24";
-  ctx.fillText("BOOM", 1440, 230);
+  ctx.fillText("BOOM", 1440, 210);
   ctx.fillStyle = "#ee7202";
   for (let i = 0; i < 4; i += 1) {
-    const x = 1220 + i * 108;
+    const x = 1225 + i * 100;
     ctx.beginPath();
-    ctx.moveTo(x, 372);
-    ctx.lineTo(x + 72, 372);
-    ctx.lineTo(x + 38, 468);
-    ctx.lineTo(x - 34, 468);
+    ctx.moveTo(x, 340);
+    ctx.lineTo(x + 68, 340);
+    ctx.lineTo(x + 34, 440);
+    ctx.lineTo(x - 34, 440);
     ctx.closePath();
     ctx.fill();
   }
@@ -859,29 +859,11 @@ function makeBrandWordmarkTex() {
 
 function makeDoorSkyTex() {
   const c = document.createElement("canvas");
-  c.width = 2048;
-  c.height = 2048;
+  c.width = 64;
+  c.height = 64;
   const ctx = c.getContext("2d");
   ctx.fillStyle = "#f4efe6";
-  ctx.fillRect(0, 0, 2048, 2048);
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = "900 260px Arial Black, Arial, sans-serif";
-  ctx.fillStyle = "#1b2a4a";
-  ctx.fillText("PORTA", 720, 380);
-  ctx.fillStyle = "#1b1e24";
-  ctx.fillText("BOOM", 1460, 380);
-  ctx.fillStyle = "#ee7202";
-  for (let i = 0; i < 4; i += 1) {
-    const x = 1240 + i * 100;
-    ctx.beginPath();
-    ctx.moveTo(x, 520);
-    ctx.lineTo(x + 68, 520);
-    ctx.lineTo(x + 34, 610);
-    ctx.lineTo(x - 34, 610);
-    ctx.closePath();
-    ctx.fill();
-  }
+  ctx.fillRect(0, 0, 64, 64);
   const tex = new THREE.CanvasTexture(c);
   tex.colorSpace = THREE.SRGBColorSpace;
   tex.needsUpdate = true;
@@ -893,7 +875,7 @@ function makeBrandBack() {
   const group = new THREE.Group();
   group.name = "PortaboomBackBrand";
   const word = new THREE.Mesh(
-    new THREE.PlaneGeometry(7.4, 7.4 * (560 / 2048)),
+    new THREE.PlaneGeometry(0.84, 0.84 * (512 / 2048)),
     new THREE.MeshBasicMaterial({
       map: makeBrandWordmarkTex(),
       transparent: true,
@@ -902,7 +884,7 @@ function makeBrandBack() {
     })
   );
   word.name = "PortaboomBackLogo";
-  word.position.set(0, 2.35, -2.85);
+  word.position.set(0, 1.48, -1.35);
   group.add(word);
   scene.add(group);
   return group;
@@ -1637,9 +1619,9 @@ function lockDoorCamera() {
       cy = THREE.MathUtils.lerp(cy, sc.y, 0.55);
     }
   }
-  // Front-facing: camera Y ≈ lens Y. Tiny lift only so the door still reads 3D.
+  // Dead-on: camera Y = lens Y so the three lamps read as circles.
   const dist = Math.max(sy * 2.35, sx * 3.1, 1.55);
-  doorCam.position.set(cx, lookY + sy * 0.08, cz + dist);
+  doorCam.position.set(cx, lookY, cz + dist);
   doorCam.lookAt(cx, lookY, cz);
   doorCam.updateProjectionMatrix();
 }
@@ -1658,17 +1640,26 @@ function setLivingCaps(visible) {
   }
 }
 
-/** Door: keep finder/timing/align black so it still reads as a QR; hide data caps so livery shows. */
+/** Door: hide scan caps so the heap reads as mini cabinets, not black lids. */
 function setDoorModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
-    if (!cap) continue;
-    if (!on) {
-      cap.visible = true;
-      continue;
-    }
-    const kind = m.userData.kind;
-    cap.visible = kind === "finder" || kind === "timing" || kind === "alignment";
+    if (cap) cap.visible = !on;
+    const logo = m.getObjectByName("MiniLogo");
+    if (logo) logo.visible = true;
+  }
+}
+
+/** Scan: only black caps + paper. Hide mini chrome so jsQR can read. */
+function setScanModuleLook(on) {
+  for (const m of mods) {
+    const cap = m.getObjectByName("QrModTop");
+    if (cap) cap.visible = true;
+    m.traverse((o) => {
+      if (!o.isMesh) return;
+      if (o.name === "QrModTop") return;
+      if (/MiniCabinet|MiniBand|MiniWheel|MiniLogo/.test(o.name || "")) o.visible = !on;
+    });
   }
 }
 
@@ -1808,7 +1799,8 @@ function applyWorldPose() {
   if (living.scanPad) living.scanPad.visible = false;
   if (living.apron) living.apron.visible = true;
   if (living.ring) living.ring.visible = true;
-  setLivingCaps(true);
+  setScanModuleLook(false);
+  setDoorModuleLook(true);
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
@@ -1863,6 +1855,7 @@ function applyDoorPose() {
   if (living.scanPad) living.scanPad.visible = false;
   if (living.apron) living.apron.visible = false;
   if (living.ring) living.ring.visible = false;
+  setScanModuleLook(false);
   setDoorModuleLook(true);
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -1893,6 +1886,7 @@ function applyScanPose() {
   if (living.ring) living.ring.visible = false;
   if (brandBack) brandBack.visible = false;
   setLivingCaps(true);
+  setScanModuleLook(true);
   if (paperMat?.color) paperMat.color.setHex(0xffffff);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.12;

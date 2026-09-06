@@ -17,12 +17,12 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Check | Result |
 | --- | --- |
-| `?showtime=1` first paint is ICQR QR field | `viewMode=door`, `showtimePhase=door`, cream QR paper, mini-cabinet modules, **not** living2 `lockWorldCamera` 3/4 plaza |
-| Straight-on lenses | `doorCamFrontFacing=true`, elevation shallower than −18°. Traffic-light lenses readable as stacked circles, not a steep top-down roof |
-| Cabinet + traffic light + boom in the field | Cabinet + lantern + a boom span stay in frame. Living5 cabinet-only hide rejected. Living4 full-pad speck rejected |
-| One boom only | `singleBoom=true`, `ghostBoomCount=0`. No decoy upright arm |
-| Mini field is PORTABOOMs, no TL heads | `miniHasTrafficLight=false`, `stripeModules=0`. Heap of miniature cabinets — no black/stripe towers, no mini lanterns |
-| Brand in the back | `backLogoVisible=true`. Big PORTABOOM wordmark behind the door |
+| `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, mini-cabinet modules, **not** living2 `lockWorldCamera` 3/4 plaza |
+| Straight-on lenses | GREEN — `doorCamFrontFacing=true`, elevation **0°**. Lantern `heightFrac=0.208` `fullyIn`. Not living6 steep roof-tilt |
+| Cabinet + traffic light + boom in the field | GREEN — cabinet `heightFrac=0.232`. Signal `fullyIn`. Boom in frame (`doorBoomHidden=false`). Living5 cabinet-only hide rejected |
+| One boom only | GREEN — `singleBoom=true`, `ghostBoomCount=0` on first paint and through lower |
+| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`. No mini lanterns |
+| Brand in the back | GREEN — `backLogoVisible=true`, `backLogoInFrame=true` |
 | Not another website | studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false` |
 | Not a flat B&W QR card | `looksLikeFlatBWQR=false`. Colored living minis + unit volume |
 
@@ -31,8 +31,8 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing ~1+1+1+1 | Green 1s → amber 1s → red 1s (boom still up) → boom down 1s. Budget **4.0s**. Then **0.4s** beat and `location.assign(leaveDest)` |
-| Single boom during lower | `ghostBoomCount=0` while `boomPct` falls 100 → 0 |
+| Timing ~1+1+1+1 | GREEN — measured green **1.075s** → amber **1.003s** → red hold **1.132s** → boom down; settle **4.049s**. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
 | After down = leave configured DEST (override) | `?dest=` URL-encoded test site → leave that URL, not the default |

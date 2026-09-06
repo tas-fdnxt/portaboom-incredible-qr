@@ -9,7 +9,7 @@
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
 
 export const CELL = 0.068;
-export const MODULE_FILL = 0.74;
+export const MODULE_FILL = 0.86;
 
 function makeMiniLogoTex(THREE) {
   const c = document.createElement("canvas");
@@ -55,12 +55,12 @@ function powder(THREE, hex) {
 }
 
 function heightFor(vocab) {
-  if (vocab === "finder") return 0.36;
-  if (vocab === "cabinet") return 0.26;
-  if (vocab === "head") return 0.23;
-  if (vocab === "led") return 0.2;
-  if (vocab === "timing") return 0.18;
-  return 0.22;
+  if (vocab === "finder") return 0.22;
+  if (vocab === "cabinet") return 0.18;
+  if (vocab === "head") return 0.16;
+  if (vocab === "led") return 0.15;
+  if (vocab === "timing") return 0.13;
+  return 0.16;
 }
 
 /**
@@ -100,12 +100,6 @@ export function buildLivingQr(THREE, spec) {
     roughness: 0.48,
     envMapIntensity: 0.7,
   });
-  const steelMat = new THREE.MeshStandardMaterial({
-    color: livery.S,
-    metalness: 0.9,
-    roughness: 0.28,
-    envMapIntensity: 1.15,
-  });
   const navyMat = new THREE.MeshStandardMaterial({
     color: 0x1b2a4a,
     metalness: 0.12,
@@ -131,12 +125,11 @@ export function buildLivingQr(THREE, spec) {
   });
 
   const fill = cell * MODULE_FILL;
-  const capGeo = new THREE.BoxGeometry(fill, cell * 0.07, fill);
-  const bodyGeo = new THREE.BoxGeometry(fill * 0.82, 1, fill * 0.64);
-  const lidGeo = new THREE.BoxGeometry(fill * 0.84, fill * 0.08, fill * 0.66);
-  const bandGeo = new THREE.BoxGeometry(fill * 0.84, fill * 0.11, fill * 0.66);
-  const wheelGeo = new THREE.CylinderGeometry(fill * 0.11, fill * 0.11, fill * 0.08, 10);
-  const logoGeo = new THREE.PlaneGeometry(fill * 0.58, fill * 0.4);
+  const capGeo = new THREE.BoxGeometry(cell * 0.98, cell * 0.08, cell * 0.98);
+  const bodyGeo = new THREE.BoxGeometry(fill * 0.92, 1, fill * 0.72);
+  const bandGeo = new THREE.BoxGeometry(fill * 0.94, fill * 0.07, fill * 0.74);
+  const wheelGeo = new THREE.CylinderGeometry(fill * 0.10, fill * 0.10, fill * 0.07, 10);
+  const logoGeo = new THREE.PlaneGeometry(fill * 0.7, fill * 0.48);
   const lightGeo = new THREE.BoxGeometry(fill, cell * 0.02, fill);
 
   const origin = (n - 1) / 2;
@@ -176,11 +169,6 @@ export function buildLivingQr(THREE, spec) {
       body.castShadow = true;
       body.receiveShadow = true;
       g.add(body);
-
-      const lid = new THREE.Mesh(lidGeo, steelMat);
-      lid.name = "MiniLid";
-      lid.position.y = bodyH + fill * 0.02;
-      g.add(lid);
 
       const band = new THREE.Mesh(bandGeo, navyMat);
       band.name = "MiniBand";

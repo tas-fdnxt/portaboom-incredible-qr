@@ -304,6 +304,7 @@ function summarizeTimeline(samples) {
   const firstRed = playing.find((s) => s.signalAspect === "red");
   const firstLower = playing.find((s) => s.signalAspect === "red" && (s.boomPct ?? 100) < 92);
   const lastPlay = [...playing].reverse().find(Boolean);
+  const settled = [...samples].reverse().find((s) => s.showtimePhase === "settled");
   const greenHeldS = firstAmber?.showtimeElapsed ?? 0;
   const amberHeldS = firstRed && firstAmber
     ? firstRed.showtimeElapsed - firstAmber.showtimeElapsed
@@ -311,7 +312,8 @@ function summarizeTimeline(samples) {
   const redHoldS = firstLower && firstRed
     ? firstLower.showtimeElapsed - firstRed.showtimeElapsed
     : 0;
-  const elapsedAtEnd = lastPlay?.showtimeElapsed
+  const elapsedAtEnd = settled?.showtimeElapsed
+    ?? lastPlay?.showtimeElapsed
     ?? samples[samples.length - 1]?.showtimeElapsed
     ?? 0;
   const lowerS = firstLower ? elapsedAtEnd - firstLower.showtimeElapsed : 0;
@@ -461,7 +463,8 @@ async function run() {
   let snappedAmber = false;
   let snappedLower = false;
   let snappedDown = false;
-  while (Date.now() - t0 < 10000) {
+  let snappedGreen = false;
+  while (Date.now() - t0 < 8000) {
     const snap = await page.evaluate(() => window.__iqr?.snap);
     const t = (Date.now() - t0) / 1000;
     const row = {
@@ -493,24 +496,21 @@ async function run() {
       signalAspectSnap: snap?.signalAspect ?? null,
     };
     samples.push(row);
-    if (!snappedAmber && row.signalAspect === "green" && row.showtimePhase === "playing") {
+    if (!snappedGreen && row.signalAspect === "green" && row.showtimePhase === "playing") {
       await page.screenshot({ path: join(OUT, "showtime-green.png"), type: "png" });
-    }
-    if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
+      snappedGreen = true;
+    } else if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
       await page.screenshot({ path: join(OUT, "showtime-amber.png"), type: "png" });
-      await page.screenshot({ path: join(OUT, "showtime-amber-webgl.png"), type: "png" });
       snappedAmber = true;
-    }
-    if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
+    } else if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
       await page.screenshot({ path: join(OUT, "showtime-lowering.png"), type: "png" });
       snappedLower = true;
-    }
-    if (!snappedDown && row.boomPct != null && row.boomPct <= 5 && row.signalAspect === "red") {
+    } else if (!snappedDown && row.boomPct != null && row.boomPct <= 5 && row.signalAspect === "red") {
       await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
       snappedDown = true;
     }
-    if (row.showtimePhase === "settled" && row.usingGlb && snappedAmber && row.boomPct <= 5) break;
-    await page.waitForTimeout(120);
+    if (row.showtimePhase === "settled" && row.usingGlb && row.boomPct <= 5) break;
+    await page.waitForTimeout(70);
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
