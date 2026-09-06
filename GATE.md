@@ -1,11 +1,13 @@
-# GATE — living8 ICQR door (straight-on, one boom, mini PORTABOOM field, brand back)
+# GATE — living9 ICQR door (straight-on, one boom, cloned mini PORTABOOM field, brand back)
 
-Phone-width (390×844). `app.js?v=living8`.
+Phone-width (390×844). `app.js?v=living9`.
 DEST **default**: `https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/`
 DEST **override**: living door `?dest=<URL-encoded http(s) URL>` (any website). Config: `dest-config.mjs`.
-Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living8&showtime=1`
+Living door (stationary QR payload): `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living9&showtime=1`
 ECC **H** send QR. World still uses the baked default-product H-matrix (version **8**, **49×49**, **1258** dark modules).
-SoT: **ICQR-first door** — pixelated QR field of miniature PORTABOOM cabinets (hero silhouette: orange cabinet, door_decal, wheels — **not** black/stripe/glitch towers), planted unit (cabinet + traffic light + **one** boom) **straight-on** so lenses read, big PORTABOOM logo in the back. Then green **0.5s** → amber **1s** → red **0.5s** → boom down. Then DEST. **Not** a twin-site 3/4 plaza. **Not** WordPress.
+SoT: **ICQR-first door** — dense 3D QR field of **cloned miniature PORTABOOM cabinets** (hero GLB cabinet meshes: orange body, door wordmark, wheels, face LEDs — **not** living8 lookalike boxes, **not** black/peach/stripe QR modules), planted unit (cabinet + traffic light + **one** boom) **straight-on** so lenses read, big PORTABOOM logo in the back. Then green **0.5s** → amber **1s** → red **0.5s** → boom down. Then DEST. **Not** a twin-site 3/4 plaza. **Not** WordPress.
+
+**living8 is REJECTED** (Fabian): claimed mini PORTABOOMs but still read as a flat field of coloured QR cuboids. This door is **minis-only living9**. Camera, hero, traffic light, boom path, showtime timing, DEST, HUD unchanged.
 
 Proof runner: `node scripts/gate-living4-showtime.mjs` (Playwright + jsQR).
 Send file: `fabian-showtime-qr.png` (also `gate-artifacts/` + `/opt/cursor/artifacts/`).
@@ -17,11 +19,11 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Check | Result |
 | --- | --- |
-| `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, mini-PORTABOOM modules, **not** living2 `lockWorldCamera` 3/4 plaza |
+| `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, cloned mini-PORTABOOM modules, **not** living2 `lockWorldCamera` 3/4 plaza |
 | Straight-on lenses | GREEN — `doorCamFrontFacing=true`, elevation **0°**. Lantern `fullyIn`. Not living6 steep roof-tilt |
 | Cabinet + traffic light + boom in the field | GREEN — cabinet in frame. Signal `fullyIn`. Boom in frame (`doorBoomHidden=false`). Living5 cabinet-only hide rejected |
 | One boom only | GREEN — `singleBoom=true`, `ghostBoomCount=0` on first paint and through lower |
-| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`. Hero-matched orange cabinets (wordmark, wheels, face LEDs). No mini lanterns |
+| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`, `miniCabinetSource=twin-cabinet`, `miniClonedFromTwin=true`, `modulePalette=hero-orange`. No mini lanterns. No stripe/peach/black module boxes |
 | Brand in the back | GREEN — `backLogoVisible=true`, `backLogoInFrame=true` |
 | Not another website | studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false` |
 | Not a flat B&W QR card | `looksLikeFlatBWQR=false`. Colored living minis + unit volume |
@@ -31,13 +33,13 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing 0.5+1+0.5+boom | GREEN — lock green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Measured green **0.628s** → amber **0.874s** → red hold **0.739s**; settle **3.109s**. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Timing 0.5+1+0.5+boom | GREEN — lock green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Then **0.4s** beat and `location.assign(leaveDest)` |
 | Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
 | After down = leave configured DEST (override) | `?dest=` URL-encoded test site → leave that URL, not the default |
 | Zero website chrome on the door | `#hud` `display:none` for the whole showtime path |
-| Stationary send QR | jsQR decodes living showtime URL `?v=living8&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
+| Stationary send QR | jsQR decodes living showtime URL `?v=living9&showtime=1` from `fabian-showtime-qr.png` (not DEST) |
 | Tap to scan → baked product matrix | default living page `captureScan()` native jsQR → default product URL |
 
 ## STRESS
@@ -45,7 +47,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Step | Result |
 | --- | --- |
 | living2 default (no showtime) | Unchanged world rest: boom up, green, dock visible. No auto DEST |
-| `?v=living8&showtime=1` | ICQR door → 0.5+1+0.5+boom transform → default DEST. Query `showtime=1` is the switch |
+| `?v=living9&showtime=1` | ICQR door → 0.5+1+0.5+boom transform → default DEST. Query `showtime=1` is the switch |
 | `?showtime=1&dest=` | Any http(s) website. Invalid / non-http falls back to default |
 | Canvas tap on the door | Starts transform (honest click → boom). Auto-beat if nobody taps |
 
@@ -53,11 +55,11 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 
 | Claim | Refute |
 | --- | --- |
-| Opens looking like another website / twin hub | `showtime-door.png` is the QR matrix + unit. Studio cyclorama off. HUD/brand gone. `product=living8-icqr-door` |
+| Opens looking like another website / twin hub | `showtime-door.png` is the QR matrix + unit. Studio cyclorama off. HUD/brand gone. `product=living9-icqr-door` |
 | living2/3d world-default is the showtime first paint | Showtime never calls `applyWorldPose` / `lockWorldCamera`. `viewMode=door` |
 | Steep top-down tilt / unreadable lenses | `doorCamFrontFacing`, elevation > −18° |
 | Ghost / duplicate upright boom | `killGhostBooms` attaches leftover stripe/主杆 meshes to `BoomPivot`. `singleBoom` during lower |
-| Field is black blocks + stripe towers + mini TLs | `living-qr.js` instances mini PORTABOOM cabinets (hero orange + door_decal + wheels). No lens geos. `miniHasTrafficLight=false` |
+| Field is black/peach/stripe QR cuboids (living8) | `living-qr.js` clones planted cabinet meshes (strip TL+boom) and instances them. `miniCabinetSource=twin-cabinet`. `modulePalette=hero-orange`. `miniHasTrafficLight=false` |
 | White empty back | `PortaboomBackLogo` wordmark behind the door |
 | Second invented twin | One `pb4000_named.glb`. `beginCloseSequence` / `setSignalAspect` / `setBoomPct` only |
 | QR opens DEST only | Send PNG encodes the living Pages URL with `showtime=1`. Door + animation run first |

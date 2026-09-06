@@ -1,6 +1,6 @@
 # Placeholder notes (Master Builder)
 
-This Pages root is the living8 Incredible QR (ICQR door on `?showtime=1`). Swap binaries in place. Do not nest under sunset-island-cruise-crew-chaos.
+This Pages root is the living9 Incredible QR (ICQR door on `?showtime=1`). Swap binaries in place. Do not nest under sunset-island-cruise-crew-chaos.
 
 ## `pb4000_named.glb`
 

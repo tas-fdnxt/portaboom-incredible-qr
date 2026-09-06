@@ -1,24 +1,24 @@
 # PORTABOOM Incredible QR
 
-Living8 Incredible QR for PORTABOOM PB4000 (ICQR *pattern*: the door **looks like a QR**, with the unit living inside a heap of miniature PORTABOOMs).
+Living9 Incredible QR for PORTABOOM PB4000 (ICQR *pattern*: the door **looks like a QR**, with the unit living inside a heap of miniature PORTABOOMs).
 
-- **`?showtime=1`** (and `?v=living8&showtime=1`) first paint = QR-matrix aesthetic + PORTABOOM (cabinet + traffic light + one boom) **straight-on** so the lenses read. Field modules are miniature PORTABOOM cabinets matching the hero (orange cabinet, door_decal, wheels) — no traffic lights on the little ones. Big PORTABOOM logo in the back. Not a twin-site plaza. Tap (or a 2.6s beat) plays green **0.5s** → amber **1s** → red **0.5s** → boom down. After the boom is down, the page goes to DEST.
+- **`?showtime=1`** (and `?v=living9&showtime=1`) first paint = QR-matrix aesthetic + PORTABOOM (cabinet + traffic light + one boom) **straight-on** so the lenses read. Field modules are **cloned miniature PORTABOOM cabinets** from the hero GLB (orange cabinet, door wordmark, wheels, face LEDs) — no traffic lights or boom arms on the little ones. Big PORTABOOM logo in the back. Not a twin-site plaza. Tap (or a 2.6s beat) plays green **0.5s** → amber **1s** → red **0.5s** → boom down. After the boom is down, the page goes to DEST.
 - **DEST is configurable.** Default = Traffic Access PB4000 product page. Override with `?dest=<URL-encoded http(s) URL>` on the living door. Config: `dest-config.mjs`.
 - **Default (no showtime)** = living 3D PORTABOOM world for tap-to-scan of the baked product matrix.
 - Print PNG is a demoted export under the scan dock — never the READY claim
 - DEST default: https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
 
-Cache-bust: `app.js?v=living8`
+Cache-bust: `app.js?v=living9`
 
 Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
-Send QR (after Chief merge): `fabian-showtime-qr.png` → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living8&showtime=1`
+Send QR (after Chief merge): `fabian-showtime-qr.png` → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living9&showtime=1`
 
 ## How to scan
 
 1. Phone camera on the stationary send QR opens this living **QR door** (cabinet + signal + one boom, straight-on, brand in the back).
 2. Tap / wait one beat. Green 0.5s → amber 1s → red 0.5s → boom down. After the boom drop, the page automatically opens DEST (default product page, or `?dest=` if set).
-3. On the default living page (no `showtime=`), tap the scene or **Tap to scan**, then point a phone at the field (baked product matrix).
+3. On the default living page (no showtime=), tap the scene or **Tap to scan**, then point a phone at the field (baked product matrix).
 4. Drag to orbit in the world. Print PNG is a paper export only.
 
 Not WordPress. Not Command Hub. NEVER SEND until Chief merges after GATE.
@@ -32,5 +32,6 @@ Not WordPress. Not Command Hub. NEVER SEND until Chief merges after GATE.
 - https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living3d&showtime=1 — living3d plaza-hero showtime (rejected: looked like another website)
 - https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living5&showtime=1 — living5 closer door (rejected: cabinet-only, traffic light + boom clipped)
 - https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living6&showtime=1 — living6 (rejected: steep tilt, ghost boom, stripe/black field, no back logo)
+- https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living8&showtime=1 — living8 (rejected: still read as flat coloured QR cuboids; lookalike boxes, not cloned cabinets)
 
 Listing: https://tas-fdnxt.github.io/portaboom-incredible-qr/archive/

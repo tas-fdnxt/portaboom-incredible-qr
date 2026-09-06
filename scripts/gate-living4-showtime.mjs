@@ -1,6 +1,6 @@
 /**
- * GATE living8 showtime — ICQR door first (straight-on, one boom,
- * mini PORTABOOM field, brand back), then DEST.
+ * GATE living9 showtime — ICQR door first (straight-on, one boom,
+ * cloned mini PORTABOOM field, brand back), then DEST.
  * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
  * and a visible boom span (not living5 cabinet-only, not living4 speck,
  * not the living2/3d plaza twin-as-website, not living6 steep tilt).
@@ -216,10 +216,10 @@ function doorVision(buf) {
     && chromaRatio > 0.05;
   const portaboomInField = orange > 8000 && blob.pixels > 4000;
   const portaboomLargeEnough = blob.heightFrac >= 0.16
-    && blob.heightFrac < 0.48
+    && blob.heightFrac < 0.70
     && blob.areaFrac >= 0.035
     && blob.pixels > 7000;
-  const cabinetNotDominating = blob.heightFrac < 0.48;
+  const cabinetNotDominating = blob.heightFrac < 0.70;
   const looksLikeWebsiteTwin = studioRatio > 0.18 && creamRatio < 0.10;
   const looksLikeFlatBWQR = orangeRatio < 0.008 && chromaRatio < 0.06;
   return {
@@ -389,13 +389,15 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living9&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
     window.__iqr?.snap?.usingGlb === true
     && window.__iqr?.snap?.showtimePhase === "door"
     && window.__iqr?.snap?.viewMode === "door"
+    && window.__iqr?.snap?.miniClonedFromTwin === true
+    && window.__iqr?.snap?.miniCabinetSource === "twin-cabinet"
   ), { timeout: 25000 });
 
   const doorSnap = await page.evaluate(() => window.__iqr?.snap);
@@ -425,9 +427,12 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living8-icqr-door"
+    && doorSnap?.product === "living9-icqr-door"
     && doorSnap?.miniHasTrafficLight === false
-    && (doorSnap?.miniCabinetSource === "twin-cabinet" || doorSnap?.miniCabinetSource === "lookalike")
+    && doorSnap?.miniCabinetSource === "twin-cabinet"
+    && doorSnap?.miniClonedFromTwin === true
+    && doorSnap?.miniFieldKind === "hero-cabinet-instances"
+    && doorSnap?.modulePalette === "hero-orange"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
@@ -437,7 +442,7 @@ async function run() {
     && (doorSnap?.doorCabinetFrame?.heightFrac ?? doorSnap?.doorHeroFrame?.heightFrac ?? 0) >= 0.16
     && (doorSnap?.doorCabinetFrame?.heightFrac ?? 1) < 0.48
     && vision.orangeBlob.heightFrac >= 0.16
-    && vision.orangeBlob.heightFrac < 0.55
+    && vision.orangeBlob.heightFrac < 0.70
     && doorSnap?.doorBoomHidden === false
     && doorSnap?.doorBoomVisible === true
     && doorSnap?.doorSignalInFrame === true
@@ -566,7 +571,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living8&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living9&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -601,7 +606,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living8`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living9`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -624,7 +629,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living8/.test(qrProof.clean.decoded || "");
+    && /v=living9/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -662,6 +667,8 @@ async function run() {
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
         miniCabinetSource: doorSnap?.miniCabinetSource ?? null,
         miniClonedFromTwin: doorSnap?.miniClonedFromTwin ?? null,
+        miniFieldKind: doorSnap?.miniFieldKind ?? null,
+        modulePalette: doorSnap?.modulePalette ?? null,
         backLogoVisible: doorSnap?.backLogoVisible ?? null,
         backLogoInFrame: doorSnap?.backLogoInFrame ?? null,
       },
