@@ -16,12 +16,17 @@ export const MODULE_FILL = 0.86;
 const CABINET_KEEP = /AK-XLH-D115C-01-01-1$|AK-XLH-D115C-01-02-1$|AK-XLH-D115C-01-01-9$|车轮|wheel|HeroCabinet|PortaboomLogoFace/i;
 const CABINET_SKIP = /Traffic|信号|HeroSignal|HeroLens|灯条|105-|105_|主杆|太阳能|solar|PED_|TL2_|柱子|灯杆|PART_|GB_T|螺钉|垫|自攻|开口销|环芯|螺柱|调节座|配件|PCB|电池|01-05-9|LOCK-NEW|转接板|合页|DAO-ZHA|\bXT\b|快速夹具|吊环/i;
 
-function makeMiniLogoTex(THREE) {
+function makeMiniLogoTex(THREE, { plate = false } = {}) {
   const c = document.createElement("canvas");
   c.width = 256;
   c.height = 180;
   const ctx = c.getContext("2d");
-  ctx.clearRect(0, 0, 256, 180);
+  if (plate) {
+    ctx.fillStyle = "#f47514";
+    ctx.fillRect(0, 0, 256, 180);
+  } else {
+    ctx.clearRect(0, 0, 256, 180);
+  }
   ctx.fillStyle = "#1b1e24";
   ctx.font = "900 54px Arial Black, Arial, sans-serif";
   ctx.textAlign = "center";
@@ -265,12 +270,8 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
     roughness: 0.62,
   });
 
-  const bodyGeo = new THREE.BoxGeometry(size.x * 0.92, size.y, size.z * 0.88);
+  const bodyGeo = new THREE.BoxGeometry(size.x * 0.92, size.y, size.z * 0.72);
   bodyGeo.translate(0, size.y * 0.5, 0);
-
-  const door = mergeNamed(THREE, proto, /MiniCabinetBody/);
-  let doorGeo = door?.geometry || null;
-  if (doorGeo) doorGeo = clusterSimplify(THREE, doorGeo, 22);
 
   const wheelCenters = [];
   proto.traverse((o) => {
@@ -297,7 +298,8 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   const scales = new Float32Array(count);
   // Identical army: pack by cabinet FACE width so every QR bit is the
   // same little PORTABOOM, shoulder-to-shoulder like the minion crowd.
-  const armyScale = (cell * 0.92) / Math.max(size.x, 1e-4);
+  const armyScale = (cell * 0.94) / Math.max(size.x, 1e-4);
+  const faceTilt = -0.18;
 
   const makeField = (geometry, material, name) => {
     const mesh = new THREE.InstancedMesh(geometry, material, count);
@@ -312,27 +314,24 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   };
 
   const bodyField = makeField(bodyGeo, bodyMat, "MiniCabinetField");
-  const doorField = doorGeo ? makeField(doorGeo, bodyMat, "MiniCabinetDoor") : null;
   const wheelField = wheelGeo ? makeField(wheelGeo, wheelMat, "MiniCabinetWheels") : null;
 
-  const logoH = size.y * 0.28;
-  const logoW = Math.min(size.x, size.z) * 0.72;
-  const logoGeo = new THREE.PlaneGeometry(logoW, logoH);
-  const logoMat = new THREE.MeshBasicMaterial({
-    map: makeMiniLogoTex(THREE),
-    transparent: true,
-    depthWrite: false,
+  const faceH = size.y * 0.42;
+  const faceW = size.x * 0.72;
+  const faceGeo = new THREE.PlaneGeometry(faceW, faceH);
+  faceGeo.translate(0, size.y * 0.52, size.z * 0.37);
+  const faceMat = new THREE.MeshBasicMaterial({
+    map: makeMiniLogoTex(THREE, { plate: true }),
     toneMapped: false,
   });
-  logoGeo.translate(0, size.y * 0.48, size.z * 0.46);
-  const logoField = makeField(logoGeo, logoMat, "MiniCabinetLogos");
+  const logoField = makeField(faceGeo, faceMat, "MiniCabinetLogos");
 
-  const fields = [bodyField, doorField, wheelField, logoField].filter(Boolean);
+  const fields = [bodyField, wheelField, logoField].filter(Boolean);
 
   const writeInstance = (i, x, y, z, s) => {
     dummy.position.set(x, y, z);
     dummy.scale.setScalar(s);
-    dummy.rotation.set(0, 0, 0);
+    dummy.rotation.set(faceTilt, 0, 0);
     dummy.updateMatrix();
     for (const field of fields) field.setMatrixAt(i, dummy.matrix);
   };
@@ -354,7 +353,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   }
 
   living.cabinetField = bodyField;
-  living.doorField = doorField;
+  living.doorField = null;
   living.wheelField = wheelField;
   living.logoField = logoField;
   living.miniScales = scales;
@@ -363,8 +362,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   living.miniHasTrafficLight = false;
   living.stripeModules = 0;
   living.miniCabinetMeshCount = proto.userData?.body ?? 0;
-  living.miniCabinetTris = (bodyGeo.attributes.position.count / 3)
-    + ((doorGeo?.index?.count || doorGeo?.attributes.position.count || 0) / 3);
+  living.miniCabinetTris = bodyGeo.attributes.position.count / 3;
   living.miniPrototypeName = proto.name;
   living.product = "living8-mini-cabinets";
   if (living.group.userData) {
