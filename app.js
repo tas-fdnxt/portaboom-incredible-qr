@@ -3,13 +3,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
-import {
-  buildLivingQr,
-  dressMiniCabinetsFromTwin,
-  dressLookalikeCabinets,
-  syncMiniFieldWith,
-  setMiniFieldVisible,
-} from "./living-qr.js";
+import { buildLivingQr } from "./living-qr.js";
 import {
   SHOWTIME_DEST_DEFAULT,
   parseHttpUrl,
@@ -615,17 +609,18 @@ const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
 const SHOWTIME_DOOR_S = 2.6;
-/** Fallback door crop if the cabinet bbox is not ready. Living4 width-fit the whole pad. */
-const DOOR_PAD_SPAN = 0.22;
+/** Minimum pad fraction so the QR crowd stays a field, not a footer. */
+const DOOR_PAD_SPAN = 0.30;
 /**
- * Front-facing crop: subject (cabinet + lantern + a boom span) fills the
- * phone. Not living5 cabinet-only, not living4 full-pad speck.
+ * Elevated field crop: cabinet + lantern sit IN the crowd.
+ * Do not let the 4 m boom drive the span (that recreates living4 speck).
+ * living7/8/9 subject-fill 0.72 flattened the door.
  */
-const DOOR_SUBJECT_FILL = 0.72;
+const DOOR_SUBJECT_FILL = 0.44;
 /** Extra ortho so the lantern housing clears the crop. */
-const DOOR_SIGNAL_PAD = 1.08;
+const DOOR_SIGNAL_PAD = 1.10;
 /** World units of boom kept in the look-at subject — tip may trim. */
-const DOOR_BOOM_KEEP = 0.55;
+const DOOR_BOOM_KEEP = 0.62;
 // Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
 let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
@@ -681,7 +676,7 @@ const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
 const scanCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
-/** Front-facing ortho — lenses readable, not a steep top-down tilt. */
+/** Elevated ortho into the 3D QR field — living5 GOOD door, not living7 dead-on. */
 const doorCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
 /** Dead-on +Y ortho of the XZ caps. OrbitControls must not own this camera. */
 const SCAN_POSE = {
@@ -894,6 +889,7 @@ function makeBrandBack() {
   return group;
 }
 brandBack = makeBrandBack();
+if (brandBack) brandBack.visible = false;
 
 function makeHeroBoom() {
   const g = new THREE.Group();
@@ -1455,11 +1451,20 @@ function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
-  const box = doorSubjectBox();
+  const crop = new THREE.Box3();
+  const cab = doorCabinetBox();
+  if (cab && !cab.isEmpty()) crop.union(cab);
+  const lantern = doorSignalLanternBox();
+  if (lantern && !lantern.isEmpty()) crop.union(lantern);
   let span = living.padSize * DOOR_PAD_SPAN;
-  if (box && !box.isEmpty()) {
-    const size = box.getSize(new THREE.Vector3());
-    span = Math.max(size.y / DOOR_SUBJECT_FILL, size.x / 0.78, 0.82) * DOOR_SIGNAL_PAD;
+  if (!crop.isEmpty()) {
+    const size = crop.getSize(new THREE.Vector3());
+    span = Math.max(
+      size.y / DOOR_SUBJECT_FILL,
+      size.x / 0.55,
+      living.padSize * DOOR_PAD_SPAN,
+      1.05
+    ) * DOOR_SIGNAL_PAD;
   }
   let worldW;
   let worldH;
@@ -1592,8 +1597,9 @@ function setDoorBoomArm(visible = true) {
 }
 
 /**
- * Straight-on front: lenses are circles, not roof-ellipses.
- * Bias toward the traffic light so the lantern stays in. Boom may trim.
+ * Elevated look into the QR field (living5 GOOD door).
+ * Not living7/8/9 dead-on poster. Not living6 roof-tilt.
+ * Cabinet + lantern + boom stay in the crowd.
  */
 function lockDoorCamera() {
   fitDoorOrtho();
@@ -1602,7 +1608,6 @@ function lockDoorCamera() {
   let cy = 0.48;
   let cz = 0.12;
   let sy = 0.72;
-  let sx = 0.42;
   const cab = doorCabinetBox();
   if (cab && !cab.isEmpty()) {
     const c = cab.getCenter(new THREE.Vector3());
@@ -1611,22 +1616,15 @@ function lockDoorCamera() {
     if (Number.isFinite(c.y)) cy = c.y;
     if (Number.isFinite(c.z)) cz = c.z;
     if (Number.isFinite(s.y) && s.y > 0.2) sy = s.y;
-    if (Number.isFinite(s.x) && s.x > 0.1) sx = s.x;
   }
-  let lookY = cy;
   const lantern = doorSignalLanternBox();
   if (lantern && !lantern.isEmpty()) {
     const sc = lantern.getCenter(new THREE.Vector3());
-    if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.42);
-    if (Number.isFinite(sc.y)) {
-      lookY = sc.y;
-      cy = THREE.MathUtils.lerp(cy, sc.y, 0.55);
-    }
+    if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.28);
+    if (Number.isFinite(sc.y)) cy = THREE.MathUtils.lerp(cy, sc.y, 0.22);
   }
-  // Dead-on: camera Y = lens Y so the three lamps read as circles.
-  const dist = Math.max(sy * 2.35, sx * 3.1, 1.55);
-  doorCam.position.set(cx, lookY, cz + dist);
-  doorCam.lookAt(cx, lookY, cz);
+  doorCam.position.set(cx + sy * 0.20, cy + sy * 0.54, cz + sy * 1.48);
+  doorCam.lookAt(cx, cy - sy * 0.08, cz);
   doorCam.updateProjectionMatrix();
 }
 
@@ -1644,13 +1642,12 @@ function setLivingCaps(visible) {
   }
 }
 
-/** Door: hide scan caps so the heap reads as mini cabinets, not black lids. */
+/** Door: hide scan caps so the heap reads as cuboid minis, not black lids. */
 function setDoorModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = !on;
   }
-  setMiniFieldVisible(living, true);
 }
 
 /** Scan: only black caps + paper. Hide mini chrome so jsQR can read. */
@@ -1658,8 +1655,12 @@ function setScanModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = true;
+    m.traverse((o) => {
+      if (/MiniLogo|MiniFaceLed|QrModDot|QrModBand|QrModRim/.test(o.name || "")) {
+        o.visible = !on;
+      }
+    });
   }
-  setMiniFieldVisible(living, !on);
 }
 
 function placeTwinInLivingWorld() {
@@ -1868,7 +1869,7 @@ function applyDoorPose() {
   }
   placeTwinInLivingWorld();
   setDoorBoomArm(true);
-  if (brandBack) brandBack.visible = true;
+  if (brandBack) brandBack.visible = false;
   lockDoorCamera();
   if (showtimeHudHidden()) setStatus("PORTABOOM");
   syncModeHud();
@@ -2218,10 +2219,10 @@ function countMiniTrafficLights() {
     if (!m) continue;
     if (m.userData?.hasTrafficLight) n += 1;
     m.traverse((o) => {
-      if (/QrModLens|MiniSignal|MiniLens|HeroLens/.test(o.name || "")) n += 1;
+      if (/MiniSignal|MiniLantern|MiniTraffic|MiniBoom/.test(o.name || "")) n += 1;
     });
   }
-  return n + (living.ledMats?.length || 0);
+  return n;
 }
 
 /** Hero stand-in arm — raise/lower works before (and if) the CAD rig mounts. */
@@ -2895,14 +2896,6 @@ function mountCad(gltf, label) {
     if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
-    try {
-      dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
-    } catch (err) {
-      console.warn("mini cabinet dress failed; lookalike field stays", err);
-      try {
-        dressLookalikeCabinets(THREE, living, LIVERY, living.logoMap);
-      } catch { /* plaza stays paper until retry */ }
-    }
     if (scanOpen) setScanModuleLook(true);
     else setDoorModuleLook(true);
     if (showtimeWanted && showtimePhase !== "settled") {
@@ -3045,7 +3038,6 @@ function tick() {
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
-    syncMiniFieldWith(THREE, living);
   }
   if (!scanOpen) {
     tickBoom(dt);
@@ -3188,7 +3180,7 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living9-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living10-icqr-door" : "living2-brand-world",
       miniCabinetSource: living.miniCabinetSource ?? null,
       miniClonedFromTwin: living.miniClonedFromTwin === true,
       miniFieldKind: living.miniFieldKind ?? living.group?.userData?.miniFieldKind ?? null,
@@ -3243,13 +3235,22 @@ window.__iqr = {
         return !!(f && f.heightFrac >= 0.12);
       })(),
       doorCamElevationDeg: viewMode === "door" ? doorCamElevationDeg() : null,
-      doorCamFrontFacing: viewMode === "door" && doorCamElevationDeg() > -18 && doorCamElevationDeg() < 12,
+      doorCamElevatedField: viewMode === "door"
+        && doorCamElevationDeg() <= -12
+        && doorCamElevationDeg() >= -38,
+      doorCamFrontFacing: viewMode === "door"
+        && doorCamElevationDeg() <= -12
+        && doorCamElevationDeg() >= -38,
       ghostBoomCount: countUprightBoomGhosts(),
       ghostBoom: boom?.userData?.ghostBoom || null,
       singleBoom: countUprightBoomGhosts() === 0,
       miniTrafficLights: countMiniTrafficLights(),
       miniHasTrafficLight: countMiniTrafficLights() > 0 || living.miniHasTrafficLight === true,
       stripeModules: living.stripeModules ?? 0,
+      miniCabinetCount: living.miniCabinetCount ?? 0,
+      fieldPadInView: viewMode === "door"
+        ? +((living.padSize / Math.max(0.01, (doorCam.top - doorCam.bottom))).toFixed(3))
+        : null,
       backLogoVisible: !!(brandBack && brandBack.visible && brandBack.getObjectByName("PortaboomBackLogo")),
       backLogoInFrame: (() => {
         const logo = brandBack?.getObjectByName("PortaboomBackLogo");
@@ -3407,6 +3408,32 @@ window.__iqr = {
     applyDoorPose();
     renderer.render(scene, doorCam);
     return canvas.toDataURL("image/png");
+  },
+  frameMiniCloseup() {
+    applyDoorPose();
+    const pick = mods.find((m) => m.userData?.vocab === "cabinet")
+      || mods.find((m) => m.userData?.vocab === "led")
+      || mods[Math.floor(mods.length * 0.62)];
+    if (!pick) return false;
+    const p = pick.getWorldPosition(new THREE.Vector3());
+    const h = pick.userData.bodyH || 0.2;
+    const span = Math.max(h * 3.4, living.cell * 8);
+    const aspect = Math.max(0.4, (canvas.clientWidth || 390) / (canvas.clientHeight || 844));
+    let worldH = span;
+    let worldW = worldH * aspect;
+    if (aspect >= 1) {
+      worldW = span;
+      worldH = worldW / aspect;
+    }
+    doorCam.left = -worldW / 2;
+    doorCam.right = worldW / 2;
+    doorCam.top = worldH / 2;
+    doorCam.bottom = -worldH / 2;
+    doorCam.updateProjectionMatrix();
+    doorCam.position.set(p.x + h * 0.55, p.y + h * 1.15, p.z + h * 2.1);
+    doorCam.lookAt(p.x, p.y + h * 0.45, p.z);
+    renderer.render(scene, doorCam);
+    return true;
   },
   captureScan() {
     if (!scanOpen) applyScanPose();

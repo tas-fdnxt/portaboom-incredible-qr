@@ -1,6 +1,6 @@
 /**
  * Stationary send QR for Fabian.
- * Encodes the living Incredible QR page (showtime=1 / living9).
+ * Encodes the living Incredible QR page (showtime=1 / living10).
  * Phone cameras open the ICQR door (QR field + PORTABOOM), then transform, then DEST.
  * Do not encode DEST directly.
  */
