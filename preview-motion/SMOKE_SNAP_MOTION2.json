@@ -1,0 +1,60 @@
+{
+  "product": "motion2-smoke",
+  "ready": false,
+  "living10": {
+    "product": "living10-icqr-door",
+    "viewMode": "door",
+    "motion1": false,
+    "motion2": false,
+    "fieldMotionOn": false,
+    "showtimeDoorS": 2.6,
+    "icqrDoor": true,
+    "ok": true
+  },
+  "motion1": {
+    "product": "motion1-icqr-door",
+    "fieldMotionOn": true,
+    "motion2": false,
+    "showtimeDoorS": 6,
+    "doorBoomFrame": {
+      "widthFrac": 0.1289,
+      "heightFrac": 0.5207,
+      "areaFrac": 0.0671,
+      "overflowX": 0,
+      "overflowY": 0.0989,
+      "fullyIn": false,
+      "mostlyIn": true,
+      "midX": 0.0353,
+      "midY": 0.4793
+    },
+    "ok": true
+  },
+  "motion2": {
+    "idleProduct": "motion2-hero-lock",
+    "viewMode": "motion2",
+    "cameraIsPerspective": true,
+    "motion2FramedLeft": true,
+    "motion2BoomInFrame": true,
+    "motion2HeroLeft": true,
+    "showtimeDoorS": 0.35,
+    "fieldMotionOn": false,
+    "plantedYaw": 0,
+    "autoStarted": true,
+    "holdPhase": "hold",
+    "modulesStable": true,
+    "magicHoldMs": 815.9,
+    "scanOpen": true,
+    "destLeft": true,
+    "destLeaveReason": "motion2-flatten-hold",
+    "destLeaveUrl": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+    "boomSpanVsMotion1": {
+      "m1BoomSpan": 0.5207,
+      "m2BoomSpan": 0.6186,
+      "moreBoom": true
+    },
+    "ok": true,
+    "destOverride": "https://example.com/motion2-dest-override",
+    "destOverrideOk": true
+  },
+  "ok": true
+}

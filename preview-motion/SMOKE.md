@@ -39,12 +39,28 @@ Second tap after hold starts **showtime on the same tip** (boom / LED SoT → DE
 | LED SoT | green when raised-at-rest · red flash when moving-or-down · no invented amber face LEDs |
 | Leave | `location.assign` default DEST (or `?dest=`) |
 
+## motion2 tip — left boom-down + auto flow
+
+Open `/?v=motion2` (or `preview-motion/tip-motion2.html`). No required first tap.
+
+| Check | How |
+| --- | --- |
+| Pages is `text/html` | document content-type |
+| First paint is hero-lock, not ICQR door | `__iqr.snap.viewMode === "motion2"` · `product === "motion2-hero-lock"` · `cameraIsPerspective === true` |
+| Left boom-down framed | `motion2FramedLeft === true` · `motion2HeroLeft === true` · `motion2BoomDownFrame` span **>** motion1 `doorBoomFrame` |
+| Auto showtime | door beat **0.35s** then green 0.5 → amber 1 → red 0.5 → boom down. No tap required |
+| LED SoT | green when raised-at-rest · red flash ~640ms when moving-or-down · no invented amber face LEDs |
+| Flatten after boom | `magicPhase === "hold"` · `modulesStable === true` after ≥500ms · `scanOpen === true` |
+| Leave DEST | `destLeaveReason === "motion2-flatten-hold"` · default PB4000 product URL · `?dest=` override uses existing dest-config parser |
+| Motion ≤3s | boom lower starts at ~2.35s (0.35 + 0.5 + 1 + 0.5) |
+
 ## living10 regression (must stay)
 
 | URL | Must |
 | --- | --- |
-| `/?v=living10&showtime=1` | `product === "living10-icqr-door"` · `viewMode === "door"` · field **not** idle-bobbing (`fieldMotionOn` false) · door beat **2.6s** · tap starts showtime (not motion1 flatten) · DEST after boom |
-| `/?showtime=1` | same living10 door (no `v=motion1`) |
+| `/?v=living10&showtime=1` | `product === "living10-icqr-door"` · `viewMode === "door"` · field **not** idle-bobbing (`fieldMotionOn` false) · door beat **2.6s** · tap starts showtime (not motion1 flatten) · DEST after boom · `motion2 !== true` |
+| `/?showtime=1` | same living10 door (no `v=motion1` / no `v=motion2`) |
+| `/?v=motion1` | still `motion1-icqr-door` · tap flatten · 6s showtime only with `?showtime=1` · `motion2 !== true` |
 | `fabian-showtime-qr.png` | still encodes living10 showtime URL · file not overwritten |
 | Default `/` (no query) | living2 world · Life + Tap to scan · no auto DEST |
 | `/?v=preview5` | still hero-lock branch · living10 door untouched |
@@ -54,6 +70,7 @@ Runner notes (not executed as READY):
 - living10: `node scripts/gate-living4-showtime.mjs`
 - living2: `node scripts/gate-living2.mjs`
 - motion1 helper: `node scripts/gate-motion1-smoke.mjs` (Playwright snap only — not phone GATE)
+- motion2 helper: `node scripts/gate-motion2-smoke.mjs` (Playwright snap only — not phone GATE)
 
 ## Lane 2 animated companion (honest)
 
