@@ -6,6 +6,12 @@
 <meta name="theme-color" content="#101317">
 <meta name="robots" content="noindex,nofollow">
 <title>PREVIEW · PORTABOOM® Incredible QR</title>
+<meta property="og:title" content="PREVIEW · living PORTABOOM QR">
+<meta property="og:description" content="Open this link for the living WebGL tip. The share poster is still — OG cannot play WebGL.">
+<meta property="og:image" content="https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/og-still.png">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/og-still.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,700&family=Inter:wght@600;700;800&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
@@ -54,6 +60,9 @@ body.showtime #status,
 body.showtime .vig{display:none !important}
 body.showtime{background:#f4efe6}
 body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
+#motionHint{display:none;position:fixed;left:50%;bottom:calc(var(--sab)+18px);transform:translateX(-50%);z-index:5;pointer-events:none;font:800 11px/1 var(--sans);letter-spacing:.12em;text-transform:uppercase;color:#9A3F00;background:rgba(244,239,230,.92);border:1px solid rgba(238,114,2,.35);border-radius:999px;padding:8px 12px;white-space:nowrap}
+body.motion1 #motionHint{display:block}
+body.motion1.scan-open #motionHint{display:none}
 @media (max-width:480px){
   .dock{gap:7px}
   .btn{padding:12px 14px;font-size:12px;flex:1 1 calc(50% - 8px)}
@@ -87,15 +96,25 @@ body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
   "three/addons/":"https://cdn.jsdelivr.net/npm/three@0.170.0/examples/jsm/"
 }}
 </script>
+<div id="motionHint">PREVIEW · tap to flatten</div>
 <!-- Living10 ICQR showtime door — elevated 3D QR field, one boom, cuboid minis. -->
 <script>
-if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)
-  || /(?:^|[?&])v=preview5(?:&|$)/.test(location.search)) {
-  document.body.classList.add("showtime");
-  document.documentElement.style.background = "#f4efe6";
-  document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");
-}
+(function () {
+  const q = new URLSearchParams(location.search);
+  const motion1 = q.get("v") === "motion1";
+  const showtime = q.get("showtime") === "1" || q.get("v") === "preview5" || motion1;
+  if (showtime) {
+    document.body.classList.add("showtime");
+    document.documentElement.style.background = "#f4efe6";
+    document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");
+  }
+  if (motion1) document.body.classList.add("motion1");
+  const src = motion1 ? "./app.js?v=motion1" : "./app.js?v=living10";
+  const s = document.createElement("script");
+  s.type = "module";
+  s.src = src;
+  document.body.appendChild(s);
+})();
 </script>
-<script type="module" src="./app.js?v=living10"></script>
 </body>
 </html>

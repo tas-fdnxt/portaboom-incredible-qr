@@ -1,0 +1,36 @@
+{
+  "product": "motion1-animated-companion",
+  "ready": false,
+  "role": "companion — not the sendable",
+  "tipUrl": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1",
+  "frames": 36,
+  "fps": 12,
+  "decodeAttempted": [
+    {
+      "frame": "f000.png",
+      "text": null
+    },
+    {
+      "frame": "f006.png",
+      "text": null
+    },
+    {
+      "frame": "f012.png",
+      "text": null
+    },
+    {
+      "frame": "f018.png",
+      "text": null
+    },
+    {
+      "frame": "f024.png",
+      "text": null
+    },
+    {
+      "frame": "f030.png",
+      "text": null
+    }
+  ],
+  "anyFrameDecoded": false,
+  "honest": "No captured idle frame decoded as QR (modules moving). Pair the living tip URL. Do not pretend this loop is a scan door."
+}
