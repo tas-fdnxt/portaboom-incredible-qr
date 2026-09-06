@@ -466,6 +466,26 @@ async function run() {
 
   const samples = [];
   const t0 = Date.now();
+  samples.push({
+    ...(await page.evaluate(() => {
+      const snap = window.__iqr?.snap;
+      return {
+        showtimePhase: snap?.showtimePhase ?? null,
+        showtimeElapsed: snap?.showtimeElapsed ?? null,
+        signalAspect: snap?.signalAspect ?? null,
+        showMode: snap?.showMode ?? null,
+        boomPct: snap?.boomPct ?? null,
+        lampIntensity: snap?.lampIntensity ?? null,
+        viewMode: snap?.viewMode ?? null,
+        ghostBoomCount: snap?.ghostBoomCount ?? null,
+        singleBoom: snap?.singleBoom ?? null,
+        showtimeHudHidden: snap?.showtimeHudHidden ?? null,
+        liveDockHidden: snap?.liveDockHidden ?? null,
+        studioVisible: snap?.studioVisible ?? null,
+      };
+    })),
+    t: 0,
+  });
   let snappedAmber = false;
   let snappedLower = false;
   let snappedDown = false;

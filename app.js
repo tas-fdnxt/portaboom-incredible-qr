@@ -1730,7 +1730,6 @@ function armDoorBeat() {
 function startShowtime() {
   if (!showtimeWanted || !boomRig) return false;
   if (showtimePhase === "settled") return false;
-  if (showtimePhase === "playing") return true;
   clearDoorBeat();
   showtimePhase = "playing";
   applyDoorPose();
