@@ -17,7 +17,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` opens world with twin | GREEN — `viewMode=world`, `usingGlb=true`, `defaultShowsTwin=true` |
-| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.13s** (> 3.6, in 6–8.5). Amber held **1.82s** before first red. `boomPct` 100 → 0 |
+| Auto choreography longer than living2 teaser (~3.6s) | GREEN — teaser SoT is Fabian’s saved GIF (43 frames @ ~12fps ≈ 3.58–3.6s). Showtime budget **7.1s** (1.5s amber + 5.2s ease-in-out lower + 0.4s hold), target **6–8s**. Measured settle **7.21s** (`longerThanTeaser=true`, in 6–8.5). Amber held **2.00s** before first red. `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | GREEN — `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = red held | GREEN — `showtimePhase=settled`, `signalAspect=red`, `boomPct=0`. No auto-raise |
 | Minimal HUD during showtime | GREEN — `#liveDock` hidden while `playing` / `pending` |
