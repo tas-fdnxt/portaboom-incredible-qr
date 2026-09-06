@@ -16,17 +16,17 @@
       "websiteChrome": false,
       "cameraIsOrtho": true,
       "usingGlb": true,
-      "doorOrthoWorldW": 0.5731,
-      "doorOrthoWorldH": 1.2403,
+      "doorOrthoWorldW": 0.394,
+      "doorOrthoWorldH": 0.8527,
       "doorHeroFrame": {
-        "widthFrac": 0.6569,
-        "heightFrac": 0.8865,
-        "areaFrac": 0.5824
+        "widthFrac": 0.7462,
+        "heightFrac": 1,
+        "areaFrac": 0.7462
       },
       "doorCabinetFrame": {
-        "widthFrac": 0.3128,
-        "heightFrac": 0.2703,
-        "areaFrac": 0.0846
+        "widthFrac": 0.4548,
+        "heightFrac": 0.3669,
+        "areaFrac": 0.1669
       }
     },
     "chrome": {
@@ -40,29 +40,29 @@
     "vision": {
       "width": 780,
       "height": 1688,
-      "cream": 241286,
-      "studioBlack": 43456,
-      "dark": 455773,
-      "orange": 267469,
-      "navy": 64903,
-      "creamRatio": 0.1833,
-      "studioRatio": 0.033,
-      "darkRatio": 0.3462,
-      "orangeRatio": 0.2031,
-      "chromaRatio": 0.5205,
+      "cream": 210678,
+      "studioBlack": 18246,
+      "dark": 455338,
+      "orange": 307647,
+      "navy": 44373,
+      "creamRatio": 0.16,
+      "studioRatio": 0.0139,
+      "darkRatio": 0.3458,
+      "orangeRatio": 0.2337,
+      "chromaRatio": 0.56,
       "orangeBBoxW": 780,
       "orangeBBoxH": 1688,
       "orangeBBoxFrac": 1,
       "orangeHeightFrac": 1,
       "orangeBlob": {
-        "pixels": 90016,
-        "minX": 200,
-        "minY": 1030,
-        "maxX": 512,
-        "maxY": 1556,
-        "widthFrac": 0.4013,
-        "heightFrac": 0.3122,
-        "areaFrac": 0.1253
+        "pixels": 178148,
+        "minX": 130,
+        "minY": 970,
+        "maxX": 564,
+        "maxY": 1680,
+        "widthFrac": 0.5577,
+        "heightFrac": 0.4212,
+        "areaFrac": 0.2349
       },
       "looksLikeQrField": true,
       "portaboomInField": true,
@@ -93,7 +93,7 @@
       "dest": "https://example.com/portaboom-gate-dest",
       "reason": "showtime-complete",
       "source": "query",
-      "at": 16495.199999999953
+      "at": 14843.899999999907
     },
     "ok": true
   },
@@ -135,18 +135,18 @@
     "hudHiddenWhilePlaying": true,
     "stayedOnDoor": true,
     "noStudio": true,
-    "playDurationS": 5.831,
-    "amberHeldS": 2.439,
-    "elapsedAtEnd": 6.157,
+    "playDurationS": 5.978,
+    "amberHeldS": 2.484,
+    "elapsedAtEnd": 6.147,
     "longerThanTeaser": true,
     "naturalPace": true,
-    "sampleCount": 21
+    "sampleCount": 20
   },
   "samples": [
     {
       "t": 0.004,
       "showtimePhase": "playing",
-      "showtimeElapsed": 0.154,
+      "showtimeElapsed": 0,
       "signalAspect": "amber",
       "showMode": "amber",
       "boomPct": 100,
@@ -173,14 +173,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.293,
+      "t": 2.508,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.439,
+      "showtimeElapsed": 2.484,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 91.40207202500041,
-      "boomTarget": 91.40207202500041,
-      "boomAngle": 2.9820894663521176,
+      "boomPct": 90.60917982431808,
+      "boomTarget": 90.60917982431808,
+      "boomAngle": 2.9696347447883564,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -202,14 +202,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.426,
+      "t": 2.64,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.636,
+      "showtimeElapsed": 2.717,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 87.75774991767894,
-      "boomTarget": 87.75774991767894,
-      "boomAngle": 2.9248445885537375,
+      "boomPct": 86.13578080000146,
+      "boomTarget": 86.13578080000146,
+      "boomAngle": 2.8993667572315123,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -231,14 +231,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.552,
+      "t": 2.764,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.837,
+      "showtimeElapsed": 2.932,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 83.55597598909735,
-      "boomTarget": 83.55597598909735,
-      "boomAngle": 2.8588432780233526,
+      "boomPct": 81.43045017841534,
+      "boomTarget": 81.43045017841534,
+      "boomAngle": 2.825455596664082,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -260,14 +260,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.683,
+      "t": 2.906,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.837,
+      "showtimeElapsed": 2.932,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 83.55597598909735,
-      "boomTarget": 83.55597598909735,
-      "boomAngle": 2.8588432780233526,
+      "boomPct": 81.43045017841534,
+      "boomTarget": 81.43045017841534,
+      "boomAngle": 2.825455596664082,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -289,14 +289,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.83,
+      "t": 3.03,
       "showtimePhase": "playing",
-      "showtimeElapsed": 2.837,
+      "showtimeElapsed": 2.932,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 83.55597598909735,
-      "boomTarget": 83.55597598909735,
-      "boomAngle": 2.8588432780233526,
+      "boomPct": 81.43045017841534,
+      "boomTarget": 81.43045017841534,
+      "boomAngle": 2.825455596664082,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -318,14 +318,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 2.96,
+      "t": 3.174,
       "showtimePhase": "playing",
-      "showtimeElapsed": 3.246,
+      "showtimeElapsed": 2.932,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 73.75641716117545,
-      "boomTarget": 73.75641716117545,
-      "boomAngle": 2.70491216791225,
+      "boomPct": 81.43045017841534,
+      "boomTarget": 81.43045017841534,
+      "boomAngle": 2.825455596664082,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -347,14 +347,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.287,
+      "t": 3.304,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.433,
+      "showtimeElapsed": 3.381,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 40.460940989310714,
-      "boomTarget": 40.460940989310714,
-      "boomAngle": 2.181908051215729,
+      "boomPct": 70.20103130568069,
+      "boomTarget": 70.20103130568069,
+      "boomAngle": 2.649064297490753,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -376,14 +376,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.418,
+      "t": 4.69,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.635,
+      "showtimeElapsed": 4.675,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 34.774069899100404,
-      "boomTarget": 34.774069899100404,
-      "boomAngle": 2.0925788890211443,
+      "boomPct": 33.678385040693136,
+      "boomTarget": 33.678385040693136,
+      "boomAngle": 2.075367911512035,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -405,14 +405,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.543,
+      "t": 4.824,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.841,
+      "showtimeElapsed": 4.897,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 29.195777472117122,
-      "boomTarget": 29.195777472117122,
-      "boomAngle": 2.004955276480213,
+      "boomPct": 27.716651946368632,
+      "boomTarget": 27.716651946368632,
+      "boomAngle": 1.9817212270530702,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -434,14 +434,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.669,
+      "t": 4.947,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.841,
+      "showtimeElapsed": 5.101,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 29.195777472117122,
-      "boomTarget": 29.195777472117122,
-      "boomAngle": 2.004955276480213,
+      "boomPct": 22.541838135448355,
+      "boomTarget": 22.541838135448355,
+      "boomAngle": 1.9004354417926594,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -463,14 +463,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.802,
+      "t": 5.076,
       "showtimePhase": "playing",
-      "showtimeElapsed": 4.841,
+      "showtimeElapsed": 5.101,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 29.195777472117122,
-      "boomTarget": 29.195777472117122,
-      "boomAngle": 2.004955276480213,
+      "boomPct": 22.541838135448355,
+      "boomTarget": 22.541838135448355,
+      "boomAngle": 1.9004354417926594,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -492,14 +492,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 4.927,
+      "t": 5.201,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.238,
+      "showtimeElapsed": 5.101,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 19.276341089600614,
-      "boomTarget": 19.276341089600614,
-      "boomAngle": 1.8491411341448873,
+      "boomPct": 22.541838135448355,
+      "boomTarget": 22.541838135448355,
+      "boomAngle": 1.9004354417926594,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -521,14 +521,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.057,
+      "t": 5.33,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.238,
+      "showtimeElapsed": 5.101,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 19.276341089600614,
-      "boomTarget": 19.276341089600614,
-      "boomAngle": 1.8491411341448873,
+      "boomPct": 22.541838135448355,
+      "boomTarget": 22.541838135448355,
+      "boomAngle": 1.9004354417926594,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -550,14 +550,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.187,
+      "t": 5.468,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.426,
+      "showtimeElapsed": 5.53,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 15.062006572496356,
-      "boomTarget": 15.062006572496356,
-      "boomAngle": 1.7829425223513642,
+      "boomPct": 12.901327899501203,
+      "boomTarget": 12.901327899501203,
+      "boomAngle": 1.7490026611221157,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -579,14 +579,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.32,
+      "t": 5.592,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.621,
+      "showtimeElapsed": 5.734,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 11.137631374909407,
-      "boomTarget": 11.137631374909407,
-      "boomAngle": 1.7212985808980186,
+      "boomPct": 9.076111721599878,
+      "boomTarget": 9.076111721599878,
+      "boomAngle": 1.6889163059076775,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -608,14 +608,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.457,
+      "t": 5.724,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.621,
+      "showtimeElapsed": 5.734,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 11.137631374909407,
-      "boomTarget": 11.137631374909407,
-      "boomAngle": 1.7212985808980186,
+      "boomPct": 9.076111721599878,
+      "boomTarget": 9.076111721599878,
+      "boomAngle": 1.6889163059076775,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -637,14 +637,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.587,
+      "t": 5.857,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.808,
+      "showtimeElapsed": 5.944,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 7.81975390310471,
-      "boomTarget": 7.81975390310471,
-      "boomAngle": 1.669181483443355,
+      "boomPct": 5.727849821517895,
+      "boomTarget": 5.727849821517895,
+      "boomAngle": 1.6363219309697168,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -666,14 +666,14 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.711,
+      "t": 5.982,
       "showtimePhase": "playing",
-      "showtimeElapsed": 5.974,
+      "showtimeElapsed": 6.147,
       "signalAspect": "red",
       "showMode": "closing",
-      "boomPct": 5.296519179029646,
-      "boomTarget": 5.296519179029646,
-      "boomAngle": 1.6295466050811704,
+      "boomPct": 3.1523068715862523,
+      "boomTarget": 3.1523068715862523,
+      "boomAngle": 1.5958653969171654,
       "lampIntensity": {
         "red": 8.8,
         "amber": 0.07,
@@ -695,38 +695,9 @@
       "leaveDestSource": "default"
     },
     {
-      "t": 5.835,
-      "showtimePhase": "playing",
-      "showtimeElapsed": 6.157,
-      "signalAspect": "red",
-      "showMode": "closing",
-      "boomPct": 3.048921629103607,
-      "boomTarget": 3.048921629103607,
-      "boomAngle": 1.5942414253258002,
-      "lampIntensity": {
-        "red": 8.8,
-        "amber": 0.07,
-        "green": 0.07
-      },
-      "viewMode": "door",
-      "usingGlb": true,
-      "defaultShowsTwin": true,
-      "twinInQrField": true,
-      "studioVisible": false,
-      "showtimeHudHidden": true,
-      "liveDockHidden": true,
-      "cameraIsPerspective": false,
-      "cameraIsOrtho": true,
-      "destLeft": false,
-      "destLeaveUrl": null,
-      "destLeaveReason": null,
-      "leaveDest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
-      "leaveDestSource": "default"
-    },
-    {
-      "t": 7.141,
+      "t": 7.377,
       "showtimePhase": "settled",
-      "showtimeElapsed": 7.286,
+      "showtimeElapsed": 7.167,
       "signalAspect": "red",
       "showMode": "down",
       "boomPct": 0,
@@ -759,7 +730,7 @@
     "signalAspect": "red",
     "viewMode": "door",
     "usingGlb": true,
-    "elapsed": 7.286,
+    "elapsed": 7.167,
     "budget": 7.1000000000000005,
     "ok": true
   },
@@ -768,7 +739,7 @@
       {
         "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
         "reason": "showtime-complete",
-        "at": 11213.600000000035
+        "at": 11131.79999999993
       }
     ],
     "dest": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
