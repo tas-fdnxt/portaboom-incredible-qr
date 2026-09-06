@@ -3,7 +3,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
-import { buildLivingQr } from "./living-qr.js";
+import {
+  buildLivingQr,
+  dressMiniCabinetsFromTwin,
+  syncMiniFieldWith,
+  setMiniFieldVisible,
+} from "./living-qr.js";
 import {
   SHOWTIME_DEST_DEFAULT,
   parseHttpUrl,
@@ -1645,9 +1650,8 @@ function setDoorModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = !on;
-    const logo = m.getObjectByName("MiniLogo");
-    if (logo) logo.visible = true;
   }
+  setMiniFieldVisible(living, true);
 }
 
 /** Scan: only black caps + paper. Hide mini chrome so jsQR can read. */
@@ -1655,12 +1659,8 @@ function setScanModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = true;
-    m.traverse((o) => {
-      if (!o.isMesh) return;
-      if (o.name === "QrModTop") return;
-      if (/MiniCabinet|MiniBand|MiniWheel|MiniLogo/.test(o.name || "")) o.visible = !on;
-    });
   }
+  setMiniFieldVisible(living, !on);
 }
 
 function placeTwinInLivingWorld() {
@@ -2896,6 +2896,9 @@ function mountCad(gltf, label) {
     if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
+    dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
+    if (scanOpen) setScanModuleLook(true);
+    else setDoorModuleLook(true);
     if (showtimeWanted && showtimePhase !== "settled") {
       applyDoorPose();
       if (showtimePhase === "playing") {
@@ -3039,6 +3042,7 @@ function tick() {
   } else {
     for (const m of mods) m.position.y = m.userData.baseY || 0;
   }
+  syncMiniFieldWith(THREE, living);
   if (!scanOpen) {
     tickBoom(dt);
     tickSignUpright();
@@ -3180,7 +3184,9 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living7-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living8-icqr-door" : "living2-brand-world",
+      miniCabinetSource: living.miniCabinetSource ?? null,
+      miniClonedFromTwin: living.miniClonedFromTwin === true,
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
@@ -3428,6 +3434,8 @@ window.__iqr = {
       viewMode,
       scanOpen,
       miniHasTrafficLight: living.miniHasTrafficLight === true,
+      miniCabinetSource: living.miniCabinetSource ?? null,
+      miniClonedFromTwin: living.miniClonedFromTwin === true,
       stripeModules: living.stripeModules ?? 0,
     };
   },

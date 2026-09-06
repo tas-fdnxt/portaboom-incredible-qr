@@ -1,5 +1,5 @@
 /**
- * GATE living7 showtime — ICQR door first (straight-on, one boom,
+ * GATE living8 showtime — ICQR door first (straight-on, one boom,
  * mini PORTABOOM field, brand back), then DEST.
  * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
  * and a visible boom span (not living5 cabinet-only, not living4 speck,
@@ -387,7 +387,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living7&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -423,7 +423,9 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living7-icqr-door"
+    && doorSnap?.product === "living8-icqr-door"
+    && doorSnap?.miniHasTrafficLight === false
+    && (doorSnap?.miniCabinetSource === "twin-cabinet" || doorSnap?.miniCabinetSource === "lookalike")
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
@@ -562,7 +564,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living7&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living8&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -597,7 +599,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living7`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living8`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -621,7 +623,7 @@ async function run() {
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living7/.test(qrProof.clean.decoded || "");
+    && /v=living8/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -657,6 +659,8 @@ async function run() {
         singleBoom: doorSnap?.singleBoom ?? null,
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
+        miniCabinetSource: doorSnap?.miniCabinetSource ?? null,
+        miniClonedFromTwin: doorSnap?.miniClonedFromTwin ?? null,
         backLogoVisible: doorSnap?.backLogoVisible ?? null,
         backLogoInFrame: doorSnap?.backLogoInFrame ?? null,
       },
