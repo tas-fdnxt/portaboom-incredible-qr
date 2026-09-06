@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en-AU">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>OPTION 3 · PREVIEW · hybrid print plate</title>
+<link rel="stylesheet" href="./preview.css">
+<style>
+@page { size: A4 landscape; margin: 12mm; }
+@media print {
+  body{max-width:none;background:#fff;padding:0}
+  .no-print{display:none}
+  .plate{break-inside:avoid}
+}
+.caption{
+  margin:8px 0 0;padding:12px 14px;background:#1B2A4A;color:#fff;
+  border-radius:12px;font-weight:700;
+}
+.sheet{
+  display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:center;
+}
+.sheet img{width:100%;height:auto;background:#F4EFE6;border-radius:12px}
+@media(max-width:640px){.sheet{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<p class="no-print"><span class="badge">OPTION 3 · PREVIEW</span><span class="badge out">not READY</span></p>
+<h1>Hybrid print plate</h1>
+<p>One sheet: OPTION 1 Magic Tree still + OPTION 2 circular STANDARD QR. Same tip. NFC mock later.</p>
+
+<div class="card plate">
+  <img src="./OPTION_3_PREVIEW_print-plate.png" alt="OPTION 3 hybrid print plate">
+  <p class="caption">Scan → living tip <code>?v=living10&amp;showtime=1</code> → DEST after boom down. Not a DEST-only code.</p>
+  <div class="sheet">
+    <div>
+      <p class="meta">OPTION 1 · PREVIEW</p>
+      <img src="./OPTION_1_PREVIEW_send-still.png" alt="OPTION 1 still on plate">
+    </div>
+    <div>
+      <p class="meta">OPTION 2 · PREVIEW</p>
+      <img src="./OPTION_2_PREVIEW_circular-door.png" alt="OPTION 2 door on plate">
+    </div>
+  </div>
+</div>
+
+<div class="card no-print">
+  <h2>Skills GATE still needed</h2>
+  <ul>
+    <li>Print or screen-scan <em>each</em> mark on a phone (iPhone + Android).</li>
+    <li>Both must open the living10 tip, then showtime leave DEST.</li>
+    <li>Plate PNG may be busy for jsQR; isolated files are the decode SoT.</li>
+  </ul>
+  <a class="door" href="./OPTION_3_PREVIEW_print-plate.png">Print PNG</a>
+</div>
+<p class="meta no-print"><a href="./">All options</a></p>
+</body>
+</html>

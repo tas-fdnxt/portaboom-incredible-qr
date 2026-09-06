@@ -1,0 +1,51 @@
+{
+  "label": "PREVIEW OPTIONS 1–5 · overnight sandbox",
+  "ready": false,
+  "fabianSend": false,
+  "tip": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+  "destLeaveOnly": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
+  "ecc": "H",
+  "version": 8,
+  "size": 49,
+  "dark": 1244,
+  "option1": {
+    "file": "/workspace/preview-options/OPTION_1_PREVIEW_send-still.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "notDest": true,
+    "how": "native",
+    "look": {
+      "orange": 7570,
+      "orangeOutside": 0,
+      "led": 984,
+      "heroInField": true,
+      "sticker": false,
+      "notFlatBW": true
+    }
+  },
+  "option2": {
+    "door": "/workspace/preview-options/OPTION_2_PREVIEW_circular-door.png",
+    "standardQr": "/workspace/preview-options/OPTION_2_PREVIEW_standard-qr.png",
+    "doorDecoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "qrDecoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "doorMatch": true,
+    "qrMatch": true,
+    "notDest": true,
+    "note": "Rings are TAS lookalike chrome. Decode path is the STANDARD QR. rs/appclipcode is mock-only and was not used as a payload."
+  },
+  "option3": {
+    "file": "/workspace/preview-options/OPTION_3_PREVIEW_print-plate.png",
+    "decoded": "https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1",
+    "match": true,
+    "note": "Hybrid plate. Phone may prefer scanning the isolated OPTION 1 / OPTION 2 files."
+  },
+  "option4": {
+    "mockDecodes": false,
+    "mockDecoded": null,
+    "note": "NOT LIVE. Mock must not decode as a commercial send. Camera App Clip card is not claimed."
+  },
+  "living10Untouched": {
+    "sendFile": "fabian-showtime-qr.png not overwritten",
+    "tipQuery": "?v=living10&showtime=1"
+  }
+}
