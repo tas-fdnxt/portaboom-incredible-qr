@@ -26,15 +26,23 @@ Short HTML door (iframe of the tip):
 
 `https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-motion/tip.html`
 
-## MOTION3 · living-field in-place morph (additive — do not break living10 or motion1)
+## P113 LOCK · MOTION3 living Incredible tip (Magic Tree)
 
-Not READY. Do not merge as product. New `?v=motion3` only.
+Not READY. Do not send. Do not merge. New `?v=motion3` only.
 
-**motion2 REJECTED — not this.** Do not revive or “fix” the motion2 cutaway / hero-lock tip (`applyScanPose` white poster, black studio void, centered unit).
+**Morph** = same living field flattens in place → hold ≥500ms → DEST.
 
-Sendable (tip URL, not a sticker):
+**Flow** = field moves ≤3s → cycle boom/LED still in field → morph in place → DEST.
+
+**Twin SoT:** https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off
+
+**motion2 REJECTED / not sendable.** Do not revive the fail set (separate-frame QR after showtime · black-studio center · static PNG DONE · unit still centered when left asked · `applyScanPose` full-screen commodity QR · hero-then-different-QR-screen · black studio void replacing field).
+
+PREVIEW tip URL (not a sticker, not READY):
 
 `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion3`
+
+Receipt: `preview-motion/RECEIPT_MOTION3.md` · `RECEIPT_MOTION3.json`
 
 Short HTML door:
 
@@ -61,10 +69,11 @@ Auto flow on open (no required first tap):
 | M1 tip | Three.js living field (HAVE) | `/?v=motion1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1` |
 | M1 tip+show | same tip + auto showtime | `/?v=motion1&showtime=1` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion1&showtime=1` |
 | M1 short | HTML door | `preview-motion/tip.html` | `…/preview-motion/tip.html` |
-| MOTION3 | MOTION3 · living-field in-place morph | `preview-motion/MOTION3_PREVIEW.html` | `…/preview-motion/MOTION3_PREVIEW.html` |
-| MOTION3 tip | living field → cycle in field → flatten in place → DEST | `/?v=motion3` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion3` |
+| MOTION3 | P113 · living Incredible tip | `preview-motion/MOTION3_PREVIEW.html` | `…/preview-motion/MOTION3_PREVIEW.html` |
+| MOTION3 tip | field → cycle in field → flatten in place → DEST | `/?v=motion3` | `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=motion3` |
+| MOTION3 receipt | P113 proof | `preview-motion/RECEIPT_MOTION3.md` | `…/preview-motion/RECEIPT_MOTION3.md` |
 | MOTION3 short | HTML door | `preview-motion/tip-motion3.html` | `…/preview-motion/tip-motion3.html` |
-| MOTION2 | REJECTED cutaway — not this | `preview-motion/MOTION2_PREVIEW.html` | `…/preview-motion/MOTION2_PREVIEW.html` |
+| MOTION2 | REJECTED / not sendable | `preview-motion/MOTION2_PREVIEW.html` | `…/preview-motion/MOTION2_PREVIEW.html` |
 | M2 | OPTION M2 · PREVIEW — animated sendable | `preview-motion/OPTION_M2_PREVIEW.html` | `…/preview-motion/OPTION_M2_PREVIEW.html` |
 | M2 loop | GIF / WebP / MP4 | `preview-motion/living-field.gif` · `.webp` · `.mp4` | `…/preview-motion/living-field.gif` |
 | M2 decode | honest jsQR note | `preview-motion/DECODE.json` | `…/preview-motion/DECODE.json` |

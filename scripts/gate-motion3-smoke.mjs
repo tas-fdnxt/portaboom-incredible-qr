@@ -1,8 +1,7 @@
 /**
- * Snap smoke for ?v=motion3 — not phone GATE, not READY.
- * Proves living field → cycle in field → flatten in place → DEST,
- * and that living10 + motion1 product strings stay unchanged.
- * motion2 REJECTED — this runner does not revive or assert that cutaway.
+ * P113 receipt smoke for ?v=motion3 — not phone GATE, not READY.
+ * Proof: field → cycle in field → flatten in place → DEST.
+ * living10 + motion1 held. motion2 REJECTED / not sendable.
  */
 import { createServer } from "node:http";
 import { readFile, writeFile, mkdir } from "node:fs/promises";
@@ -197,9 +196,94 @@ async function main() {
     report.motion3.destOverrideOk = destSnap.leaveDest === override;
     report.motion3.ok = report.motion3.ok && destSnap.leaveDest === override;
 
-    report.ok = report.living10.ok && report.motion1.ok && report.motion3.ok;
+    const fieldOk = idle.product === "motion3-icqr-door"
+      && idle.viewMode === "door"
+      && idle.fieldMotionOn === true
+      && idle.studioVisible === false
+      && idle.motion3UnitLeft === true
+      && idle.sameField === true
+      && idle.blackStudioVoid !== true;
+    const cycleOk = playing.viewMode === "door"
+      && playing.scanOpen === false
+      && playing.twinInQrField === true
+      && playing.cutawayScan !== true
+      && playing.heroThenDifferentQrScreen !== true;
+    const flattenOk = hold.morphInPlace === true
+      && hold.scanOpen === false
+      && hold.viewMode === "door"
+      && hold.cutawayScan !== true
+      && hold.heroThenDifferentQrScreen !== true
+      && hold.modulesStable === true
+      && hold.magicHoldMs >= 500
+      && hold.doorBoomVisible === true;
+    const destOk = left.snap.destLeft === true
+      && left.snap.destLeaveReason === "motion3-morph-hold"
+      && String(left.snap.destLeaveUrl || left.left?.dest || "").includes("portaboom-pb4000-series");
+
+    report.receipt = {
+      brief: "P113",
+      job: "one living Incredible tip, Magic Tree class",
+      morph: "same living field flattens in place → hold ≥500ms → DEST",
+      flow: "field moves ≤3s → cycle boom/LED still in field → morph in place → DEST",
+      twinSot: "https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off",
+      query: "?v=motion3",
+      motion2: "REJECTED / not sendable",
+      ready: false,
+      holds: {
+        living10: report.living10.ok === true,
+        motion1: report.motion1.ok === true,
+      },
+      proof: {
+        field: {
+          ok: fieldOk,
+          snap: "smoke-motion3-field.png",
+          product: idle.product,
+          viewMode: idle.viewMode,
+          fieldMotionOn: idle.fieldMotionOn,
+          unitLeft: idle.motion3UnitLeft,
+          midX: idle.motion3HeroMidX,
+          studioVisible: idle.studioVisible,
+        },
+        cycleInField: {
+          ok: cycleOk,
+          snap: "smoke-motion3-cycle.png",
+          viewMode: playing.viewMode,
+          scanOpen: playing.scanOpen,
+          twinInQrField: playing.twinInQrField,
+          boomPct: playing.boomPct,
+        },
+        flattenInPlace: {
+          ok: flattenOk,
+          snap: "smoke-motion3-morph.png",
+          morphInPlace: hold.morphInPlace,
+          scanOpen: hold.scanOpen,
+          viewMode: hold.viewMode,
+          cutawayScan: hold.cutawayScan,
+          modulesStable: hold.modulesStable,
+          magicHoldMs: hold.magicHoldMs,
+        },
+        dest: {
+          ok: destOk,
+          reason: left.snap.destLeaveReason,
+          url: left.snap.destLeaveUrl || left.left?.dest,
+        },
+      },
+      failSetAvoided: [
+        "separate-frame QR after showtime",
+        "black-studio center",
+        "static PNG DONE",
+        "unit still centered when left asked",
+        "applyScanPose full-screen commodity QR",
+        "hero-then-different-QR-screen",
+        "black studio void replacing field",
+      ],
+      ok: fieldOk && cycleOk && flattenOk && destOk
+        && report.living10.ok && report.motion1.ok,
+    };
+    report.ok = report.receipt.ok && report.motion3.ok;
     await mkdir(OUT, { recursive: true });
     await writeFile(join(OUT, "SMOKE_SNAP_MOTION3.json"), JSON.stringify(report, null, 2));
+    await writeFile(join(OUT, "RECEIPT_MOTION3.json"), JSON.stringify(report.receipt, null, 2));
     console.log(JSON.stringify(report, null, 2));
     if (!report.ok) process.exitCode = 1;
   } finally {

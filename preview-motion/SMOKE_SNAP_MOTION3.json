@@ -34,12 +34,12 @@
     "motion1": false,
     "motion2": false,
     "cycleInField": true,
-    "cycleBoomPct": 79.91897603040144,
+    "cycleBoomPct": 78.70170603520295,
     "holdPhase": "hold",
     "morphInPlace": true,
     "cutawayScan": false,
     "modulesStable": true,
-    "magicHoldMs": 738.6,
+    "magicHoldMs": 737,
     "scanOpen": false,
     "holdViewMode": "door",
     "holdBoomVisible": true,
@@ -49,6 +49,65 @@
     "ok": true,
     "destOverride": "https://example.com/motion3-dest-override",
     "destOverrideOk": true
+  },
+  "receipt": {
+    "brief": "P113",
+    "job": "one living Incredible tip, Magic Tree class",
+    "morph": "same living field flattens in place → hold ≥500ms → DEST",
+    "flow": "field moves ≤3s → cycle boom/LED still in field → morph in place → DEST",
+    "twinSot": "https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off",
+    "query": "?v=motion3",
+    "motion2": "REJECTED / not sendable",
+    "ready": false,
+    "holds": {
+      "living10": true,
+      "motion1": true
+    },
+    "proof": {
+      "field": {
+        "ok": true,
+        "snap": "smoke-motion3-field.png",
+        "product": "motion3-icqr-door",
+        "viewMode": "door",
+        "fieldMotionOn": true,
+        "unitLeft": true,
+        "midX": -0.2602,
+        "studioVisible": false
+      },
+      "cycleInField": {
+        "ok": true,
+        "snap": "smoke-motion3-cycle.png",
+        "viewMode": "door",
+        "scanOpen": false,
+        "twinInQrField": true,
+        "boomPct": 78.70170603520295
+      },
+      "flattenInPlace": {
+        "ok": true,
+        "snap": "smoke-motion3-morph.png",
+        "morphInPlace": true,
+        "scanOpen": false,
+        "viewMode": "door",
+        "cutawayScan": false,
+        "modulesStable": true,
+        "magicHoldMs": 737
+      },
+      "dest": {
+        "ok": true,
+        "reason": "motion3-morph-hold",
+        "url": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/"
+      }
+    },
+    "failSetAvoided": [
+      "separate-frame QR after showtime",
+      "black-studio center",
+      "static PNG DONE",
+      "unit still centered when left asked",
+      "applyScanPose full-screen commodity QR",
+      "hero-then-different-QR-screen",
+      "black studio void replacing field"
+    ],
+    "ok": true
   },
   "ok": true
 }

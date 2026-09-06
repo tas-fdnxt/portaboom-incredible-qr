@@ -3162,7 +3162,9 @@ function rigTwinLeds(root) {
   };
 }
 
-/** Port of twin-core lights.ts updateLeds. Face LEDs alternate L/R when advisory. */
+/** Port of twin-core lights.ts updateLeds. Face LEDs alternate L/R when advisory.
+ * Twin SoT: https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off
+ */
 function updateLeds() {
   const faces = ledRig.faceMats?.length ? ledRig.faceMats : (ledRig.faceMat ? [ledRig.faceMat] : []);
   if (!faces.length && !ledRig.stripMat) return;
@@ -3808,6 +3810,14 @@ window.__iqr = {
         && viewMode === "door"
         && scanOpen === false,
       cutawayScan: scanOpen === true && viewMode === "scan",
+      p113: motion3Wanted,
+      p113Brief: motion3Wanted
+        ? "one living Incredible tip, Magic Tree class"
+        : null,
+      twinSot: "https://dist-bice-chi-12.vercel.app/?source=mock&cloud=off",
+      sameField: motion3Wanted && viewMode === "door" && scanOpen === false,
+      heroThenDifferentQrScreen: scanOpen === true && viewMode === "scan",
+      blackStudioVoid: !!(studioGroup.visible && (motion3Wanted || showtimeWanted || motion1Wanted)),
       magicPhase,
       magicHoldMs: magicPhase === "hold"
         ? +(Math.max(magicHoldMs, performance.now() - magicHoldStartedAt)).toFixed(1)

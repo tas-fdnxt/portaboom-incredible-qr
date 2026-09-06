@@ -54,7 +54,9 @@ Open `/?v=motion3` (or `preview-motion/tip-motion3.html`). No required first tap
 | Hold ≥500ms | `modulesStable === true` · `magicHoldMs >= 500` |
 | Leave DEST | `destLeaveReason === "motion3-morph-hold"` · default PB4000 product URL · `?dest=` override uses existing dest-config parser |
 
-**motion2 REJECTED — not this.** Do not assert `scanOpen === true` or `viewMode === "scan"` on the motion3 hold.
+**P113 receipt:** `RECEIPT_MOTION3.md` + `RECEIPT_MOTION3.json` — proof field → cycle in field → flatten in place → DEST.
+
+**motion2 REJECTED / not sendable.** Do not assert `scanOpen === true` or `viewMode === "scan"` on the motion3 hold.
 
 ## motion2 tip — REJECTED cutaway (do not ship)
 
