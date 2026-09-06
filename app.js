@@ -591,16 +591,18 @@ const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAUL
 const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
- * Showtime must be longer than that loop — do not lock to ~3s.
+ * Showtime must still beat that loop — living7 does it with a faster 4s path.
  */
 const TEASER_LOOP_S = 3.6;
-/** Clear amber, then red while boom eases down. Budget ~7.1s (target 6–8s). */
-const SHOWTIME_AMBER_S = 1.5;
-const SHOWTIME_LOWER_S = 5.2;
-const SHOWTIME_HOLD_S = 0.4;
+/** Green 1s → amber 1s → red 1s → boom down 1s (~4s). Clear green phase. */
+const SHOWTIME_GREEN_S = 1.0;
+const SHOWTIME_AMBER_S = 1.0;
+const SHOWTIME_RED_HOLD_S = 1.0;
+const SHOWTIME_LOWER_S = 1.0;
+const SHOWTIME_HOLD_S = 0;
 /** Short beat after boom fully down, then leave to DEST. */
 const SHOWTIME_LEAVE_S = 0.4;
-const SHOWTIME_TOTAL_S = SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
+const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S;
 /**
  * First paint stays on the QR-matrix door so the scan does not open
  * looking like a twin-site 3/4 product hero. Tap starts transform;
@@ -610,15 +612,14 @@ const SHOWTIME_DOOR_S = 2.6;
 /** Fallback door crop if the cabinet bbox is not ready. Living4 width-fit the whole pad. */
 const DOOR_PAD_SPAN = 0.22;
 /**
- * Cabinet fill of phone height. Living5 used 0.52 (too big, clipped signal).
- * Pull back a bit so the traffic light and a boom span read, without
- * falling back to living4's full-pad speck.
+ * Front-facing crop: subject (cabinet + lantern + a boom span) fills the
+ * phone. Not living5 cabinet-only, not living4 full-pad speck.
  */
-const DOOR_CABINET_FILL = 0.32;
+const DOOR_SUBJECT_FILL = 0.72;
 /** Extra ortho so the lantern housing clears the crop. */
-const DOOR_SIGNAL_PAD = 1.22;
+const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
-const DOOR_BOOM_KEEP = 0.62;
+const DOOR_BOOM_KEEP = 0.55;
 if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
   throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
 }
@@ -676,7 +677,7 @@ const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
 const scanCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
-/** Steep ortho of the living QR field with the unit still planted in it. */
+/** Front-facing ortho — lenses readable, not a steep top-down tilt. */
 const doorCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
 /** Dead-on +Y ortho of the XZ caps. OrbitControls must not own this camera. */
 const SCAN_POSE = {
@@ -824,6 +825,89 @@ scene.add(grid);
 const mods = living.mods;
 const paperMat = living.paperMat;
 const scanPlane = null;
+let brandBack = null;
+
+function makeBrandWordmarkTex() {
+  const c = document.createElement("canvas");
+  c.width = 2048;
+  c.height = 560;
+  const ctx = c.getContext("2d");
+  ctx.clearRect(0, 0, 2048, 560);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "900 228px Arial Black, Arial, sans-serif";
+  ctx.fillStyle = "#1b2a4a";
+  ctx.fillText("PORTA", 620, 230);
+  ctx.fillStyle = "#1b1e24";
+  ctx.fillText("BOOM", 1440, 230);
+  ctx.fillStyle = "#ee7202";
+  for (let i = 0; i < 4; i += 1) {
+    const x = 1220 + i * 108;
+    ctx.beginPath();
+    ctx.moveTo(x, 372);
+    ctx.lineTo(x + 72, 372);
+    ctx.lineTo(x + 38, 468);
+    ctx.lineTo(x - 34, 468);
+    ctx.closePath();
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.anisotropy = 8;
+  return tex;
+}
+
+function makeDoorSkyTex() {
+  const c = document.createElement("canvas");
+  c.width = 2048;
+  c.height = 2048;
+  const ctx = c.getContext("2d");
+  ctx.fillStyle = "#f4efe6";
+  ctx.fillRect(0, 0, 2048, 2048);
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = "900 260px Arial Black, Arial, sans-serif";
+  ctx.fillStyle = "#1b2a4a";
+  ctx.fillText("PORTA", 720, 380);
+  ctx.fillStyle = "#1b1e24";
+  ctx.fillText("BOOM", 1460, 380);
+  ctx.fillStyle = "#ee7202";
+  for (let i = 0; i < 4; i += 1) {
+    const x = 1240 + i * 100;
+    ctx.beginPath();
+    ctx.moveTo(x, 520);
+    ctx.lineTo(x + 68, 520);
+    ctx.lineTo(x + 34, 610);
+    ctx.lineTo(x - 34, 610);
+    ctx.closePath();
+    ctx.fill();
+  }
+  const tex = new THREE.CanvasTexture(c);
+  tex.colorSpace = THREE.SRGBColorSpace;
+  tex.needsUpdate = true;
+  return tex;
+}
+const doorSkyTex = makeDoorSkyTex();
+
+function makeBrandBack() {
+  const group = new THREE.Group();
+  group.name = "PortaboomBackBrand";
+  const word = new THREE.Mesh(
+    new THREE.PlaneGeometry(7.4, 7.4 * (560 / 2048)),
+    new THREE.MeshBasicMaterial({
+      map: makeBrandWordmarkTex(),
+      transparent: true,
+      depthWrite: false,
+      toneMapped: false,
+    })
+  );
+  word.name = "PortaboomBackLogo";
+  word.position.set(0, 2.35, -2.85);
+  group.add(word);
+  scene.add(group);
+  return group;
+}
+brandBack = makeBrandBack();
 
 function makeHeroBoom() {
   const g = new THREE.Group();
@@ -1360,7 +1444,7 @@ function doorBoomClipBox() {
 
 /**
  * Door subject = portable unit + traffic light + a meaningful boom span.
- * Fabian living6: not cabinet-only, not the full-pad speck.
+ * Fabian living7: cabinet + lantern + boom, straight-on. Not living4 speck.
  */
 function doorSubjectBox() {
   const box = new THREE.Box3();
@@ -1378,18 +1462,18 @@ function doorSubjectBox() {
 }
 
 /**
- * Size the door from the cabinet, then pad so the traffic light fits.
+ * Size the door from cabinet + lantern + a boom span.
  * Do not let the 4 m boom drive the crop (that recreates living4 speck).
  */
 function fitDoorOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
   const aspect = w / h;
-  const box = doorCabinetBox();
+  const box = doorSubjectBox();
   let span = living.padSize * DOOR_PAD_SPAN;
   if (box && !box.isEmpty()) {
     const size = box.getSize(new THREE.Vector3());
-    span = Math.max(size.y / DOOR_CABINET_FILL, size.x * 2.25, 0.72) * DOOR_SIGNAL_PAD;
+    span = Math.max(size.y / DOOR_SUBJECT_FILL, size.x / 0.78, 0.82) * DOOR_SIGNAL_PAD;
   }
   let worldW;
   let worldH;
@@ -1509,7 +1593,7 @@ function measureDoorSubjectFrame() {
 }
 
 /**
- * living6: boom stays in the QR field on first paint.
+ * living7: boom stays in the QR field on first paint.
  * Camera crop may trim the far tip; never hide BoomPivot.
  */
 function setDoorBoomArm(visible = true) {
@@ -1522,8 +1606,8 @@ function setDoorBoomArm(visible = true) {
 }
 
 /**
- * Face the cabinet, bias toward the traffic light so the lantern stays in.
- * Boom stays visible and may trim at the top. Not a plaza hero.
+ * Straight-on front: lenses are circles, not roof-ellipses.
+ * Bias toward the traffic light so the lantern stays in. Boom may trim.
  */
 function lockDoorCamera() {
   fitDoorOrtho();
@@ -1532,6 +1616,7 @@ function lockDoorCamera() {
   let cy = 0.48;
   let cz = 0.12;
   let sy = 0.72;
+  let sx = 0.42;
   const cab = doorCabinetBox();
   if (cab && !cab.isEmpty()) {
     const c = cab.getCenter(new THREE.Vector3());
@@ -1540,21 +1625,30 @@ function lockDoorCamera() {
     if (Number.isFinite(c.y)) cy = c.y;
     if (Number.isFinite(c.z)) cz = c.z;
     if (Number.isFinite(s.y) && s.y > 0.2) sy = s.y;
+    if (Number.isFinite(s.x) && s.x > 0.1) sx = s.x;
   }
-  let lookY = cy - sy * 0.02;
+  let lookY = cy;
   const lantern = doorSignalLanternBox();
   if (lantern && !lantern.isEmpty()) {
     const sc = lantern.getCenter(new THREE.Vector3());
-    if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.30);
+    if (Number.isFinite(sc.x)) cx = THREE.MathUtils.lerp(cx, sc.x, 0.42);
     if (Number.isFinite(sc.y)) {
-      cy = THREE.MathUtils.lerp(cy, sc.y, 0.18);
-      lookY = THREE.MathUtils.lerp(lookY, sc.y, 0.28);
+      lookY = sc.y;
+      cy = THREE.MathUtils.lerp(cy, sc.y, 0.55);
     }
   }
-  // Steeper than living5's face-on closeup so the lantern roof and boom read.
-  doorCam.position.set(cx + sy * 0.14, cy + sy * 0.88, cz + sy * 1.70);
+  // Front-facing: camera Y ≈ lens Y. Tiny lift only so the door still reads 3D.
+  const dist = Math.max(sy * 2.35, sx * 3.1, 1.55);
+  doorCam.position.set(cx, lookY + sy * 0.08, cz + dist);
   doorCam.lookAt(cx, lookY, cz);
   doorCam.updateProjectionMatrix();
+}
+
+function doorCamElevationDeg() {
+  const dir = new THREE.Vector3();
+  doorCam.getWorldDirection(dir);
+  const elev = Math.asin(THREE.MathUtils.clamp(dir.y, -1, 1));
+  return +THREE.MathUtils.radToDeg(elev).toFixed(2);
 }
 
 function setLivingCaps(visible) {
@@ -1655,9 +1749,9 @@ function startShowtime() {
   applyBoomShown(100);
   showtimeStartedAt = performance.now();
   showtimeElapsed = 0;
-  showMode = "amber";
+  showMode = "green";
   showClock = 0;
-  setSignalAspect("amber");
+  setSignalAspect("green");
   document.body.classList.add("showtime");
   if (controls) controls.enabled = false;
   setStatus("Showtime");
@@ -1718,7 +1812,7 @@ function applyWorldPose() {
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.05;
-  scene.background.setHex(0x0d0d12);
+  scene.background = new THREE.Color(0x0d0d12);
   renderer.setClearColor(0x0d0d12, 1);
   if (controls) {
     controls.object = unitCam;
@@ -1726,6 +1820,7 @@ function applyWorldPose() {
   }
   unitCam.near = 0.05;
   unitCam.far = 80;
+  if (brandBack) brandBack.visible = false;
   placeTwinInLivingWorld();
   if (boom) {
     lockWorldCamera();
@@ -1772,7 +1867,7 @@ function applyDoorPose() {
   if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.12;
-  scene.background.setHex(0xf4efe6);
+  scene.background = doorSkyTex;
   renderer.setClearColor(0xf4efe6, 1);
   if (controls) {
     controls.enabled = false;
@@ -1781,6 +1876,7 @@ function applyDoorPose() {
   }
   placeTwinInLivingWorld();
   setDoorBoomArm(true);
+  if (brandBack) brandBack.visible = true;
   lockDoorCamera();
   if (showtimeHudHidden()) setStatus("PORTABOOM");
   syncModeHud();
@@ -1795,11 +1891,12 @@ function applyScanPose() {
   if (living.scanPad) living.scanPad.visible = true;
   if (living.apron) living.apron.visible = false;
   if (living.ring) living.ring.visible = false;
+  if (brandBack) brandBack.visible = false;
   setLivingCaps(true);
   if (paperMat?.color) paperMat.color.setHex(0xffffff);
   renderer.toneMapping = THREE.NoToneMapping;
   renderer.toneMappingExposure = 1.12;
-  scene.background.setHex(0xffffff);
+  scene.background = new THREE.Color(0xffffff);
   renderer.setClearColor(0xffffff, 1);
   camera = scanCam;
   if (controls) {
@@ -2043,7 +2140,95 @@ function rigBoomMaster(root) {
   while (boomDrop - boomRest > Math.PI) boomDrop -= 2 * Math.PI;
   while (boomDrop - boomRest < -Math.PI) boomDrop += 2 * Math.PI;
   boomPivot.rotation.z = boomRest; // start UP
+  killGhostBooms(root, boomPivot);
   return { pivot: boomPivot, rest: boomRest, drop: boomDrop, shownPct: 100, targetPct: 100, tipY: tip[1], tipAxis: "y" };
+}
+
+/**
+ * One boom only. Attach leftover stripe / 主杆 meshes to BoomPivot so a
+ * decoy copy cannot stay upright while the hinged arm lowers.
+ */
+function killGhostBooms(root, pivot) {
+  if (!root || !pivot) return { attached: 0, hidden: 0, leftover: 0 };
+  root.updateMatrixWorld(true);
+  const box = new THREE.Box3();
+  const sz = new THREE.Vector3();
+  const leftovers = [];
+  root.traverse((o) => {
+    if (!o.isMesh || o.visible === false) return;
+    if (isDescendantOf(o, pivot)) return;
+    if (isTrafficNode(o)) return;
+    if (isDiscLikeMesh(o)) return;
+    const n = `${o.name || ""}|${o.parent?.name || ""}`;
+    box.setFromObject(o);
+    box.getSize(sz);
+    const tallSlim = sz.y > 1.05 && Math.max(sz.x, sz.z) < 0.62 && Math.min(sz.x, sz.z) < 0.48;
+    const named = /主杆|105-|105_|灯条|BoomArm|HeroBoom|胶条|FENGKONG|^006$/.test(n);
+    const tagged = o.userData?.tag === "B" || o.material?.userData?.stripe;
+    if (tallSlim || named || tagged) leftovers.push(o);
+  });
+  let attached = 0;
+  let hidden = 0;
+  leftovers.forEach((o) => {
+    try {
+      if (!isDescendantOf(o, pivot)) {
+        pivot.attach(o);
+        attached += 1;
+      }
+    } catch {
+      o.visible = false;
+      hidden += 1;
+    }
+  });
+  const hero = scene.getObjectByName("portaboom-hero-standin");
+  if (hero && hero !== root) {
+    hero.visible = false;
+    if (hero.parent) hero.parent.remove(hero);
+    hidden += 1;
+  }
+  const heroArm = root.getObjectByName("HeroBoomArm");
+  if (heroArm && usingGlb) {
+    heroArm.visible = false;
+    hidden += 1;
+  }
+  const proof = { attached, hidden, leftover: leftovers.length };
+  root.userData.ghostBoom = proof;
+  return proof;
+}
+
+/** Visible stripe / boom meshes that are NOT on the hinged pivot = ghosts. */
+function countUprightBoomGhosts() {
+  if (!boom) return 0;
+  const pivot = boomRig?.pivot || boom.getObjectByName("BoomPivot");
+  let ghosts = 0;
+  const box = new THREE.Box3();
+  const sz = new THREE.Vector3();
+  boom.traverse((o) => {
+    if (!o.isMesh || !isVisibleInTree(o)) return;
+    if (isTrafficNode(o)) return;
+    if (pivot && isDescendantOf(o, pivot)) return;
+    const tagged = o.userData?.tag === "B" || o.material?.userData?.stripe;
+    const named = /主杆|105|灯条|BoomArm|HeroBoom/.test(o.name || "");
+    if (!tagged && !named) return;
+    box.setFromObject(o);
+    box.getSize(sz);
+    if (sz.y > 0.8 && sz.y > Math.max(sz.x, sz.z) * 1.45) ghosts += 1;
+  });
+  const hero = scene.getObjectByName("portaboom-hero-standin");
+  if (hero && isVisibleInTree(hero) && boom !== hero) ghosts += 1;
+  return ghosts;
+}
+
+function countMiniTrafficLights() {
+  let n = 0;
+  for (const m of mods) {
+    if (!m) continue;
+    if (m.userData?.hasTrafficLight) n += 1;
+    m.traverse((o) => {
+      if (/QrModLens|MiniSignal|MiniLens|HeroLens/.test(o.name || "")) n += 1;
+    });
+  }
+  return n + (living.ledMats?.length || 0);
 }
 
 /** Hero stand-in arm — raise/lower works before (and if) the CAD rig mounts. */
@@ -2597,21 +2782,34 @@ function tickShow(dt) {
   showClock += dt;
   if (showtimePhase === "playing") {
     showtimeElapsed = (performance.now() - showtimeStartedAt) / 1000;
-    if (showtimeElapsed < SHOWTIME_AMBER_S) {
+    const t = showtimeElapsed;
+    const greenEnd = SHOWTIME_GREEN_S;
+    const amberEnd = greenEnd + SHOWTIME_AMBER_S;
+    const redEnd = amberEnd + SHOWTIME_RED_HOLD_S;
+    const lowerEnd = redEnd + SHOWTIME_LOWER_S;
+    if (t < greenEnd) {
+      showMode = "green";
+      setSignalAspect("green");
+      applyBoomShown(100);
+    } else if (t < amberEnd) {
       showMode = "amber";
       setSignalAspect("amber");
       applyBoomShown(100);
-    } else if (showtimeElapsed < SHOWTIME_AMBER_S + SHOWTIME_LOWER_S) {
+    } else if (t < redEnd) {
+      showMode = "redhold";
+      setSignalAspect("red");
+      applyBoomShown(100);
+    } else if (t < lowerEnd) {
       showMode = "closing";
       setSignalAspect("red");
-      const u = (showtimeElapsed - SHOWTIME_AMBER_S) / SHOWTIME_LOWER_S;
+      const u = (t - redEnd) / SHOWTIME_LOWER_S;
       const eased = u * u * (3 - 2 * u);
       applyBoomShown(100 * (1 - eased));
     } else {
       showMode = "down";
       setSignalAspect("red");
       applyBoomShown(0);
-      if (showtimeElapsed >= SHOWTIME_AMBER_S + SHOWTIME_LOWER_S + SHOWTIME_HOLD_S) {
+      if (t >= lowerEnd + SHOWTIME_HOLD_S) {
         settleShowtime();
       }
     }
@@ -2701,6 +2899,7 @@ function mountCad(gltf, label) {
     setSignType(signType || "round");
     addLogoDecal(boom);
     applyCoreShowConfig(boom);
+    if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
     if (showtimeWanted && showtimePhase !== "settled") {
@@ -2987,16 +3186,19 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living6-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living7-icqr-door" : "living2-brand-world",
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
       showtimeElapsed: +showtimeElapsed.toFixed(3),
       showtimeBudget: SHOWTIME_TOTAL_S,
+      showtimeGreenS: SHOWTIME_GREEN_S,
       showtimeAmberS: SHOWTIME_AMBER_S,
+      showtimeRedHoldS: SHOWTIME_RED_HOLD_S,
       showtimeLowerS: SHOWTIME_LOWER_S,
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
+      timingBeat: "1+1+1+1",
       showtimeHudHidden: showtimeHudHidden(),
       showtimeLeaveS: SHOWTIME_LEAVE_S,
       destLeave,
@@ -3033,6 +3235,26 @@ window.__iqr = {
       doorBoomInFrame: (() => {
         const f = measureDoorBoomFrame();
         return !!(f && f.heightFrac >= 0.12);
+      })(),
+      doorCamElevationDeg: viewMode === "door" ? doorCamElevationDeg() : null,
+      doorCamFrontFacing: viewMode === "door" && doorCamElevationDeg() > -18 && doorCamElevationDeg() < 12,
+      ghostBoomCount: countUprightBoomGhosts(),
+      ghostBoom: boom?.userData?.ghostBoom || null,
+      singleBoom: countUprightBoomGhosts() === 0,
+      miniTrafficLights: countMiniTrafficLights(),
+      miniHasTrafficLight: countMiniTrafficLights() > 0 || living.miniHasTrafficLight === true,
+      stripeModules: living.stripeModules ?? 0,
+      backLogoVisible: !!(brandBack && brandBack.visible && brandBack.getObjectByName("PortaboomBackLogo")),
+      backLogoInFrame: (() => {
+        const logo = brandBack?.getObjectByName("PortaboomBackLogo");
+        if (!logo || !brandBack?.visible || viewMode !== "door") return false;
+        const f = projectBoxViewportFrac(worldBox(logo), doorCam);
+        return !!(f && f.areaFrac > 0.04);
+      })(),
+      backLogoFrame: (() => {
+        const logo = brandBack?.getObjectByName("PortaboomBackLogo");
+        if (!logo || viewMode !== "door") return null;
+        return projectBoxViewportFrac(worldBox(logo), doorCam);
       })(),
       scanEnvelope: "tap-to-scan ortho top-down of XZ plaza",
       defaultShowsTwin: !!(boom && !scanOpen),
@@ -3211,6 +3433,8 @@ window.__iqr = {
       texturedQuad: false,
       viewMode,
       scanOpen,
+      miniHasTrafficLight: living.miniHasTrafficLight === true,
+      stripeModules: living.stripeModules ?? 0,
     };
   },
   nudgeScan(x = 0, y = 0) {
