@@ -416,8 +416,9 @@ async function run() {
       theme: document.querySelector('meta[name="theme-color"]')?.getAttribute("content") || null,
     };
   });
-  const doorShot = await page.screenshot({ path: join(OUT, "showtime-door.png"), type: "png" });
-  await page.screenshot({ path: join(OUT, "showtime-door-webgl.png"), type: "png" });
+  const shotOpts = { type: "png", timeout: 60000, animations: "disabled" };
+  const doorShot = await page.screenshot({ path: join(OUT, "showtime-door.png"), ...shotOpts });
+  await page.screenshot({ path: join(OUT, "showtime-door-webgl.png"), ...shotOpts });
   const vision = doorVision(doorShot);
   const firstPaintOk = doorSnap?.showtimePhase === "door"
     && doorSnap?.viewMode === "door"
@@ -502,16 +503,16 @@ async function run() {
     };
     samples.push(row);
     if (!snappedGreen && row.signalAspect === "green" && row.showtimePhase === "playing") {
-      await page.screenshot({ path: join(OUT, "showtime-green.png"), type: "png" });
+      await page.screenshot({ path: join(OUT, "showtime-green.png"), ...shotOpts });
       snappedGreen = true;
     } else if (!snappedAmber && row.signalAspect === "amber" && row.showtimePhase === "playing") {
-      await page.screenshot({ path: join(OUT, "showtime-amber.png"), type: "png" });
+      await page.screenshot({ path: join(OUT, "showtime-amber.png"), ...shotOpts });
       snappedAmber = true;
     } else if (!snappedLower && row.signalAspect === "red" && row.boomPct != null && row.boomPct < 75 && row.boomPct > 15) {
-      await page.screenshot({ path: join(OUT, "showtime-lowering.png"), type: "png" });
+      await page.screenshot({ path: join(OUT, "showtime-lowering.png"), ...shotOpts });
       snappedLower = true;
     } else if (!snappedDown && row.boomPct != null && row.boomPct <= 5 && row.signalAspect === "red") {
-      await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
+      await page.screenshot({ path: join(OUT, "showtime-down.png"), ...shotOpts });
       snappedDown = true;
     }
     if (row.showtimePhase === "settled" && row.usingGlb && row.boomPct <= 5) break;
@@ -524,9 +525,9 @@ async function run() {
   const snapEnd = await page.evaluate(() => window.__iqr?.snap);
   const destLeaves = await page.evaluate(() => window.__iqrDestLeaves || []);
   if (!snappedDown) {
-    await page.screenshot({ path: join(OUT, "showtime-down.png"), type: "png" });
+    await page.screenshot({ path: join(OUT, "showtime-down.png"), ...shotOpts });
   }
-  await page.screenshot({ path: join(OUT, "showtime-settled.png"), type: "png" });
+  await page.screenshot({ path: join(OUT, "showtime-settled.png"), ...shotOpts });
 
   const dockAfter = await page.evaluate(() => {
     const dock = document.getElementById("liveDock");

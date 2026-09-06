@@ -240,14 +240,13 @@ function mergeNamed(THREE, proto, nameRe) {
     }
     geos.forEach((g) => { if (g !== merged) g.dispose(); });
   }
-  const simple = clusterSimplify(THREE, merged, nameRe.test("MiniCabinetBody") ? 14 : 8);
-  if (simple !== merged) merged.dispose();
-  return { geometry: simple, material: mat };
+  return { geometry: merged, material: mat };
 }
 
 /**
  * Replace abstract box minis with instanced clones of the real cabinet.
- * One / two draw calls for the whole field. No traffic lights.
+ * Solid fill uses the GLB cabinet bbox (so thin CAD walls do not read as
+ * silver junk). Door mesh is the real 115-DOOR panel. No traffic lights.
  */
 export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   if (!living?.mods?.length || !proto) return false;
@@ -257,18 +256,40 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   const size = box.getSize(new THREE.Vector3());
   if (size.y < 0.05) return false;
 
-  const body = mergeNamed(THREE, proto, /MiniCabinetBody/);
-  if (!body?.geometry) return false;
-  const wheels = mergeNamed(THREE, proto, /MiniCabinetWheel/);
-  const logos = mergeNamed(THREE, proto, /MiniCabinetLogo/);
-
   const liveryY = opts.livery?.Y ?? 0xf47514;
-  const bodyMat = body.material || powder(THREE, liveryY);
-  const wheelMat = wheels?.material || new THREE.MeshStandardMaterial({
+  const bodyMat = powder(THREE, liveryY);
+  bodyMat.side = THREE.DoubleSide;
+  const wheelMat = new THREE.MeshStandardMaterial({
     color: opts.livery?.K ?? 0x222426,
     metalness: 0.18,
     roughness: 0.62,
   });
+
+  const bodyGeo = new THREE.BoxGeometry(size.x * 0.92, size.y, size.z * 0.88);
+  bodyGeo.translate(0, size.y * 0.5, 0);
+
+  const door = mergeNamed(THREE, proto, /MiniCabinetBody/);
+  let doorGeo = door?.geometry || null;
+  if (doorGeo) doorGeo = clusterSimplify(THREE, doorGeo, 22);
+
+  const wheelCenters = [];
+  proto.traverse((o) => {
+    if (o.name !== "MiniCabinetWheel") return;
+    const p = new THREE.Vector3();
+    o.getWorldPosition(p);
+    wheelCenters.push(p);
+  });
+  let wheelGeo = null;
+  if (wheelCenters.length) {
+    const wr = Math.min(size.x, size.z) * 0.16;
+    const parts = wheelCenters.slice(0, 2).map((p) => {
+      const g = new THREE.CylinderGeometry(wr, wr, wr * 0.7, 10);
+      g.rotateZ(Math.PI / 2);
+      g.translate(p.x, Math.max(wr, p.y), p.z);
+      return g;
+    });
+    wheelGeo = parts.length === 1 ? parts[0] : (mergeGeometries(parts, false) || parts[0]);
+  }
 
   const fill = (living.cell ?? CELL) * MODULE_FILL;
   const count = living.mods.length;
@@ -287,33 +308,23 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
     return mesh;
   };
 
-  const bodyField = makeField(body.geometry, bodyMat, "MiniCabinetField");
-  const wheelField = wheels?.geometry
-    ? makeField(wheels.geometry, wheelMat, "MiniCabinetWheels")
-    : null;
+  const bodyField = makeField(bodyGeo, bodyMat, "MiniCabinetField");
+  const doorField = doorGeo ? makeField(doorGeo, bodyMat, "MiniCabinetDoor") : null;
+  const wheelField = wheelGeo ? makeField(wheelGeo, wheelMat, "MiniCabinetWheels") : null;
 
-  let logoField = null;
-  if (logos?.geometry) {
-    logoField = makeField(logos.geometry, logos.material, "MiniCabinetLogos");
-  } else {
-    const logoH = size.y * 0.28;
-    const logoW = Math.min(size.x, size.z) * 0.62;
-    const logoGeo = new THREE.PlaneGeometry(logoW, logoH);
-    const logoMat = new THREE.MeshBasicMaterial({
-      map: makeMiniLogoTex(THREE),
-      transparent: true,
-      depthWrite: false,
-      toneMapped: false,
-    });
-    const logoMesh = new THREE.Mesh(logoGeo, logoMat);
-    logoMesh.position.set(0, size.y * 0.52, size.z * 0.5 + 0.004);
-    proto.add(logoMesh);
-    logoMesh.updateMatrixWorld(true);
-    const baked = bakeWorldGeo(THREE, logoMesh);
-    logoField = makeField(baked, logoMat, "MiniCabinetLogos");
-  }
+  const logoH = size.y * 0.28;
+  const logoW = Math.min(size.x, size.z) * 0.72;
+  const logoGeo = new THREE.PlaneGeometry(logoW, logoH);
+  const logoMat = new THREE.MeshBasicMaterial({
+    map: makeMiniLogoTex(THREE),
+    transparent: true,
+    depthWrite: false,
+    toneMapped: false,
+  });
+  logoGeo.translate(0, size.y * 0.48, size.z * 0.46);
+  const logoField = makeField(logoGeo, logoMat, "MiniCabinetLogos");
 
-  const fields = [bodyField, wheelField, logoField].filter(Boolean);
+  const fields = [bodyField, doorField, wheelField, logoField].filter(Boolean);
 
   const writeInstance = (i, x, y, z, s) => {
     dummy.position.set(x, y, z);
@@ -343,6 +354,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   }
 
   living.cabinetField = bodyField;
+  living.doorField = doorField;
   living.wheelField = wheelField;
   living.logoField = logoField;
   living.miniScales = scales;
@@ -350,7 +362,8 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   living.miniHasTrafficLight = false;
   living.stripeModules = 0;
   living.miniCabinetMeshCount = proto.userData?.body ?? 0;
-  living.miniCabinetTris = (body.geometry.index?.count || 0) / 3;
+  living.miniCabinetTris = (bodyGeo.attributes.position.count / 3)
+    + ((doorGeo?.index?.count || doorGeo?.attributes.position.count || 0) / 3);
   living.miniPrototypeName = proto.name;
   living.product = "living8-mini-cabinets";
   if (living.group.userData) {
