@@ -3202,6 +3202,7 @@ window.__iqr = {
       timingBeat: "0.5+1+0.5",
       miniFromGlb: living.miniFromGlb === true,
       miniCabinetMeshCount: living.miniCabinetMeshCount ?? 0,
+      miniCabinetTris: living.miniCabinetTris ?? 0,
       miniPrototypeName: living.miniPrototypeName ?? null,
       showtimeHudHidden: showtimeHudHidden(),
       showtimeLeaveS: SHOWTIME_LEAVE_S,

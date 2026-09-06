@@ -164,6 +164,64 @@ function bakeWorldGeo(THREE, mesh) {
   return geo;
 }
 
+/** Fast vertex-cluster simplifier — keeps the CAD silhouette, drops micro-facets. */
+function clusterSimplify(THREE, geo, cellsY = 12) {
+  const src = geo.index ? geo.toNonIndexed() : geo;
+  src.computeBoundingBox();
+  const bb = src.boundingBox;
+  if (!bb || bb.isEmpty()) return geo;
+  const size = new THREE.Vector3();
+  bb.getSize(size);
+  const cell = Math.max(size.y / cellsY, 1e-4);
+  const pos = src.attributes.position;
+  const nrm = src.attributes.normal;
+  const indexOf = new Map();
+  const packed = [];
+  const keyOf = (x, y, z) => {
+    const ix = Math.round((x - bb.min.x) / cell);
+    const iy = Math.round((y - bb.min.y) / cell);
+    const iz = Math.round((z - bb.min.z) / cell);
+    return (ix + 512) | ((iy + 512) << 10) | ((iz + 512) << 20);
+  };
+  const get = (i) => {
+    const x = pos.getX(i);
+    const y = pos.getY(i);
+    const z = pos.getZ(i);
+    const k = keyOf(x, y, z);
+    if (indexOf.has(k)) return indexOf.get(k);
+    const id = packed.length / 6;
+    packed.push(x, y, z, nrm ? nrm.getX(i) : 0, nrm ? nrm.getY(i) : 1, nrm ? nrm.getZ(i) : 0);
+    indexOf.set(k, id);
+    return id;
+  };
+  const idx = [];
+  for (let i = 0; i < pos.count; i += 3) {
+    const a = get(i);
+    const b = get(i + 1);
+    const c = get(i + 2);
+    if (a !== b && b !== c && c !== a) idx.push(a, b, c);
+  }
+  if (idx.length < 9) return geo;
+  const out = new THREE.BufferGeometry();
+  const data = new Float32Array(packed);
+  const n = packed.length / 6;
+  const pArr = new Float32Array(n * 3);
+  const nArr = new Float32Array(n * 3);
+  for (let i = 0; i < n; i += 1) {
+    pArr[i * 3] = data[i * 6];
+    pArr[i * 3 + 1] = data[i * 6 + 1];
+    pArr[i * 3 + 2] = data[i * 6 + 2];
+    nArr[i * 3] = data[i * 6 + 3];
+    nArr[i * 3 + 1] = data[i * 6 + 4];
+    nArr[i * 3 + 2] = data[i * 6 + 5];
+  }
+  out.setAttribute("position", new THREE.BufferAttribute(pArr, 3));
+  out.setAttribute("normal", new THREE.BufferAttribute(nArr, 3));
+  out.setIndex(idx);
+  out.computeVertexNormals();
+  return out;
+}
+
 function mergeNamed(THREE, proto, nameRe) {
   const geos = [];
   let mat = null;
@@ -182,7 +240,9 @@ function mergeNamed(THREE, proto, nameRe) {
     }
     geos.forEach((g) => { if (g !== merged) g.dispose(); });
   }
-  return { geometry: merged, material: mat };
+  const simple = clusterSimplify(THREE, merged, nameRe.test("MiniCabinetBody") ? 14 : 8);
+  if (simple !== merged) merged.dispose();
+  return { geometry: simple, material: mat };
 }
 
 /**
@@ -290,6 +350,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   living.miniHasTrafficLight = false;
   living.stripeModules = 0;
   living.miniCabinetMeshCount = proto.userData?.body ?? 0;
+  living.miniCabinetTris = (body.geometry.index?.count || 0) / 3;
   living.miniPrototypeName = proto.name;
   living.product = "living8-mini-cabinets";
   if (living.group.userData) {

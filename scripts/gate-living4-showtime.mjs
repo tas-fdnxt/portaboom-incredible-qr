@@ -391,7 +391,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "load", timeout: 60000 });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -568,7 +568,7 @@ async function run() {
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
     `http://127.0.0.1:${port}/?v=living8&showtime=1&${overrideQuery}`,
-    { waitUntil: "networkidle" },
+    { waitUntil: "load", timeout: 60000 },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
   const overrideCfg = await overridePage.evaluate(() => ({
@@ -602,7 +602,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living8`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living8`, { waitUntil: "load", timeout: 60000 });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
