@@ -43,9 +43,11 @@ Auto flow on open (no required first tap):
 1. First paint — `lockMotion2Camera` · planted yaw · unit/hero front-left · boom-down in frame (more boom than motion1 door crop)
 2. Cycle — twin LED SoT (green raised-at-rest / red flash ~640ms moving-or-down) · showtime 0.5 + 1 + 0.5 + boom
 3. Morph flatten to QR · modules stable ≥500ms
-4. `location.assign` DEST (default PB4000 product page)
+4. `location.assign` DEST (default PB4000 product page, or existing `?dest=` override)
 
 Motion visible ≤3s (door beat **0.35s**; boom lower starts at ~2.35s).
+
+`?dest=` uses the same `dest-config.mjs` parser as living10. Invalid / non-http falls back to the default product URL.
 
 ## Intended Pages (after a safe additive merge)
 

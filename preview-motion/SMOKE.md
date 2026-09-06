@@ -51,7 +51,7 @@ Open `/?v=motion2` (or `preview-motion/tip-motion2.html`). No required first tap
 | Auto showtime | door beat **0.35s** then green 0.5 → amber 1 → red 0.5 → boom down. No tap required |
 | LED SoT | green when raised-at-rest · red flash ~640ms when moving-or-down · no invented amber face LEDs |
 | Flatten after boom | `magicPhase === "hold"` · `modulesStable === true` after ≥500ms · `scanOpen === true` |
-| Leave DEST | `destLeaveReason === "motion2-flatten-hold"` · default PB4000 product URL |
+| Leave DEST | `destLeaveReason === "motion2-flatten-hold"` · default PB4000 product URL · `?dest=` override uses existing dest-config parser |
 | Motion ≤3s | boom lower starts at ~2.35s (0.35 + 0.5 + 1 + 0.5) |
 
 ## living10 regression (must stay)
