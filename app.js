@@ -1292,15 +1292,15 @@ function lockWorldCamera() {
   unitCam.updateProjectionMatrix();
   const fov = THREE.MathUtils.degToRad(unitCam.fov);
   const aspect = Math.max(0.42, unitCam.aspect || 0.46);
-  const distH = (size.y * 2.15) / (2 * Math.tan(fov / 2));
-  const distW = (Math.max(size.x, size.z) * 2.55) / (2 * Math.tan(fov / 2) * aspect);
-  const dist = Math.max(distH, distW, 3.05);
+  const distH = (size.y * 1.72) / (2 * Math.tan(fov / 2));
+  const distW = (Math.max(size.x, size.z) * 2.05) / (2 * Math.tan(fov / 2) * aspect);
+  const dist = Math.max(distH, distW, 2.35);
   unitCam.position.set(
-    center.x + dist * 0.62 + fullSize.x * 0.08,
-    center.y + size.y * 0.46,
-    center.z + dist * 0.88
+    center.x + dist * 0.52 + fullSize.x * 0.04,
+    center.y + size.y * 0.28,
+    center.z + dist * 0.74
   );
-  const look = new THREE.Vector3(center.x + fullSize.x * 0.18, center.y * 0.22, center.z);
+  const look = new THREE.Vector3(center.x + fullSize.x * 0.22, center.y * 0.18, center.z);
   unitCam.lookAt(look);
   unitCam.updateProjectionMatrix();
   unitCam.userData.worldLook = look;
