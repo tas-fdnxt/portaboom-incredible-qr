@@ -615,7 +615,9 @@ const DOOR_PAD_SPAN = 0.22;
  * Front-facing crop: subject (cabinet + lantern + a boom span) fills the
  * phone. Not living5 cabinet-only, not living4 full-pad speck.
  */
-const DOOR_SUBJECT_FILL = 0.72;
+const DOOR_SUBJECT_FILL = 0.56;
+/** Slight downward look so the identical mini army reads as a packed field. */
+const DOOR_FIELD_ELEV_DEG = -11;
 /** Extra ortho so the lantern housing clears the crop. */
 const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
@@ -1616,9 +1618,15 @@ function lockDoorCamera() {
       cy = THREE.MathUtils.lerp(cy, sc.y, 0.55);
     }
   }
-  // Dead-on: camera Y = lens Y so the three lamps read as circles.
+  // Slight downward look: lenses stay readable circles, the QR bits
+  // read as a dense identical PORTABOOM army (minion-crowd energy).
   const dist = Math.max(sy * 2.35, sx * 3.1, 1.55);
-  doorCam.position.set(cx, lookY, cz + dist);
+  const elev = THREE.MathUtils.degToRad(DOOR_FIELD_ELEV_DEG);
+  doorCam.position.set(
+    cx,
+    lookY + dist * Math.sin(-elev),
+    cz + dist * Math.cos(-elev)
+  );
   doorCam.lookAt(cx, lookY, cz);
   doorCam.updateProjectionMatrix();
 }
@@ -3228,6 +3236,7 @@ window.__iqr = {
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
       timingBeat: "0.5+1+0.5",
       miniFromGlb: living.miniFromGlb === true,
+      miniArmyIdentical: living.miniArmyIdentical === true,
       miniCabinetMeshCount: living.miniCabinetMeshCount ?? 0,
       miniCabinetTris: living.miniCabinetTris ?? 0,
       miniPrototypeName: living.miniPrototypeName ?? null,
@@ -3468,6 +3477,7 @@ window.__iqr = {
       miniHasTrafficLight: living.miniHasTrafficLight === true,
       stripeModules: living.stripeModules ?? 0,
       miniFromGlb: living.miniFromGlb === true,
+      miniArmyIdentical: living.miniArmyIdentical === true,
     };
   },
   nudgeScan(x = 0, y = 0) {

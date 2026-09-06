@@ -291,10 +291,13 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
     wheelGeo = parts.length === 1 ? parts[0] : (mergeGeometries(parts, false) || parts[0]);
   }
 
-  const fill = (living.cell ?? CELL) * MODULE_FILL;
+  const cell = living.cell ?? CELL;
   const count = living.mods.length;
   const dummy = new THREE.Object3D();
   const scales = new Float32Array(count);
+  // Identical army: pack by cabinet FACE width so every QR bit is the
+  // same little PORTABOOM, shoulder-to-shoulder like the minion crowd.
+  const armyScale = (cell * 0.92) / Math.max(size.x, 1e-4);
 
   const makeField = (geometry, material, name) => {
     const mesh = new THREE.InstancedMesh(geometry, material, count);
@@ -335,17 +338,14 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   };
 
   living.mods.forEach((m, i) => {
-    const targetH = heightFor(m.userData.vocab);
-    const sH = targetH / size.y;
-    const sW = fill / Math.max(size.x, size.z);
-    const s = Math.min(sH, sW);
-    scales[i] = s;
-    writeInstance(i, m.position.x, 0, m.position.z, s);
+    scales[i] = armyScale;
+    writeInstance(i, m.position.x, 0, m.position.z, armyScale);
     hideAbstractChrome(m);
     m.userData.fromGlb = true;
     m.userData.miniCabinet = true;
     m.userData.hasTrafficLight = false;
-    m.userData.bodyH = size.y * s;
+    m.userData.miniArmyIdentical = true;
+    m.userData.bodyH = size.y * armyScale;
   });
 
   for (const field of fields) {
@@ -359,6 +359,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   living.logoField = logoField;
   living.miniScales = scales;
   living.miniFromGlb = true;
+  living.miniArmyIdentical = true;
   living.miniHasTrafficLight = false;
   living.stripeModules = 0;
   living.miniCabinetMeshCount = proto.userData?.body ?? 0;
@@ -369,6 +370,7 @@ export function dressMinisFromCabinet(THREE, living, proto, opts = {}) {
   if (living.group.userData) {
     living.group.userData.product = "living8-mini-cabinets";
     living.group.userData.miniFromGlb = true;
+    living.group.userData.miniArmyIdentical = true;
     living.group.userData.miniHasTrafficLight = false;
     living.group.userData.stripeModules = 0;
   }
