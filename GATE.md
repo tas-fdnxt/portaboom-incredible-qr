@@ -21,7 +21,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Straight-on lenses | GREEN — `doorCamFrontFacing=true`, elevation **0°**. Lantern `heightFrac=0.208` `fullyIn`. Not living6 steep roof-tilt |
 | Cabinet + traffic light + boom in the field | GREEN — cabinet `heightFrac=0.232`. Signal `fullyIn`. Boom in frame (`doorBoomHidden=false`). Living5 cabinet-only hide rejected |
 | One boom only | GREEN — `singleBoom=true`, `ghostBoomCount=0` on first paint and through lower |
-| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`, `miniFromGlb=true`. No mini lanterns. Not abstract boxes |
+| Mini field is PORTABOOMs, no TL heads | GREEN — dense identical army (`miniArmyIdentical=true`), `miniHasTrafficLight=false`, `stripeModules=0`, `miniFromGlb=true`. Minion-crowd density. No mini lanterns |
 | Brand in the back | GREEN — `backLogoVisible=true`, `backLogoInFrame=true` |
 | Not another website | studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false` |
 | Not a flat B&W QR card | `looksLikeFlatBWQR=false`. Colored living minis + unit volume |

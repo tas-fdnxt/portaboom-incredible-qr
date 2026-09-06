@@ -454,6 +454,7 @@ async function run() {
     && (doorSnap?.miniTrafficLights ?? 99) === 0
     && (doorSnap?.stripeModules ?? 99) === 0
     && doorSnap?.miniFromGlb === true
+    && doorSnap?.miniArmyIdentical === true
     && doorSnap?.backLogoVisible === true
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
@@ -664,6 +665,7 @@ async function run() {
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
         miniFromGlb: doorSnap?.miniFromGlb ?? null,
+        miniArmyIdentical: doorSnap?.miniArmyIdentical ?? null,
         miniCabinetMeshCount: doorSnap?.miniCabinetMeshCount ?? null,
         backLogoVisible: doorSnap?.backLogoVisible ?? null,
         backLogoInFrame: doorSnap?.backLogoInFrame ?? null,
