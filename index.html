@@ -89,7 +89,8 @@ body.showtime canvas#stage:not([data-iqr-ready]){background:#f4efe6}
 </script>
 <!-- Living10 ICQR showtime door — elevated 3D QR field, one boom, cuboid minis. -->
 <script>
-if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)) {
+if (/(?:^|[?&])showtime=1(?:&|$)/.test(location.search)
+  || /(?:^|[?&])v=preview5(?:&|$)/.test(location.search)) {
   document.body.classList.add("showtime");
   document.documentElement.style.background = "#f4efe6";
   document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#f4efe6");

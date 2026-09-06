@@ -568,6 +568,8 @@ function analyzeLook(png, placed) {
   };
 }
 
+export { paintLivingField, decodePng, analyzeLook };
+
 export async function makeShowtimeQr(opts = {}) {
   const QRCode = loadQrcode();
   if (!QRCode) throw new Error("qrcode package missing — npm i qrcode");

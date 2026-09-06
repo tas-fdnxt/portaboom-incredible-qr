@@ -12,6 +12,8 @@ Cache-bust: `app.js?v=living10`
 
 Pages: https://tas-fdnxt.github.io/portaboom-incredible-qr/
 
+PREVIEW OPTIONS 1–5 (sandbox, not READY): `preview-options/` → https://tas-fdnxt.github.io/portaboom-incredible-qr/preview-options/
+
 Send still (after Chief merge): `fabian-showtime-qr.png` — Magic Tree living field (PORTABOOM geometry **in** the QR, not a B&W card / not a PR#28 border sticker) → `https://tas-fdnxt.github.io/portaboom-incredible-qr/?v=living10&showtime=1`
 
 ## How to scan

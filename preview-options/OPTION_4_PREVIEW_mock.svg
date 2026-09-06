@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 900" width="900" height="900">
+  <title>OPTION 4 · PREVIEW · NOT LIVE · NOT AN APP CLIP</title>
+  <rect width="900" height="900" fill="#F4EFE6"/>
+  <rect width="900" height="70" fill="#B01218"/>
+  <text x="450" y="46" text-anchor="middle" fill="#fff" font-family="ui-monospace,monospace" font-size="28" font-weight="800">NOT LIVE · NOT AN APP CLIP</text>
+  <circle cx="450" cy="470" r="340" fill="#F4EFE6"/>
+  <circle cx="450" cy="470" r="312" fill="none" stroke="#EE7202" stroke-width="40" stroke-dasharray="70 32" transform="rotate(-70 450 470)"/>
+  <circle cx="450" cy="470" r="258" fill="none" stroke="#1B2A4A" stroke-width="40" stroke-dasharray="56 26" transform="rotate(-30 450 470)"/>
+  <circle cx="450" cy="470" r="204" fill="none" stroke="#EE7202" stroke-width="40" stroke-dasharray="48 24" transform="rotate(25 450 470)"/>
+  <circle cx="450" cy="470" r="150" fill="none" stroke="#1B2A4A" stroke-width="40" stroke-dasharray="40 20" transform="rotate(-8 450 470)"/>
+  <circle cx="450" cy="470" r="96" fill="none" stroke="#EE7202" stroke-width="40" stroke-dasharray="32 18" transform="rotate(50 450 470)"/>
+  <circle cx="450" cy="470" r="54" fill="#1B2A4A"/>
+  <text x="450" y="476" text-anchor="middle" fill="#F4EFE6" font-family="ui-sans-serif,system-ui,sans-serif" font-size="18" font-weight="800">MOCK</text>
+  <rect y="830" width="900" height="70" fill="#B01218"/>
+  <text x="450" y="876" text-anchor="middle" fill="#fff" font-family="ui-monospace,monospace" font-size="22" font-weight="800">rs/appclipcode = VISUAL MOCK ONLY</text>
+</svg>

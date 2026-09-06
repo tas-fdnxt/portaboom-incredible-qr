@@ -584,7 +584,8 @@ const aspectEl = document.getElementById("aspect");
 const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 const pageParams = new URLSearchParams(location.search);
-const showtimeWanted = pageParams.get("showtime") === "1";
+const preview5Wanted = pageParams.get("v") === "preview5";
+const showtimeWanted = pageParams.get("showtime") === "1" || preview5Wanted;
 const destParam = pageParams.get("dest");
 const destParsed = parseHttpUrl(destParam);
 const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAULT);
@@ -608,7 +609,7 @@ const SHOWTIME_TOTAL_S = SHOWTIME_GREEN_S + SHOWTIME_AMBER_S + SHOWTIME_RED_HOLD
  * looking like a twin-site 3/4 product hero. Tap starts transform;
  * if nobody taps, this beat still auto-plays for phone-scan UX.
  */
-const SHOWTIME_DOOR_S = 2.6;
+const SHOWTIME_DOOR_S = preview5Wanted ? 0.85 : 2.6;
 /** Minimum pad fraction so the QR crowd stays a field, not a footer. */
 const DOOR_PAD_SPAN = 0.30;
 /**
@@ -686,7 +687,7 @@ const SCAN_POSE = {
 scanCam.position.copy(SCAN_POSE.pos);
 scanCam.up.set(0, 0, -1);
 scanCam.lookAt(SCAN_POSE.tgt);
-let camera = showtimeWanted ? doorCam : unitCam;
+let camera = showtimeWanted && !preview5Wanted ? doorCam : unitCam;
 
 scene.add(new THREE.HemisphereLight(0xc9d4e8, 0x1b2a4a, 0.42));
 const key = new THREE.DirectionalLight(0xffffff, 1.1);
@@ -1845,7 +1846,41 @@ function applyWorldPose() {
  * Showtime first paint: living ICQR — pixelated QR field with PORTABOOM
  * standing in the matrix. No studio cyclorama, no plaza apron, no HUD chrome.
  */
+function applyPreview5Pose() {
+  scanOpen = false;
+  viewMode = "preview5";
+  camera = unitCam;
+  if (boom) boom.visible = true;
+  studioGroup.visible = false;
+  grid.visible = false;
+  if (living.scanPad) living.scanPad.visible = false;
+  if (living.apron) living.apron.visible = false;
+  if (living.ring) living.ring.visible = false;
+  setScanModuleLook(false);
+  setDoorModuleLook(true);
+  if (paperMat?.color) paperMat.color.setHex(0xf4efe6);
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.08;
+  scene.background = new THREE.Color(0x0d0d12);
+  renderer.setClearColor(0x0d0d12, 1);
+  if (controls) {
+    controls.enabled = false;
+    controls.autoRotate = false;
+    controls.object = unitCam;
+  }
+  placeTwinInLivingWorld();
+  setDoorBoomArm(true);
+  if (brandBack) brandBack.visible = false;
+  if (boom) lockHeroCamera(boom);
+  if (showtimeHudHidden()) setStatus("PREVIEW5");
+  syncModeHud();
+}
+
 function applyDoorPose() {
+  if (preview5Wanted) {
+    applyPreview5Pose();
+    return;
+  }
   scanOpen = false;
   viewMode = "door";
   camera = doorCam;
@@ -3012,7 +3047,11 @@ function resize() {
   unitCam.aspect = w / h;
   unitCam.updateProjectionMatrix();
   if (viewMode === "door") fitDoorOrtho();
-  else if (scanOpen) fitScanOrtho();
+  else if (viewMode === "preview5") {
+    unitCam.aspect = w / h;
+    unitCam.updateProjectionMatrix();
+    if (boom) lockHeroCamera(boom);
+  } else if (scanOpen) fitScanOrtho();
   else camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
@@ -3025,7 +3064,7 @@ function tick() {
   const dt = Math.min(0.05, clock.getDelta());
   const t = clock.elapsedTime;
   tickCamGlide(dt);
-  grid.visible = true;
+  grid.visible = viewMode !== "preview5";
   studioGroup.visible = !scanOpen && !showtimeWanted;
   if (boom) boom.visible = !scanOpen;
   if (showtimeWanted && living.apron) living.apron.visible = false;
@@ -3180,7 +3219,10 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living10-icqr-door" : "living2-brand-world",
+      product: preview5Wanted
+        ? "preview5-hero-lock"
+        : (showtimeWanted ? "living10-icqr-door" : "living2-brand-world"),
+      preview5: preview5Wanted,
       miniCabinetSource: living.miniCabinetSource ?? null,
       miniClonedFromTwin: living.miniClonedFromTwin === true,
       miniFieldKind: living.miniFieldKind ?? living.group?.userData?.miniFieldKind ?? null,
