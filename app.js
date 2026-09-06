@@ -3135,6 +3135,33 @@ window.__iqr = {
   startShowtime,
   settleShowtime,
   leaveToDest,
+  get showtimeTick() {
+    return {
+      showtimePhase,
+      showtimeElapsed: +showtimeElapsed.toFixed(3),
+      signalAspect,
+      showMode,
+      boomPct: boomRig?.shownPct ?? null,
+      boomTarget: boomRig?.targetPct ?? null,
+      lampIntensity: {
+        red: lampMats.red?.emissiveIntensity ?? null,
+        amber: lampMats.amber?.emissiveIntensity ?? null,
+        green: lampMats.green?.emissiveIntensity ?? null,
+      },
+      viewMode,
+      usingGlb,
+      studioVisible: !!studioGroup.visible,
+      showtimeHudHidden: showtimeHudHidden(),
+      liveDockHidden: document.getElementById("liveDock")?.hidden === true,
+      destLeft: !!destLeave,
+      destLeaveUrl: destLeave?.dest ?? null,
+      destLeaveReason: destLeave?.reason ?? null,
+      leaveDest,
+      leaveDestSource,
+      ghostBoomCount: countUprightBoomGhosts(),
+      singleBoom: countUprightBoomGhosts() === 0,
+    };
+  },
   get boom() { return boom; },
   get camera() {
     return {

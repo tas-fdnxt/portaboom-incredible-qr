@@ -467,23 +467,7 @@ async function run() {
   const samples = [];
   const t0 = Date.now();
   samples.push({
-    ...(await page.evaluate(() => {
-      const snap = window.__iqr?.snap;
-      return {
-        showtimePhase: snap?.showtimePhase ?? null,
-        showtimeElapsed: snap?.showtimeElapsed ?? null,
-        signalAspect: snap?.signalAspect ?? null,
-        showMode: snap?.showMode ?? null,
-        boomPct: snap?.boomPct ?? null,
-        lampIntensity: snap?.lampIntensity ?? null,
-        viewMode: snap?.viewMode ?? null,
-        ghostBoomCount: snap?.ghostBoomCount ?? null,
-        singleBoom: snap?.singleBoom ?? null,
-        showtimeHudHidden: snap?.showtimeHudHidden ?? null,
-        liveDockHidden: snap?.liveDockHidden ?? null,
-        studioVisible: snap?.studioVisible ?? null,
-      };
-    })),
+    ...(await page.evaluate(() => window.__iqr?.showtimeTick || {})),
     t: 0,
   });
   let snappedAmber = false;
@@ -491,7 +475,7 @@ async function run() {
   let snappedDown = false;
   let snappedGreen = false;
   while (Date.now() - t0 < 8000) {
-    const snap = await page.evaluate(() => window.__iqr?.snap);
+    const snap = await page.evaluate(() => window.__iqr?.showtimeTick);
     const t = (Date.now() - t0) / 1000;
     const row = {
       t: +t.toFixed(3),
@@ -505,13 +489,9 @@ async function run() {
       lampIntensity: snap?.lampIntensity ?? null,
       viewMode: snap?.viewMode ?? null,
       usingGlb: snap?.usingGlb ?? null,
-      defaultShowsTwin: snap?.defaultShowsTwin ?? null,
-      twinInQrField: snap?.twinInQrField ?? null,
       studioVisible: snap?.studioVisible ?? null,
       showtimeHudHidden: snap?.showtimeHudHidden ?? null,
       liveDockHidden: snap?.liveDockHidden ?? null,
-      cameraIsPerspective: snap?.cameraIsPerspective ?? null,
-      cameraIsOrtho: snap?.cameraIsOrtho ?? null,
       destLeft: snap?.destLeft ?? null,
       destLeaveUrl: snap?.destLeaveUrl ?? null,
       destLeaveReason: snap?.destLeaveReason ?? null,
@@ -536,7 +516,7 @@ async function run() {
       snappedDown = true;
     }
     if (row.showtimePhase === "settled" && row.usingGlb && row.boomPct <= 5) break;
-    await page.waitForTimeout(70);
+    await page.waitForTimeout(40);
   }
 
   await page.waitForFunction(() => window.__iqr?.snap?.showtimePhase === "settled", { timeout: 8000 }).catch(() => {});
