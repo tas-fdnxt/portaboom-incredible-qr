@@ -1,10 +1,11 @@
 /**
- * GATE living7 showtime — ICQR door first (straight-on, one boom,
- * mini PORTABOOM field, brand back), then DEST.
+ * GATE living8 showtime — ICQR door first (straight-on, one boom,
+ * GLB-cloned mini PORTABOOM field, brand back), then DEST.
  * First paint must be the QR-matrix aesthetic with cabinet, traffic light,
  * and a visible boom span (not living5 cabinet-only, not living4 speck,
- * not the living2/3d plaza twin-as-website, not living6 steep tilt).
- * Tap or door-beat starts green 1s → amber 1s → red 1s → boom down 1s (~4s),
+ * not the living2/3d plaza twin-as-website, not living6 steep tilt,
+ * not living7 abstract box minis).
+ * Tap or door-beat starts green 0.5s → amber 1s → red 0.5s → boom down,
  * then leave to configured DEST.
  * Stationary send QR encodes the living showtime URL, never DEST.
  */
@@ -322,7 +323,9 @@ function summarizeTimeline(samples) {
   const singleBoomDuringLower = playing
     .filter((s) => (s.boomPct ?? 100) < 85)
     .every((s) => (s.ghostBoomCount ?? 0) === 0 && s.singleBoom !== false);
-  const beat = (v) => v >= 0.7 && v <= 1.45;
+  const beatGreen = (v) => v >= 0.35 && v <= 0.75;
+  const beatAmber = (v) => v >= 0.80 && v <= 1.25;
+  const beatRed = (v) => v >= 0.35 && v <= 0.75;
   return {
     aspects,
     phases,
@@ -347,8 +350,9 @@ function summarizeTimeline(samples) {
     lowerS: +lowerS.toFixed(3),
     elapsedAtEnd: +elapsedAtEnd.toFixed(3),
     longerThanTeaser: elapsedAtEnd > 3.6,
-    naturalPace: beat(greenHeldS) && beat(amberHeldS) && beat(redHoldS) && elapsedAtEnd >= 3.7 && elapsedAtEnd <= 5.2,
-    timingBeat: "1+1+1+1",
+    naturalPace: beatGreen(greenHeldS) && beatAmber(amberHeldS) && beatRed(redHoldS)
+      && elapsedAtEnd >= 2.4 && elapsedAtEnd <= 3.8,
+    timingBeat: "0.5+1+0.5",
     ghostMax,
     singleBoomDuringLower,
     sampleCount: samples.length,
@@ -387,7 +391,7 @@ async function run() {
       });
     };
   });
-  await page.goto(`http://127.0.0.1:${port}/?v=living7&showtime=1`, { waitUntil: "networkidle" });
+  await page.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
   await page.waitForFunction(() => (
@@ -423,7 +427,7 @@ async function run() {
     && doorSnap?.apronVisible === false
     && doorSnap?.websiteChrome === false
     && doorSnap?.cameraIsOrtho === true
-    && doorSnap?.product === "living7-icqr-door"
+    && doorSnap?.product === "living8-icqr-door"
     && doorChrome.bodyShowtime === true
     && doorChrome.hudDisplay === "none"
     && vision.looksLikeQrField === true
@@ -448,6 +452,7 @@ async function run() {
     && doorSnap?.miniHasTrafficLight === false
     && (doorSnap?.miniTrafficLights ?? 99) === 0
     && (doorSnap?.stripeModules ?? 99) === 0
+    && doorSnap?.miniFromGlb === true
     && doorSnap?.backLogoVisible === true
     && vision.looksLikeWebsiteTwin === false
     && vision.looksLikeFlatBWQR === false;
@@ -562,7 +567,7 @@ async function run() {
   await overridePage.addInitScript(destHook);
   const overrideQuery = `dest=${encodeURIComponent(GATE_TEST_DEST)}`;
   await overridePage.goto(
-    `http://127.0.0.1:${port}/?v=living7&showtime=1&${overrideQuery}`,
+    `http://127.0.0.1:${port}/?v=living8&showtime=1&${overrideQuery}`,
     { waitUntil: "networkidle" },
   );
   await overridePage.waitForFunction(() => typeof window.__iqr?.settleShowtime === "function", { timeout: 25000 });
@@ -597,7 +602,7 @@ async function run() {
     deviceScaleFactor: 2,
   });
   scanPage.on("pageerror", (e) => errors.push(String(e)));
-  await scanPage.goto(`http://127.0.0.1:${port}/?v=living7`, { waitUntil: "networkidle" });
+  await scanPage.goto(`http://127.0.0.1:${port}/?v=living8`, { waitUntil: "networkidle" });
   await scanPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
   await scanPage.locator("#scanBtn").click();
   await scanPage.waitForTimeout(400);
@@ -614,14 +619,13 @@ async function run() {
     && (snapEnd?.boomPct ?? 99) < 8
     && snapEnd?.signalAspect === "red"
     && snapEnd?.viewMode === "door"
-    && settleElapsed > 3.6
-    && settleElapsed >= 3.7
-    && settleElapsed <= 5.2;
+    && settleElapsed >= 2.4
+    && settleElapsed <= 3.8;
   const stayedOnLiving = !navigations.some((u) => /trafficaccess\.com\.au/.test(u));
   const qrIsLiving = qrProof.clean.match === true
     && qrProof.clean.decoded === LIVING_SHOWTIME_URL
     && qrProof.clean.decoded !== DEST
-    && /v=living7/.test(qrProof.clean.decoded || "");
+    && /v=living8/.test(qrProof.clean.decoded || "");
 
   const report = {
     dest: DEST,
@@ -657,6 +661,8 @@ async function run() {
         singleBoom: doorSnap?.singleBoom ?? null,
         ghostBoomCount: doorSnap?.ghostBoomCount ?? null,
         miniHasTrafficLight: doorSnap?.miniHasTrafficLight ?? null,
+        miniFromGlb: doorSnap?.miniFromGlb ?? null,
+        miniCabinetMeshCount: doorSnap?.miniCabinetMeshCount ?? null,
         backLogoVisible: doorSnap?.backLogoVisible ?? null,
         backLogoInFrame: doorSnap?.backLogoInFrame ?? null,
       },
@@ -721,6 +727,12 @@ async function run() {
       product: snapEnd?.product,
       showtimeBudget: snapEnd?.showtimeBudget,
       showtimeTeaserS: snapEnd?.showtimeTeaserS,
+      showtimeGreenS: snapEnd?.showtimeGreenS,
+      showtimeAmberS: snapEnd?.showtimeAmberS,
+      showtimeRedHoldS: snapEnd?.showtimeRedHoldS,
+      showtimeLowerS: snapEnd?.showtimeLowerS,
+      timingBeat: snapEnd?.timingBeat,
+      miniFromGlb: snapEnd?.miniFromGlb,
       showtimeLeaveS: snapEnd?.showtimeLeaveS,
       showtimeDoorS: snapEnd?.showtimeDoorS,
       longerThanTeaser: snapEnd?.longerThanTeaser,
@@ -768,16 +780,20 @@ async function run() {
     && timeline.redLampOn
     && timeline.lowered
     && timeline.naturalPace
-    && timeline.longerThanTeaser
-    && timeline.greenHeldS >= 0.7
-    && timeline.amberHeldS >= 0.7
-    && timeline.redHoldS >= 0.7
+    && timeline.greenHeldS >= 0.35
+    && timeline.greenHeldS <= 0.75
+    && timeline.amberHeldS >= 0.80
+    && timeline.amberHeldS <= 1.25
+    && timeline.redHoldS >= 0.35
+    && timeline.redHoldS <= 0.75
     && timeline.singleBoomDuringLower
     && timeline.ghostMax === 0
     && timeline.stayedOnDoor
     && timeline.noStudio
-    && (snapEnd?.longerThanTeaser === true)
-    && (snapEnd?.showtimeBudget || 0) > (snapEnd?.showtimeTeaserS || 3.6)
+    && (snapEnd?.showtimeGreenS === 0.5)
+    && (snapEnd?.showtimeAmberS === 1)
+    && (snapEnd?.showtimeRedHoldS === 0.5)
+    && (snapEnd?.timingBeat === "0.5+1+0.5")
     && timeline.hudHiddenWhilePlaying
     && settleOk
     && report.hud.leftHidden

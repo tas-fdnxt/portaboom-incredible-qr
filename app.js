@@ -3,7 +3,7 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
-import { buildLivingQr } from "./living-qr.js";
+import { buildLivingQr, extractCabinetPrototype, dressMinisFromCabinet } from "./living-qr.js";
 import {
   SHOWTIME_DEST_DEFAULT,
   parseHttpUrl,
@@ -591,13 +591,13 @@ const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAUL
 const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
- * Showtime must still beat that loop — living7 does it with a faster 4s path.
+ * living8 lights are shorter than that loop on purpose (green was too long).
  */
 const TEASER_LOOP_S = 3.6;
-/** Green 1s → amber 1s → red 1s → boom down 1s (~4s). Clear green phase. */
-const SHOWTIME_GREEN_S = 1.0;
+/** Green 0.5s → amber 1s → red 0.5s → boom down. */
+const SHOWTIME_GREEN_S = 0.5;
 const SHOWTIME_AMBER_S = 1.0;
-const SHOWTIME_RED_HOLD_S = 1.0;
+const SHOWTIME_RED_HOLD_S = 0.5;
 const SHOWTIME_LOWER_S = 1.0;
 const SHOWTIME_HOLD_S = 0;
 /** Short beat after boom fully down, then leave to DEST. */
@@ -620,9 +620,6 @@ const DOOR_SUBJECT_FILL = 0.72;
 const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.55;
-if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
-  throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
-}
 let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
@@ -1646,8 +1643,9 @@ function setDoorModuleLook(on) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = !on;
     const logo = m.getObjectByName("MiniLogo");
-    if (logo) logo.visible = true;
+    if (logo) logo.visible = !living.miniFromGlb;
   }
+  if (typeof living.setMiniChromeVisible === "function") living.setMiniChromeVisible(true);
 }
 
 /** Scan: only black caps + paper. Hide mini chrome so jsQR can read. */
@@ -1658,9 +1656,10 @@ function setScanModuleLook(on) {
     m.traverse((o) => {
       if (!o.isMesh) return;
       if (o.name === "QrModTop") return;
-      if (/MiniCabinet|MiniBand|MiniWheel|MiniLogo/.test(o.name || "")) o.visible = !on;
+      if (/MiniCabinet|MiniBand|MiniWheel|MiniLogo/.test(o.name || "")) o.visible = !on && !living.miniFromGlb;
     });
   }
+  if (typeof living.setMiniChromeVisible === "function") living.setMiniChromeVisible(!on);
 }
 
 function placeTwinInLivingWorld() {
@@ -2896,6 +2895,8 @@ function mountCad(gltf, label) {
     if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
+    const cabProto = extractCabinetPrototype(THREE, boom);
+    if (cabProto) dressMinisFromCabinet(THREE, living, cabProto, { livery: LIVERY });
     if (showtimeWanted && showtimePhase !== "settled") {
       applyDoorPose();
       if (showtimePhase === "playing") {
@@ -3030,12 +3031,18 @@ function tick() {
   if (showtimeWanted && living.ring) living.ring.visible = false;
   if (lifeOn && !reduced && !scanOpen) {
     const amp = living.cell * 0.01;
-    for (const m of mods) {
-      m.position.y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
+    if (typeof living.syncMiniLife === "function") {
+      living.syncMiniLife(t, amp);
+    } else {
+      for (const m of mods) {
+        m.position.y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
+      }
     }
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
+  } else if (typeof living.syncMiniLife === "function") {
+    living.syncMiniLife(0, 0);
   } else {
     for (const m of mods) m.position.y = m.userData.baseY || 0;
   }
@@ -3180,7 +3187,7 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living7-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living8-icqr-door" : "living2-brand-world",
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
@@ -3192,7 +3199,10 @@ window.__iqr = {
       showtimeLowerS: SHOWTIME_LOWER_S,
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
-      timingBeat: "1+1+1+1",
+      timingBeat: "0.5+1+0.5",
+      miniFromGlb: living.miniFromGlb === true,
+      miniCabinetMeshCount: living.miniCabinetMeshCount ?? 0,
+      miniPrototypeName: living.miniPrototypeName ?? null,
       showtimeHudHidden: showtimeHudHidden(),
       showtimeLeaveS: SHOWTIME_LEAVE_S,
       destLeave,
@@ -3429,6 +3439,7 @@ window.__iqr = {
       scanOpen,
       miniHasTrafficLight: living.miniHasTrafficLight === true,
       stripeModules: living.stripeModules ?? 0,
+      miniFromGlb: living.miniFromGlb === true,
     };
   },
   nudgeScan(x = 0, y = 0) {
