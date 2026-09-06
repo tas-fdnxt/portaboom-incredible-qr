@@ -6,6 +6,7 @@ import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
 import {
   buildLivingQr,
   dressMiniCabinetsFromTwin,
+  dressLookalikeCabinets,
   syncMiniFieldWith,
   setMiniFieldVisible,
 } from "./living-qr.js";
@@ -2898,6 +2899,9 @@ function mountCad(gltf, label) {
       dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
     } catch (err) {
       console.warn("mini cabinet dress failed; lookalike field stays", err);
+      try {
+        dressLookalikeCabinets(THREE, living, LIVERY, living.logoMap);
+      } catch { /* plaza stays paper until retry */ }
     }
     if (scanOpen) setScanModuleLook(true);
     else setDoorModuleLook(true);
@@ -3033,7 +3037,7 @@ function tick() {
   if (boom) boom.visible = !scanOpen;
   if (showtimeWanted && living.apron) living.apron.visible = false;
   if (showtimeWanted && living.ring) living.ring.visible = false;
-  if (lifeOn && !reduced && !scanOpen) {
+  if (lifeOn && !reduced && !scanOpen && !showtimeWanted) {
     const amp = living.cell * 0.01;
     for (const m of mods) {
       m.position.y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
@@ -3041,10 +3045,8 @@ function tick() {
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
-  } else {
-    for (const m of mods) m.position.y = m.userData.baseY || 0;
+    syncMiniFieldWith(THREE, living);
   }
-  syncMiniFieldWith(THREE, living);
   if (!scanOpen) {
     tickBoom(dt);
     tickSignUpright();

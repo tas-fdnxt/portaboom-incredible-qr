@@ -9,7 +9,6 @@
  * cabinet meshes (strip TL + boom), instance them, restore crowd height.
  */
 import { classifyModule, vocabFor, QUIET } from "./qr-encode.js";
-import { mergeGeometries } from "three/addons/utils/BufferGeometryUtils.js";
 
 export const CELL = 0.068;
 export const MODULE_FILL = 0.94;
@@ -164,28 +163,6 @@ function ancestorBlob(o) {
   return parts.join("|");
 }
 
-function tryMergeGeos(THREE, geos) {
-  if (!geos.length) return null;
-  if (geos.length === 1) return geos[0];
-  try {
-    const merged = mergeGeometries(geos, false);
-    if (merged) return merged;
-  } catch { /* retry slim */ }
-  try {
-    const slim = geos.map((g) => {
-      const c = new THREE.BufferGeometry();
-      c.setAttribute("position", g.getAttribute("position"));
-      if (g.getAttribute("normal")) c.setAttribute("normal", g.getAttribute("normal"));
-      else c.computeVertexNormals();
-      if (g.index) c.setIndex(g.index);
-      return c;
-    });
-    return mergeGeometries(slim, false);
-  } catch {
-    return geos[0];
-  }
-}
-
 function stampProtoBounds(THREE, proto) {
   proto.updateMatrixWorld(true);
   const box = new THREE.Box3().setFromObject(proto);
@@ -195,17 +172,6 @@ function stampProtoBounds(THREE, proto) {
   proto.userData.cabD = size.z;
   proto.userData.hasTrafficLight = false;
   return size;
-}
-
-function bakeMeshGeo(THREE, mesh, origin) {
-  const geo = mesh.geometry.clone();
-  mesh.updateMatrixWorld(true);
-  const bake = new THREE.Matrix4()
-    .makeTranslation(-origin.x, -origin.y, -origin.z)
-    .multiply(mesh.matrixWorld);
-  geo.applyMatrix4(bake);
-  if (!geo.getAttribute("normal")) geo.computeVertexNormals();
-  return geo;
 }
 
 function isCabinetKeeper(o) {
@@ -288,7 +254,24 @@ export function extractCabinetPrototype(THREE, twin, livery, logoMap) {
   if (picked.length < 3) return null;
 
   const box = new THREE.Box3();
-  for (const o of picked) box.union(new THREE.Box3().setFromObject(o));
+  const wheels = [];
+  for (const o of picked) {
+    const mb = new THREE.Box3().setFromObject(o);
+    if (mb.isEmpty()) continue;
+    box.union(mb);
+    const name = o.name || "";
+    const blob = ancestorBlob(o);
+    if (/车轮|wheel/i.test(name) || /车轮|wheel/i.test(blob)) {
+      const sz = mb.getSize(new THREE.Vector3());
+      wheels.push({
+        x: mb.getCenter(new THREE.Vector3()).x,
+        y: mb.getCenter(new THREE.Vector3()).y,
+        z: mb.getCenter(new THREE.Vector3()).z,
+        r: Math.max(sz.y, Math.min(sz.x, sz.z)) * 0.5,
+        t: Math.min(sz.x, sz.z, sz.y),
+      });
+    }
+  }
   if (box.isEmpty()) return null;
   const size = box.getSize(new THREE.Vector3());
   const aspect = size.y / Math.max(size.x, 1e-6);
@@ -300,112 +283,62 @@ export function extractCabinetPrototype(THREE, twin, livery, logoMap) {
     (box.min.z + box.max.z) * 0.5
   );
 
-  const orangeGeos = [];
-  const darkGeos = [];
-  const logoGeos = [];
-  const bezelGeos = [];
-  const ledGeos = [];
-  let logoMat = null;
-  let bezelMat = null;
-  let ledMat = null;
-
-  for (const o of picked) {
-    const name = o.name || "";
-    const blob = ancestorBlob(o);
-    let geo;
-    try {
-      geo = bakeMeshGeo(THREE, o, origin);
-    } catch {
-      continue;
-    }
-    if (/PortaboomLogo/i.test(name) || /PortaboomLogo/i.test(blob)) {
-      logoGeos.push(geo);
-      if (!logoMat && o.material) logoMat = o.material;
-      continue;
-    }
-    if (/PortaboomFaceLed/i.test(name)) {
-      ledGeos.push(geo);
-      if (!ledMat && o.material) ledMat = o.material;
-      continue;
-    }
-    if (/PortaboomLedBezel/i.test(name)) {
-      bezelGeos.push(geo);
-      if (!bezelMat && o.material) bezelMat = o.material;
-      continue;
-    }
-    if (/车轮|wheel/i.test(name) || /车轮|wheel/i.test(blob) || o.userData?.tag === "K") {
-      darkGeos.push(geo);
-      continue;
-    }
-    orangeGeos.push(geo);
-  }
-
-  if (!orangeGeos.length) return null;
-
   const proto = new THREE.Group();
   proto.name = "MiniPortaboomFromTwin";
 
-  const bodyGeo = tryMergeGeos(THREE, orangeGeos);
-  if (!bodyGeo) return null;
-  const body = new THREE.Mesh(bodyGeo, powder(THREE, livery.Y));
+  const width = size.x;
+  const height = size.y;
+  const depth = Math.min(size.z, size.x * 2.1);
+  const wheelR = wheels[0]?.r || height * 0.055;
+  const bodyH = height - wheelR * 1.15;
+  const bodyY = wheelR * 1.05 + bodyH * 0.5;
+
+  const body = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.98, bodyH, depth * 0.78),
+    powder(THREE, livery.Y)
+  );
   body.name = "MiniCabinet";
+  body.position.y = bodyY;
   proto.add(body);
 
-  if (darkGeos.length) {
-    const wheelGeo = tryMergeGeos(THREE, darkGeos);
-    if (wheelGeo) {
-      const wheels = new THREE.Mesh(
-        wheelGeo,
-        new THREE.MeshStandardMaterial({
-          color: livery.K,
-          metalness: 0.18,
-          roughness: 0.58,
-        })
-      );
-      wheels.name = "MiniWheel";
-      proto.add(wheels);
-    }
-  }
+  const door = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 0.88, bodyH * 0.9, depth * 0.045),
+    powder(THREE, 0xe46810)
+  );
+  door.name = "MiniDoor";
+  door.position.set(0, bodyY, depth * 0.41);
+  proto.add(door);
 
-  if (logoGeos.length) {
-    const g = tryMergeGeos(THREE, logoGeos);
-    const mat = logoMat?.clone ? logoMat.clone() : new THREE.MeshBasicMaterial({
-      map: logoMap,
-      transparent: true,
-      depthWrite: false,
-      toneMapped: false,
-    });
-    if (logoMap && mat && !mat.map) mat.map = logoMap;
-    const logo = new THREE.Mesh(g || logoGeos[0], mat);
-    logo.name = "MiniLogo";
-    proto.add(logo);
-  }
+  const darkMat = new THREE.MeshStandardMaterial({
+    color: livery.K,
+    metalness: 0.18,
+    roughness: 0.58,
+  });
+  const chassis = new THREE.Mesh(
+    new THREE.BoxGeometry(width * 1.02, height * 0.05, depth * 0.82),
+    darkMat
+  );
+  chassis.name = "MiniChassis";
+  chassis.position.y = wheelR * 0.95;
+  proto.add(chassis);
 
-  if (bezelGeos.length) {
-    const g = tryMergeGeos(THREE, bezelGeos);
-    const mat = bezelMat?.clone ? bezelMat.clone() : new THREE.MeshStandardMaterial({
-      color: 0xb8bec6,
-      metalness: 0.72,
-      roughness: 0.32,
-    });
-    const bezel = new THREE.Mesh(g || bezelGeos[0], mat);
-    bezel.name = "MiniLedBezel";
-    proto.add(bezel);
-  }
-
-  if (ledGeos.length) {
-    const g = tryMergeGeos(THREE, ledGeos);
-    const mat = ledMat?.clone ? ledMat.clone() : new THREE.MeshStandardMaterial({
-      color: 0x062c10,
-      emissive: 0x2aff55,
-      emissiveIntensity: 2.2,
-      roughness: 0.18,
-      metalness: 0.04,
-      toneMapped: false,
-    });
-    const lens = new THREE.Mesh(g || ledGeos[0], mat);
-    lens.name = "MiniFaceLed";
-    proto.add(lens);
+  const slots = wheels.length >= 2
+    ? wheels.map((w) => ({ x: w.x - origin.x, z: w.z - origin.z, r: w.r, t: w.t }))
+    : [
+      { x: -width * 0.32, z: -depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: width * 0.32, z: -depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: -width * 0.32, z: depth * 0.24, r: wheelR, t: width * 0.1 },
+      { x: width * 0.32, z: depth * 0.24, r: wheelR, t: width * 0.1 },
+    ];
+  const wr = slots[0].r || wheelR;
+  const wt = slots[0].t || width * 0.1;
+  const wheelGeo = new THREE.CylinderGeometry(wr, wr, wt, 10);
+  for (const w of slots.slice(0, 4)) {
+    const wheel = new THREE.Mesh(wheelGeo, darkMat);
+    wheel.name = "MiniWheel";
+    wheel.rotation.z = Math.PI / 2;
+    wheel.position.set(w.x, wr, w.z);
+    proto.add(wheel);
   }
 
   stampProtoBounds(THREE, proto);
@@ -416,7 +349,7 @@ export function extractCabinetPrototype(THREE, twin, livery, logoMap) {
     if (o.isMesh) verts.push(o.geometry.getAttribute("position")?.count || 0);
   });
   const vertCount = verts.reduce((a, b) => a + b, 0);
-  if (vertCount < 24 || vertCount > 180000) return null;
+  if (vertCount < 24 || vertCount > 24000) return null;
 
   proto.userData.clonedFromTwin = true;
   proto.userData.vertCount = vertCount;
@@ -884,7 +817,6 @@ export function buildLivingQr(THREE, spec) {
       mat.needsUpdate = true;
     }
   });
-  dressLookalikeCabinets(THREE, living, livery, logoMap);
   living.logoMap = logoMap;
 
   return living;

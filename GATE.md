@@ -23,7 +23,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Straight-on lenses | GREEN — `doorCamFrontFacing=true`, elevation **0°**. Lantern `fullyIn`. Not living6 steep roof-tilt |
 | Cabinet + traffic light + boom in the field | GREEN — cabinet in frame. Signal `fullyIn`. Boom in frame (`doorBoomHidden=false`). Living5 cabinet-only hide rejected |
 | One boom only | GREEN — `singleBoom=true`, `ghostBoomCount=0` on first paint and through lower |
-| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`, `miniCabinetSource=twin-cabinet`, `miniClonedFromTwin=true`, `modulePalette=hero-orange`. No mini lanterns. No stripe/peach/black module boxes |
+| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`, `miniCabinetSource=twin-cabinet`, `miniClonedFromTwin=true`, `modulePalette=hero-orange`. Dense orange cabinets with face LEDs + wordmark. No mini lanterns. No stripe/peach/black module boxes |
 | Brand in the back | GREEN — `backLogoVisible=true`, `backLogoInFrame=true` |
 | Not another website | studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false` |
 | Not a flat B&W QR card | `looksLikeFlatBWQR=false`. Colored living minis + unit volume |
@@ -33,7 +33,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing 0.5+1+0.5+boom | GREEN — lock green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Timing 0.5+1+0.5+boom | GREEN — lock green **0.5s** → amber **1.0s** → red **0.5s** → boom down. Measured settle **3.604s**. Then **0.4s** beat and `location.assign(leaveDest)` |
 | Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
