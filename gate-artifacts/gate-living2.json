@@ -16,11 +16,11 @@
   "vision": {
     "width": 780,
     "height": 1688,
-    "orange": 95366,
-    "greenLed": 7896,
-    "orangeRatio": 0.0724,
-    "chromaRatio": 0.2093,
-    "bwish": 0.3646,
+    "orange": 206785,
+    "greenLed": 9678,
+    "orangeRatio": 0.1571,
+    "chromaRatio": 0.4229,
+    "bwish": 0.1942,
     "looksLikeFlatBWQR": false,
     "looksLikeNormalQR": false,
     "portaboomVisible": true
@@ -28,7 +28,7 @@
   "stress": {
     "decoded": "https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/",
     "match": true,
-    "how": "bbox-nearest-256",
+    "how": "native",
     "from": "slight camera nudge of living world"
   },
   "brightness": {
@@ -92,7 +92,11 @@
     },
     "texturedQuad": false,
     "viewMode": "world",
-    "scanOpen": false
+    "scanOpen": false,
+    "miniHasTrafficLight": false,
+    "miniCabinetSource": "lookalike",
+    "miniClonedFromTwin": false,
+    "stripeModules": 0
   },
   "snap": {
     "viewMode": "world",

@@ -21,7 +21,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Straight-on lenses | GREEN — `doorCamFrontFacing=true`, elevation **0°**. Lantern `fullyIn`. Not living6 steep roof-tilt |
 | Cabinet + traffic light + boom in the field | GREEN — cabinet in frame. Signal `fullyIn`. Boom in frame (`doorBoomHidden=false`). Living5 cabinet-only hide rejected |
 | One boom only | GREEN — `singleBoom=true`, `ghostBoomCount=0` on first paint and through lower |
-| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`. `miniCabinetSource=twin-cabinet` (hero-matched cabinets). No mini lanterns |
+| Mini field is PORTABOOMs, no TL heads | GREEN — `miniHasTrafficLight=false`, `stripeModules=0`. Hero-matched orange cabinets (wordmark, wheels, face LEDs). No mini lanterns |
 | Brand in the back | GREEN — `backLogoVisible=true`, `backLogoInFrame=true` |
 | Not another website | studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false` |
 | Not a flat B&W QR card | `looksLikeFlatBWQR=false`. Colored living minis + unit volume |
@@ -31,7 +31,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | Tap (or 2.6s door beat) starts transform | Stays on the QR door. Does **not** jump to a twin microsite |
-| Timing ~1+1+1+1 | GREEN — living7 4s path kept. Then **0.4s** beat and `location.assign(leaveDest)` |
+| Timing ~1+1+1+1 | GREEN — measured green **1.239s** → amber **0.897s** → red hold **1.083s** → boom down; settle **4.118s**. Then **0.4s** beat and `location.assign(leaveDest)` |
 | Single boom during lower | GREEN — `ghostMax=0`, `singleBoomDuringLower=true`, `boomPct` 100 → 0 |
 | During lower = red / moving LEDs | `showMode=closing` uses existing `setSignalAspect("red")` + `updateLeds` flash |
 | After down = leave configured DEST (default) | omit `?dest=` → `__iqrOnLeaveToDest` / `location.assign` default Traffic Access URL |
