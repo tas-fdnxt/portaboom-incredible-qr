@@ -18,7 +18,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Check | Result |
 | --- | --- |
 | `?showtime=1` first paint is ICQR QR field | GREEN — `viewMode=door`, `showtimePhase=door`, cream QR paper, pixel modules, **not** living2 `lockWorldCamera` 3/4 plaza |
-| PORTABOOM in the field, readable | GREEN — cabinet-first frame (boom arm hidden on the door). Cabinet fills ~half the phone. Living4 width-fit of the whole pad is rejected (Fabian: too far / can’t see it) |
+| PORTABOOM in the field, readable | GREEN — cabinet `heightFrac=0.493`, orange blob `0.497` / area `0.238`, `doorBoomHidden=true`. PORTABOOM text reads. Living4 width-fit of the whole pad is rejected |
 | Not another website | GREEN — studio / apron / HUD / brand chip hidden. `looksLikeWebsiteTwin=false`. No Life / Tap to scan / PB4000 chrome |
 | Not a flat B&W QR card | GREEN — `looksLikeFlatBWQR=false`. Colored living modules + unit volume |
 
@@ -56,7 +56,7 @@ Do not merge. Chief reads this gate, then merges. NEVER SEND WordPress.
 | Showtime page is the destination | After boom 100→0 + hold, `location.assign(leaveDest)` |
 | Flatten / print is the product | Flatten gone. Print still demoted. `printClaimReady=false` |
 | Default living2 broken | No query → `showtimePhase=off`, existing idle plaza |
-| Unit still a speck in cream | Door ortho cover-fits `0.22 × pad` on the tall axis (living4 width-fit the whole pad). Cabinet-first: boom may be cropped. `doorCabinetFrame` + largest orange blob prove size |
+| Unit still a speck in cream | Door camera frames the cabinet bbox (`DOOR_CABINET_FILL=0.52`). Long boom is hidden on first paint (`doorBoomHidden`). `doorCabinetFrame` + orange blob prove size |
 
 ## How to scan (Fabian send)
 
