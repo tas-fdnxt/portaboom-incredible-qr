@@ -3,7 +3,12 @@ import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
 import { DEST, ECC, encodeDestMatrix, downloadPrintPng } from "./qr-encode.js";
-import { buildLivingQr } from "./living-qr.js";
+import {
+  buildLivingQr,
+  dressMiniCabinetsFromTwin,
+  syncMiniFieldWith,
+  setMiniFieldVisible,
+} from "./living-qr.js";
 import {
   SHOWTIME_DEST_DEFAULT,
   parseHttpUrl,
@@ -591,13 +596,13 @@ const leaveDest = destParsed || resolveLeaveDest(destParam, SHOWTIME_DEST_DEFAUL
 const leaveDestSource = destParsed ? "query" : "default";
 /**
  * Fabian living2 teaser GIF loop ≈ 3.58–3.6s (43 frames @ ~12fps).
- * Showtime must still beat that loop — living7 does it with a faster 4s path.
+ * Showtime lock is now shorter: 0.5 + 1.0 + 0.5 + boom down.
  */
 const TEASER_LOOP_S = 3.6;
-/** Green 1s → amber 1s → red 1s → boom down 1s (~4s). Clear green phase. */
-const SHOWTIME_GREEN_S = 1.0;
+/** Green 0.5s → amber 1s → red 0.5s → boom down. */
+const SHOWTIME_GREEN_S = 0.5;
 const SHOWTIME_AMBER_S = 1.0;
-const SHOWTIME_RED_HOLD_S = 1.0;
+const SHOWTIME_RED_HOLD_S = 0.5;
 const SHOWTIME_LOWER_S = 1.0;
 const SHOWTIME_HOLD_S = 0;
 /** Short beat after boom fully down, then leave to DEST. */
@@ -620,9 +625,7 @@ const DOOR_SUBJECT_FILL = 0.72;
 const DOOR_SIGNAL_PAD = 1.08;
 /** World units of boom kept in the look-at subject — tip may trim. */
 const DOOR_BOOM_KEEP = 0.55;
-if (SHOWTIME_TOTAL_S <= TEASER_LOOP_S) {
-  throw new Error("showtime budget must exceed the 3.6s living2 teaser loop");
-}
+// Fabian lock (0.5+1+0.5+boom) is shorter than the living2 teaser loop.
 let showtimePhase = showtimeWanted ? "door" : "off";
 let showtimeStartedAt = 0;
 let showtimeElapsed = 0;
@@ -1645,9 +1648,8 @@ function setDoorModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = !on;
-    const logo = m.getObjectByName("MiniLogo");
-    if (logo) logo.visible = true;
   }
+  setMiniFieldVisible(living, true);
 }
 
 /** Scan: only black caps + paper. Hide mini chrome so jsQR can read. */
@@ -1655,12 +1657,8 @@ function setScanModuleLook(on) {
   for (const m of mods) {
     const cap = m.getObjectByName("QrModTop");
     if (cap) cap.visible = true;
-    m.traverse((o) => {
-      if (!o.isMesh) return;
-      if (o.name === "QrModTop") return;
-      if (/MiniCabinet|MiniBand|MiniWheel|MiniLogo/.test(o.name || "")) o.visible = !on;
-    });
   }
+  setMiniFieldVisible(living, !on);
 }
 
 function placeTwinInLivingWorld() {
@@ -2896,6 +2894,13 @@ function mountCad(gltf, label) {
     if (boomRig?.pivot) killGhostBooms(boom, boomRig.pivot);
     boom.visible = true;
     placeTwinInLivingWorld();
+    try {
+      dressMiniCabinetsFromTwin(THREE, living, boom, LIVERY, living.logoMap);
+    } catch (err) {
+      console.warn("mini cabinet dress failed; lookalike field stays", err);
+    }
+    if (scanOpen) setScanModuleLook(true);
+    else setDoorModuleLook(true);
     if (showtimeWanted && showtimePhase !== "settled") {
       applyDoorPose();
       if (showtimePhase === "playing") {
@@ -3039,6 +3044,7 @@ function tick() {
   } else {
     for (const m of mods) m.position.y = m.userData.baseY || 0;
   }
+  syncMiniFieldWith(THREE, living);
   if (!scanOpen) {
     tickBoom(dt);
     tickSignUpright();
@@ -3180,7 +3186,9 @@ window.__iqr = {
       moduleMeshGroups: mods.length,
       texturedQuad: false,
       scanPlanePresent: false,
-      product: showtimeWanted ? "living7-icqr-door" : "living2-brand-world",
+      product: showtimeWanted ? "living8-icqr-door" : "living2-brand-world",
+      miniCabinetSource: living.miniCabinetSource ?? null,
+      miniClonedFromTwin: living.miniClonedFromTwin === true,
       showtime: showtimeWanted,
       showtimePhase,
       showtimeDoorS: SHOWTIME_DOOR_S,
@@ -3192,7 +3200,7 @@ window.__iqr = {
       showtimeLowerS: SHOWTIME_LOWER_S,
       showtimeTeaserS: TEASER_LOOP_S,
       longerThanTeaser: SHOWTIME_TOTAL_S > TEASER_LOOP_S,
-      timingBeat: "1+1+1+1",
+      timingBeat: "0.5+1+0.5+boom",
       showtimeHudHidden: showtimeHudHidden(),
       showtimeLeaveS: SHOWTIME_LEAVE_S,
       destLeave,
@@ -3428,6 +3436,8 @@ window.__iqr = {
       viewMode,
       scanOpen,
       miniHasTrafficLight: living.miniHasTrafficLight === true,
+      miniCabinetSource: living.miniCabinetSource ?? null,
+      miniClonedFromTwin: living.miniClonedFromTwin === true,
       stripeModules: living.stripeModules ?? 0,
     };
   },
