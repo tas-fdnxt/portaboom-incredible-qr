@@ -2,9 +2,9 @@
 
 Living2 Incredible QR for PORTABOOM PB4000 (ICQR Magic Tree *pattern*: a 3D brand world that is itself scannable).
 
-- Default view is the **PB4000 twin** standing in a 3D PORTABOOM-branded module plaza
-- Perspective camera — not an orthographic black/white QR tile field
-- Dark modules are sculptures (cabinet / boom stripe / head / LED) with real height
+- Default frame: living 3D module mural (scan this) + twin-tidy5 PB4000 in the same view
+- Dark modules are sculptures (cabinet / boom stripe / head / LED) with real depth
+- jsQR on this H-matrix only locks an **ortho scan-H peek** — perspective never decoded here
 - Print PNG is a demoted export under More — never the READY claim
 - DEST: https://www.trafficaccess.com.au/portaboom-product/portaboom-pb4000-series/
 

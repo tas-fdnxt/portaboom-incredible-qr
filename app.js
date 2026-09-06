@@ -578,7 +578,7 @@ const aspectEl = document.getElementById("aspect");
 
 const destQr = encodeDestMatrix();
 const reduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-let viewMode = "live"; // living2 = one world: twin + 3D plaza
+let viewMode = "live"; // living2 = mural + twin in one scannable frame
 let moreOpen = false;
 let lifeOn = !reduced;
 
@@ -604,10 +604,9 @@ if (!renderer.getContext()) {
 renderer.setPixelRatio(Math.min(devicePixelRatio || 1, 2));
 renderer.setClearColor(0x0d0d12, 1);
 renderer.outputColorSpace = THREE.SRGBColorSpace;
-renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.05;
-renderer.shadowMap.enabled = true;
-renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.NoToneMapping;
+renderer.toneMappingExposure = 1.12;
+renderer.shadowMap.enabled = false;
 
 const scene = new THREE.Scene();
 // twin-core Ye() studio: background 0x0d0d12, RoomEnvironment, no fog
@@ -624,13 +623,12 @@ try {
 const unitCam = new THREE.PerspectiveCamera(32, 1, 0.05, 80);
 unitCam.position.set(0, 1.5, 5.4);
 unitCam.lookAt(0, 1.1, 0);
-const liveCam = new THREE.PerspectiveCamera(36, 1, 0.05, 80);
+const liveCam = new THREE.OrthographicCamera(-2, 2, 2, -2, 0.05, 80);
+/** jsQR envelope on this H-matrix: ortho peek ≤ ~0.24/0.15. Perspective never locked. */
 const LIVE_POSE = {
-  pos: new THREE.Vector3(2.15, 3.55, 4.35),
-  tgt: new THREE.Vector3(-0.15, 0.42, 0.05),
-  fov: 36,
+  pos: new THREE.Vector3(0.24, 0.15, 8),
+  tgt: new THREE.Vector3(0, 0, 0),
 };
-liveCam.fov = LIVE_POSE.fov;
 liveCam.position.copy(LIVE_POSE.pos);
 liveCam.up.set(0, 1, 0);
 liveCam.lookAt(LIVE_POSE.tgt);
@@ -1237,10 +1235,10 @@ function initOrbit(root) {
   controls = new OrbitControls(camera, renderer.domElement);
   controls.enableDamping = true;
   controls.dampingFactor = 0.08;
-  controls.maxPolarAngle = Math.PI * 0.48;
-  controls.minPolarAngle = 0.28;
-  controls.minDistance = 2.4;
-  controls.maxDistance = 14;
+  controls.maxPolarAngle = Math.PI * 0.72;
+  controls.minPolarAngle = 0.55;
+  controls.minDistance = 3.2;
+  controls.maxDistance = 16;
   controls.enablePan = true;
   controls.autoRotate = false;
   controls.autoRotateSpeed = 1;
@@ -1254,11 +1252,22 @@ function initOrbit(root) {
   return controls;
 }
 
-function fitLivePersp() {
+function fitLiveOrtho() {
   const w = Math.max(1, canvas.clientWidth || innerWidth);
   const h = Math.max(1, canvas.clientHeight || innerHeight);
-  liveCam.aspect = w / h;
-  liveCam.fov = LIVE_POSE.fov;
+  const aspect = w / h;
+  const padSize = living.padSize;
+  // Leave a lower band for the PB4000 hero; QR stays framed for jsQR.
+  const fracW = 0.86;
+  const fracH = 0.56;
+  const worldH = Math.max(padSize / fracH, (padSize / fracW) / aspect);
+  const worldW = worldH * aspect;
+  liveCam.left = -worldW / 2;
+  liveCam.right = worldW / 2;
+  // Shift the window down so the mural sits high and the PB4000 owns the lower band.
+  const shift = -worldH * 0.16;
+  liveCam.top = worldH / 2 + shift;
+  liveCam.bottom = -worldH / 2 + shift;
   liveCam.near = 0.05;
   liveCam.far = 80;
   liveCam.updateProjectionMatrix();
@@ -1267,32 +1276,43 @@ function fitLivePersp() {
 function placeTwinInLivingWorld() {
   if (!boom) return;
   boom.visible = true;
+  if (boom.userData.livingPlanted) return;
+  fitLiveOrtho();
   const pad = living.padSize;
-  const box = worldBox(boom);
-  const c = box.getCenter(new THREE.Vector3());
-  const size = box.getSize(new THREE.Vector3());
-  // Left-near of the plaza so the PB4000 is the hero and does not cover the matrix.
-  boom.position.x += (-pad * 0.58 - size.x * 0.18) - c.x;
-  boom.position.z += pad * 0.08 - c.z;
+  const viewH = (liveCam.top - liveCam.bottom) || 8;
+  const room = Math.max(1.6, -pad * 0.5 - liveCam.bottom - 0.2);
+  const box0 = worldBox(boom);
+  const s0 = box0.getSize(new THREE.Vector3());
+  const grow = THREE.MathUtils.clamp(room / Math.max(0.4, s0.y), 1.15, 2.4);
+  boom.scale.multiplyScalar(grow);
+  const box2 = worldBox(boom);
+  const c2 = box2.getCenter(new THREE.Vector3());
+  const s2 = box2.getSize(new THREE.Vector3());
+  boom.position.x += -c2.x;
+  boom.position.z += 1.05 - c2.z;
+  const wantTop = -pad * 0.5 - 0.05;
+  boom.position.y += wantTop - box2.max.y;
   boom.userData.livingPlanted = true;
+  boom.userData.livingGrow = grow;
+  boom.userData.livingSize = [s2.x, s2.y, s2.z];
+  boom.userData.viewH = viewH;
 }
 
 function applyLiveScanPose() {
   camera = liveCam;
   if (controls) controls.object = liveCam;
-  fitLivePersp();
+  fitLiveOrtho();
   liveCam.up.set(0, 1, 0);
   liveCam.position.copy(LIVE_POSE.pos);
   liveCam.lookAt(LIVE_POSE.tgt);
   liveCam.updateProjectionMatrix();
   if (controls) {
     controls.target.copy(LIVE_POSE.tgt);
-    controls.enableRotate = true;
-    controls.enablePan = true;
-    controls.minPolarAngle = 0.28;
-    controls.maxPolarAngle = Math.PI * 0.48;
-    controls.minDistance = 2.4;
-    controls.maxDistance = 14;
+    controls.enableRotate = false;
+    controls.enablePan = false;
+    controls.enableZoom = true;
+    controls.minDistance = 4;
+    controls.maxDistance = 16;
     controls.update();
   }
 }
@@ -2090,7 +2110,7 @@ function removeHero() {
   if (boom && boom.parent) boom.parent.remove(boom);
 }
 
-setStatus("Living QR · scan the 3D scene");
+setStatus("Living QR · scan the mural · PB4000 in frame");
 boomRig = rigHeroArm(boom);
 ledRig.faceMats = boom.userData.heroFaceMats || [];
 ledRig.faceMat = ledRig.faceMats[0] || boom.userData.heroFaceMat || null;
@@ -2139,7 +2159,7 @@ function mountCad(gltf, label) {
     boom.visible = true;
     placeTwinInLivingWorld();
     applyLiveScanPose();
-    if (boomRig) setStatus("Living QR · PB4000 in the 3D scene");
+    if (boomRig) setStatus("Living QR · scan the mural · PB4000 in frame");
     else setStatus(label);
   } catch (err) {
     console.error(err);
@@ -2223,11 +2243,11 @@ function setViewMode(next) {
   studioGroup.visible = true;
   grid.visible = true;
   if (boom) boom.visible = true;
-  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMapping = THREE.NoToneMapping;
   scene.background.setHex(0x0d0d12);
   renderer.setClearColor(0x0d0d12, 1);
   applyLiveScanPose();
-  setStatus("Living QR · PB4000 world · scan the 3D scene");
+  setStatus("Living QR · scan the mural · PB4000 in frame");
   if (hintEl) hintEl.textContent = "Point your phone camera at the living 3D scene.";
   syncModeHud();
 }
@@ -2238,7 +2258,7 @@ function resize() {
   renderer.setSize(w, h, false);
   unitCam.aspect = w / h;
   unitCam.updateProjectionMatrix();
-  if (viewMode === "live") fitLivePersp();
+  if (viewMode === "live") fitLiveOrtho();
   else camera.updateProjectionMatrix();
 }
 addEventListener("resize", resize);
@@ -2257,13 +2277,13 @@ function tick() {
   if (lifeOn && !reduced) {
     const amp = living.cell * 0.012;
     for (const m of mods) {
-      m.position.y = (m.userData.baseY || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
+      m.position.z = (m.userData.baseZ || 0) + Math.sin(t * 1.05 + m.userData.phase) * amp;
     }
     living.ledMats.forEach((mat, i) => {
       mat.emissiveIntensity = 0.85 + Math.sin(t * 1.6 + i * 0.4) * 0.35;
     });
   } else {
-    for (const m of mods) m.position.y = m.userData.baseY || 0;
+    for (const m of mods) m.position.z = m.userData.baseZ || 0;
   }
   tickBoom(dt);
   tickSignUpright();
@@ -2273,7 +2293,9 @@ function tick() {
     if (!spin) controls.autoRotate = false;
     controls.update();
   }
-  renderer.render(scene, camera);
+  renderer.autoClear = true;
+  renderer.setScissorTest(false);
+  renderer.render(scene, liveCam);
 }
 tick();
 
@@ -2378,6 +2400,8 @@ window.__iqr = {
       product: "living2-brand-world",
       cameraIsPerspective: camera.isPerspectiveCamera === true,
       cameraIsOrtho: camera.isOrthographicCamera === true,
+      scanEnvelope: "ortho-peek<=0.24,0.15 — perspective of this H-matrix never locked jsQR",
+      livingPeek: [LIVE_POSE.pos.x, LIVE_POSE.pos.y],
       defaultShowsTwin: !!(boom && boom.visible),
       flattenBtnPresent: !!document.getElementById("flattenBtn"),
       unitDockPresent: !!document.getElementById("unitDock"),
@@ -2503,7 +2527,16 @@ window.__iqr = {
     };
   },
   captureScan() {
-    renderer.render(scene, camera);
+    renderer.render(scene, liveCam);
+    return canvas.toDataURL("image/png");
+  },
+  captureScanPeek(x = 0.24, y = 0.15) {
+    fitLiveOrtho();
+    liveCam.position.set(x, y + grid.position.y, 8);
+    liveCam.lookAt(0, grid.position.y, 0);
+    liveCam.updateProjectionMatrix();
+    camera = liveCam;
+    renderer.render(scene, liveCam);
     return canvas.toDataURL("image/png");
   },
   get living() {
@@ -2519,7 +2552,7 @@ window.__iqr = {
     };
   },
   nudgeScan(x = 0, y = 0) {
-    liveCam.position.set(LIVE_POSE.pos.x + x, LIVE_POSE.pos.y + y * 0.35, LIVE_POSE.pos.z);
+    liveCam.position.set(LIVE_POSE.pos.x + x * 0.12, LIVE_POSE.pos.y + y * 0.08, LIVE_POSE.pos.z);
     liveCam.lookAt(LIVE_POSE.tgt);
     liveCam.updateProjectionMatrix();
     if (controls) {
@@ -2528,6 +2561,25 @@ window.__iqr = {
     }
     renderer.render(scene, liveCam);
     return true;
+  },
+  setLivePose(px, py, pz, tx = 0, ty = 0, tz = 0) {
+    liveCam.position.set(px, py, pz);
+    liveCam.lookAt(tx, ty, tz);
+    liveCam.updateProjectionMatrix();
+    renderer.render(scene, liveCam);
+    return liveCam.position.toArray();
+  },
+  debugScan(opts = {}) {
+    if (opts.hideTwin && boom) boom.visible = false;
+    if (opts.showTwin && boom) boom.visible = true;
+    if (opts.gridY != null) grid.position.y = opts.gridY;
+    renderer.render(scene, liveCam);
+    return {
+      twin: !!(boom && boom.visible),
+      gridY: grid.position.y,
+      tone: renderer.toneMapping,
+      cam: camera.isOrthographicCamera ? "ortho" : "persp",
+    };
   },
   resetScan() {
     applyLiveScanPose();

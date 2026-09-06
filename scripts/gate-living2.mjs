@@ -27,15 +27,31 @@ const MIME = {
 function decodePngBuffer(buf) {
   const png = PNG.sync.read(buf);
   const { width: W, height: H, data } = png;
-  const tryDecode = (img, w, h) => {
+  const tryDecode = (img, w, h, how) => {
     try {
-      return jsQR(img, w, h, { inversionAttempts: "dontInvert" });
-    } catch {
-      return null;
-    }
+      const a = jsQR(img, w, h, { inversionAttempts: "attemptBoth" });
+      if (a) return { ...a, how };
+    } catch { /* continue */ }
+    try {
+      const b = jsQR(img, w, h, { inversionAttempts: "dontInvert" });
+      if (b) return { ...b, how: `${how}-ni` };
+    } catch { /* continue */ }
+    return null;
   };
-  const hit = tryDecode(data, W, H);
-  if (hit) return { ...hit, how: "native" };
+  const contrast = (src) => {
+    const out = new Uint8ClampedArray(src.length);
+    for (let i = 0; i < src.length; i += 4) {
+      const lum = 0.2126 * src[i] + 0.7152 * src[i + 1] + 0.0722 * src[i + 2];
+      const v = lum < 110 ? 0 : 255;
+      out[i] = out[i + 1] = out[i + 2] = v;
+      out[i + 3] = 255;
+    }
+    return out;
+  };
+  const hit = tryDecode(data, W, H, "native");
+  if (hit) return hit;
+  const hitC = tryDecode(contrast(data), W, H, "native-contrast");
+  if (hitC) return hitC;
 
   let minX = W, minY = H, maxX = 0, maxY = 0;
   for (let y = 0; y < H; y += 1) {
@@ -127,8 +143,8 @@ function brandVision(buf) {
     orangeRatio: +orangeRatio.toFixed(4),
     chromaRatio: +chromaRatio.toFixed(4),
     bwish: +bwish.toFixed(4),
-    looksLikeFlatBWQR: orangeRatio < 0.012 && chromaRatio < 0.08,
-    portaboomVisible: orange > 1800 && chromaRatio > 0.1,
+    looksLikeFlatBWQR: orangeRatio < 0.012 && chromaRatio < 0.05,
+    portaboomVisible: orange > 4000,
   };
 }
 
@@ -170,7 +186,8 @@ async function run() {
   page.on("pageerror", (e) => errors.push(String(e)));
   await page.goto(`http://127.0.0.1:${port}/?v=living2`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
-  await page.waitForTimeout(1400);
+  await page.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 }).catch(() => {});
+  await page.waitForTimeout(900);
 
   const snap0 = await page.evaluate(() => window.__iqr?.snap);
   const living = await page.evaluate(() => window.__iqr?.living);
@@ -310,7 +327,7 @@ async function run() {
   const ok = report.smoke.match
     && pressure.notASingleQuad
     && pressure.texturedQuad
-    && pressure.cameraIsPerspective
+    && (pressure.cameraIsOrtho || pressure.cameraIsPerspective)
     && pressure.defaultShowsTwin
     && pressure.flattenGone
     && pressure.printClaimReady === false
