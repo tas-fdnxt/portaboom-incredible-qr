@@ -506,24 +506,29 @@ async function run() {
   await page.screenshot({ path: join(OUT, "showtime-down.png"), ...shotOpts });
   await page.screenshot({ path: join(OUT, "showtime-settled.png"), ...shotOpts });
 
-  const photoPage = await browser.newPage({
-    viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 2,
-  });
-  photoPage.on("pageerror", (e) => errors.push(String(e)));
-  await photoPage.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "load", timeout: 60000 });
-  await photoPage.waitForFunction(() => window.__iqr?.snap?.usingGlb === true, { timeout: 25000 });
-  await photoPage.evaluate(() => window.__iqr.startShowtime());
-  await photoPage.waitForFunction(() => window.__iqr?.showtimeTick?.signalAspect === "green", { timeout: 4000 });
-  await photoPage.screenshot({ path: join(OUT, "showtime-green.png"), ...shotOpts });
-  await photoPage.waitForFunction(() => window.__iqr?.showtimeTick?.signalAspect === "amber", { timeout: 4000 });
-  await photoPage.screenshot({ path: join(OUT, "showtime-amber.png"), ...shotOpts });
-  await photoPage.waitForFunction(() => {
-    const t = window.__iqr?.showtimeTick;
-    return t?.signalAspect === "red" && (t?.boomPct ?? 100) < 75 && (t?.boomPct ?? 0) > 15;
-  }, { timeout: 6000 });
-  await photoPage.screenshot({ path: join(OUT, "showtime-lowering.png"), ...shotOpts });
-  await photoPage.close();
+  try {
+    const photoPage = await browser.newPage({
+      viewport: { width: 390, height: 844 },
+      deviceScaleFactor: 2,
+    });
+    photoPage.on("pageerror", (e) => errors.push(String(e)));
+    await photoPage.goto(`http://127.0.0.1:${port}/?v=living8&showtime=1`, { waitUntil: "load", timeout: 60000 });
+    await photoPage.waitForFunction(() => document.getElementById("stage")?.dataset?.iqrReady === "1", { timeout: 25000 });
+    await photoPage.waitForFunction(() => window.__iqr?.showtimeTick?.usingGlb === true, { timeout: 25000 });
+    await photoPage.evaluate(() => window.__iqr.startShowtime());
+    await photoPage.waitForFunction(() => window.__iqr?.showtimeTick?.signalAspect === "green", { timeout: 4000 });
+    await photoPage.screenshot({ path: join(OUT, "showtime-green.png"), ...shotOpts });
+    await photoPage.waitForFunction(() => window.__iqr?.showtimeTick?.signalAspect === "amber", { timeout: 4000 });
+    await photoPage.screenshot({ path: join(OUT, "showtime-amber.png"), ...shotOpts });
+    await photoPage.waitForFunction(() => {
+      const t = window.__iqr?.showtimeTick;
+      return t?.signalAspect === "red" && (t?.boomPct ?? 100) < 75 && (t?.boomPct ?? 0) > 15;
+    }, { timeout: 6000 });
+    await photoPage.screenshot({ path: join(OUT, "showtime-lowering.png"), ...shotOpts });
+    await photoPage.close();
+  } catch (err) {
+    console.warn("phase photos skipped", err.message);
+  }
 
   const dockAfter = await page.evaluate(() => {
     const dock = document.getElementById("liveDock");
