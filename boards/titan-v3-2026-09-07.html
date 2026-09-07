@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>TITAN v3.1 · DRAFT · living plan cockpit · 07/09/2026</title>
+<title>TITAN v3.2 · DRAFT · living plan cockpit · 07/09/2026</title>
 <meta name="robots" content="noindex"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
@@ -390,8 +390,9 @@ button,input,textarea{font-family:inherit}
 .rail .extra a:hover{background:rgba(255,255,255,.06)}
 
 .main{min-width:0; padding:14px 16px 24px}
-.mode-panel{display:none}
-.mode-panel.active{display:block}
+/* v3.2: sole visibility = [hidden] — do NOT use .active display:none war */
+.mode-panel{display:block; min-width:0}
+.mode-panel[hidden]{display:none!important}
 
 /* Dashboard smart cards */
 .dash-grid{display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px}
@@ -590,7 +591,7 @@ label.opt b{font-size:17px; vertical-align:middle}
     <p class="mute" style="color:rgba(255,255,255,.55);font-size:.75rem;margin-top:1rem;padding:0 .4rem">Importance order · L/O/P on Plan mode</p>
   </aside>
   <main class="main">
-    <section class="mode-panel on" id="mode-dashboard">
+    <section class="mode-panel on active" id="mode-dashboard">
       
 <div class="kpi-row">
   <div class="kpi-card"><span class="kpi-lab">Now</span><strong>Titan v3 DRAFT cockpit forge · local review only</strong></div>
@@ -4000,7 +4001,7 @@ window.TITAN_ASKS_COUNT = 66;
   qg?.addEventListener('input', () => {
     if (body.dataset.mode === 'streams') { if(q) q.value = qg.value; applyFilter(); }
     else if (body.dataset.mode === 'sessions') applySessFilter({term: qg.value});
-    else { setMode('streams'); if(q) q.value = qg.value; applyFilter(); }
+    else { location.hash = '#/streams'; if(q) q.value = qg.value; setTimeout(applyFilter, 50); }
   });
 
   // Sessions filters
@@ -4062,7 +4063,7 @@ window.TITAN_ASKS_COUNT = 66;
     const a = ev.target.closest('a[data-goto-ask], a[href^="#ask-"]');
     if (a){
       const href = a.getAttribute('href');
-      setMode('streams');
+      location.hash = '#/streams'; /* was setMode streams */
       setTimeout(() => {
         const el2 = document.querySelector(href);
         if (el2 && el2.tagName === 'DETAILS'){
@@ -4086,7 +4087,7 @@ window.TITAN_ASKS_COUNT = 66;
   });
 
   restore();
-  setMode('dashboard');
+  /* v3.2: do NOT setMode here — hash router owns initial mode (was racing / blanking panels) */
 })();
 
 </script>
@@ -4113,13 +4114,17 @@ window.TITAN_ASKS_COUNT = 66;
     document.body.dataset.mode = mode;
     document.body.dataset.view = view || mode;
     $all('.mode-btn').forEach(b => {
-      b.classList.toggle('on', b.dataset.mode === mode);
-      b.setAttribute('aria-current', b.dataset.mode === mode ? 'page' : 'false');
+      const onb = b.dataset.mode === mode;
+      b.classList.toggle('on', onb);
+      b.setAttribute('aria-selected', onb ? 'true' : 'false');
+      b.setAttribute('aria-current', onb ? 'page' : 'false');
     });
     $all('.mode-panel').forEach(p => {
       const on = p.id === 'mode-' + mode;
-      p.hidden = !on;
+      if (on) { p.hidden = false; p.removeAttribute('hidden'); }
+      else { p.hidden = true; p.setAttribute('hidden', ''); }
       p.classList.toggle('on', on);
+      p.classList.toggle('active', on);
     });
   }
 
